@@ -131,7 +131,7 @@
 }
 
 @theme inline {
-  --font-sans: 'Cormorant Garamond', serif;
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
   --font-serif: 'Playfair Display', serif;
   --font-script: 'Allura', cursive;
   --font-mono: 'Geist Mono', 'Geist Mono Fallback', monospace;

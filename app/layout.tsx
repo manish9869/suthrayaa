@@ -1,19 +1,19 @@
 import type { Metadata } from 'next'
-import { Playfair_Display, Cormorant_Garamond, Allura } from 'next/font/google'
+import { Playfair_Display, Plus_Jakarta_Sans, Allura } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { Toaster } from 'sonner'
 import './globals.css'
 
-const playfair = Playfair_Display({ 
+const playfair = Playfair_Display({
   subsets: ['latin'],
   variable: '--font-playfair',
   display: 'swap',
 })
 
-const cormorant = Cormorant_Garamond({ 
+const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
   weight: ['300', '400', '500', '600', '700'],
-  variable: '--font-cormorant',
+  variable: '--font-jakarta',
   display: 'swap',
 })
 
@@ -61,7 +61,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" data-scroll-behavior="smooth" className={`${playfair.variable} ${cormorant.variable} ${allura.variable} bg-background`}>
+    <html lang="en" data-scroll-behavior="smooth" className={`${playfair.variable} ${jakarta.variable} ${allura.variable} bg-background`}>
       <body className="font-sans antialiased min-h-screen">
         {children}
         <Toaster position="bottom-right" richColors />

@@ -8,19 +8,28 @@ import { StorySection } from '@/components/home/story-section'
 import { TestimonialsSection } from '@/components/home/testimonials-section'
 import { InstagramSection } from '@/components/home/instagram-section'
 import { TrustBadges } from '@/components/home/trust-badges'
+import { getCategories, getFeaturedProducts, getBestsellerProducts, getTestimonials, getHeroSlides } from '@/lib/data'
 
-export default function HomePage() {
+export default async function HomePage() {
+  const [categories, featuredProducts, bestsellers, testimonials, heroSlides] = await Promise.all([
+    getCategories(),
+    getFeaturedProducts(4),
+    getBestsellerProducts(8),
+    getTestimonials(),
+    getHeroSlides(),
+  ])
+
   return (
     <>
-      <Navbar />
+      <Navbar categories={categories} />
       <main>
-        <HeroSection />
+        <HeroSection slides={heroSlides} featuredProducts={featuredProducts} />
         <TrustBadges />
-        <CategoriesSection />
-        <FeaturedProducts />
+        <CategoriesSection categories={categories} />
+        <FeaturedProducts products={featuredProducts} />
         <StorySection />
-        <BestSellers />
-        <TestimonialsSection />
+        <BestSellers products={bestsellers} />
+        <TestimonialsSection testimonials={testimonials} />
         <InstagramSection />
       </main>
       <Footer />

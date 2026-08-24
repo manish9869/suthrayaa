@@ -5,11 +5,13 @@ import Link from 'next/link'
 import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ProductCard } from '@/components/product-card'
-import { getBestsellerProducts } from '@/lib/data'
+import type { Product } from '@/lib/data'
+import { Reveal } from '@/components/motion/reveal'
 
-export function BestSellers() {
+export function BestSellers({ products: bestSellers }: { products: Product[] }) {
   const scrollRef = useRef<HTMLDivElement>(null)
-  const bestSellers = getBestsellerProducts()
+
+  if (bestSellers.length === 0) return null
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollRef.current) {
@@ -25,7 +27,7 @@ export function BestSellers() {
     <section className="py-16 lg:py-24 bg-peach/30">
       <div className="container mx-auto px-4">
         {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-12">
+        <Reveal className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-12">
           <div>
             <span className="inline-block px-4 py-1.5 rounded-full bg-secondary text-sm font-medium mb-4">
               Customer Favorites
@@ -54,7 +56,7 @@ export function BestSellers() {
               <ChevronRight className="h-5 w-5" />
             </Button>
           </div>
-        </div>
+        </Reveal>
 
         {/* Scrollable Products */}
         <div

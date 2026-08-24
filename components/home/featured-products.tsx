@@ -2,16 +2,17 @@ import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ProductCard } from '@/components/product-card'
-import { getFeaturedProducts } from '@/lib/data'
+import type { Product } from '@/lib/data'
+import { Reveal } from '@/components/motion/reveal'
 
-export function FeaturedProducts() {
-  const featuredProducts = getFeaturedProducts()
+export function FeaturedProducts({ products }: { products: Product[] }) {
+  if (products.length === 0) return null
 
   return (
     <section className="py-16 lg:py-24 bg-muted/30">
       <div className="container mx-auto px-4">
         {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-12">
+        <Reveal className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-12">
           <div>
             <span className="inline-block px-4 py-1.5 rounded-full bg-lavender text-sm font-medium mb-4">
               Handpicked for You
@@ -26,12 +27,14 @@ export function FeaturedProducts() {
               <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
           </Button>
-        </div>
+        </Reveal>
 
         {/* Products Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {featuredProducts.slice(0, 4).map((product) => (
-            <ProductCard key={product.id} product={product} />
+          {products.slice(0, 4).map((product, index) => (
+            <Reveal key={product.id} delay={index * 0.08}>
+              <ProductCard product={product} />
+            </Reveal>
           ))}
         </div>
       </div>

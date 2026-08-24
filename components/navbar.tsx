@@ -12,7 +12,8 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { useCartStore } from '@/lib/store'
-import { categories } from '@/lib/data'
+import { useAuth } from '@/lib/hooks/use-auth'
+import type { Category } from '@/lib/data'
 import { CartDrawer } from './cart-drawer'
 
 const navLinks = [
@@ -22,13 +23,19 @@ const navLinks = [
   { href: '/contact', label: 'Contact' },
 ]
 
-export function Navbar() {
+export function Navbar({ categories = [] }: { categories?: Category[] }) {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const pathname = usePathname()
   const { getTotalItems, openCart } = useCartStore()
   const totalItems = getTotalItems()
+  const { user, signOut } = useAuth()
+
+  // Cart count comes from localStorage-persisted Zustand state, which is empty during SSR —
+  // deferring the badge to after mount avoids a hydration mismatch against the server HTML.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -215,11 +222,28 @@ export function Navbar() {
               </Button>
 
               {/* Account */}
-              <Button variant="ghost" size="icon" asChild className="hidden sm:flex">
-                <Link href="/account" aria-label="Account">
-                  <User className="h-5 w-5" />
-                </Link>
-              </Button>
+              {user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="hidden sm:flex" aria-label="Account">
+                      <User className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuLabel className="truncate">
+                      {user.email || user.phone || 'My Account'}
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => signOut()}>Sign Out</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button variant="ghost" size="icon" asChild className="hidden sm:flex">
+                  <Link href="/login" aria-label="Sign in">
+                    <User className="h-5 w-5" />
+                  </Link>
+                </Button>
+              )}
 
               {/* Cart */}
               <Button
@@ -230,7 +254,7 @@ export function Navbar() {
                 aria-label="Cart"
               >
                 <ShoppingBag className="h-5 w-5" />
-                {totalItems > 0 && (
+                {mounted && totalItems > 0 && (
                   <Badge
                     className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-secondary text-secondary-foreground"
                   >

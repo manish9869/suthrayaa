@@ -6,10 +6,13 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
-import { testimonials } from '@/lib/data'
+import type { Testimonial } from '@/lib/data'
+import { Reveal } from '@/components/motion/reveal'
 
-export function TestimonialsSection() {
+export function TestimonialsSection({ testimonials }: { testimonials: Testimonial[] }) {
   const [currentIndex, setCurrentIndex] = useState(0)
+
+  if (testimonials.length === 0) return null
 
   const next = () => {
     setCurrentIndex((prev) => (prev + 1) % testimonials.length)
@@ -23,7 +26,7 @@ export function TestimonialsSection() {
     <section className="py-16 lg:py-24">
       <div className="container mx-auto px-4">
         {/* Section Header */}
-        <div className="text-center mb-12">
+        <Reveal className="text-center mb-12">
           <span className="inline-block px-4 py-1.5 rounded-full bg-lavender text-sm font-medium mb-4">
             Love From Our Customers
           </span>
@@ -33,7 +36,7 @@ export function TestimonialsSection() {
           <p className="text-muted-foreground max-w-2xl mx-auto">
             Real stories from real people who have experienced the magic of handcrafted crochet.
           </p>
-        </div>
+        </Reveal>
 
         {/* Testimonials Carousel */}
         <div className="max-w-4xl mx-auto">

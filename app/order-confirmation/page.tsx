@@ -4,14 +4,20 @@ import { Footer } from '@/components/footer'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { CheckCircle, Package, Truck, Mail, ArrowRight } from 'lucide-react'
+import { getCategories } from '@/lib/data'
 
-export default function OrderConfirmationPage() {
-  // In a real app, this would come from the order data
-  const orderNumber = `STH${Date.now().toString().slice(-8)}`
+interface OrderConfirmationPageProps {
+  searchParams: Promise<{ order?: string; payment?: string }>
+}
+
+export default async function OrderConfirmationPage({ searchParams }: OrderConfirmationPageProps) {
+  const [{ order, payment }, categories] = await Promise.all([searchParams, getCategories()])
+  const orderNumber = order ?? 'Unknown'
+  const isCod = payment === 'cod'
 
   return (
     <>
-      <Navbar />
+      <Navbar categories={categories} />
       <main className="min-h-screen bg-muted/30">
         <div className="container mx-auto px-4 py-16">
           <div className="max-w-2xl mx-auto">
@@ -82,15 +88,16 @@ export default function OrderConfirmationPage() {
               </CardContent>
             </Card>
 
-            {/* Email Notification */}
+            {/* Payment Notice */}
             <Card className="mb-8 bg-peach/20 border-peach">
               <CardContent className="p-6 flex items-start gap-4">
                 <Mail className="h-6 w-6 text-secondary flex-shrink-0" />
                 <div>
-                  <p className="font-medium">Confirmation Email Sent</p>
+                  <p className="font-medium">{isCod ? 'Pay on Delivery' : 'Payment Received'}</p>
                   <p className="text-sm text-muted-foreground">
-                    We&apos;ve sent order details and tracking information to your email. 
-                    Please check your inbox (and spam folder) for updates.
+                    {isCod
+                      ? 'Please keep the order total ready in cash when your package arrives.'
+                      : 'Your payment was verified successfully and your order is confirmed.'}
                   </p>
                 </div>
               </CardContent>

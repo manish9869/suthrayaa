@@ -4,10 +4,12 @@ import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { ChevronLeft, ChevronRight, ArrowRight, Flower2, Sparkles, Scissors, CircleDot, Heart, Star, WandSparkles, Clover, Yarn } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatPrice, type HeroSlide, type Product } from '@/lib/data'
+import { HeroDoodles } from './hero-doodles'
 
-const slides = [
+const fallbackSlides = [
   {
     id: 1,
     title: 'Handcrafted with Love',
@@ -40,14 +42,31 @@ const slides = [
   },
 ]
 
-export function HeroSection() {
+interface HeroSectionProps {
+  slides?: HeroSlide[]
+  featuredProducts?: Product[]
+}
+
+export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSectionProps) {
+  const slides = cmsSlides && cmsSlides.length > 0
+    ? cmsSlides.map((s, i) => ({
+        id: s.id,
+        title: s.title,
+        subtitle: s.subtitle ?? '',
+        description: s.description ?? '',
+        image: s.image ?? fallbackSlides[i % fallbackSlides.length].image,
+        cta: s.ctaLabel ?? 'Shop Collection',
+        href: s.ctaHref ?? '/shop',
+        accent: s.accentToken ?? fallbackSlides[i % fallbackSlides.length].accent,
+      }))
+    : fallbackSlides
+
   const [currentSlide, setCurrentSlide] = useState(0)
   const [isAutoPlaying, setIsAutoPlaying] = useState(true)
-  const [pointer, setPointer] = useState({ x: 0, y: 0 })
 
   const nextSlide = useCallback(() => {
     setCurrentSlide((prev) => (prev + 1) % slides.length)
-  }, [])
+  }, [slides.length])
 
   const prevSlide = () => {
     setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length)
@@ -59,31 +78,15 @@ export function HeroSection() {
     return () => clearInterval(interval)
   }, [isAutoPlaying, nextSlide])
 
+  const showcaseProducts = featuredProducts.slice(0, 4)
+
   return (
     <section
       className="relative h-[calc(100vh-7rem)] min-h-[600px] overflow-hidden"
       onMouseEnter={() => setIsAutoPlaying(false)}
-      onMouseLeave={() => { setIsAutoPlaying(true); setPointer({ x: 0, y: 0 }) }}
-      onMouseMove={(event) => {
-        const rect = event.currentTarget.getBoundingClientRect()
-        setPointer({
-          x: ((event.clientX - rect.left) / rect.width - 0.5) * 2,
-          y: ((event.clientY - rect.top) / rect.height - 0.5) * 2,
-        })
-      }}
+      onMouseLeave={() => setIsAutoPlaying(true)}
     >
-      <div className="pointer-events-none absolute inset-0 z-20 hidden overflow-hidden md:block" aria-hidden="true">
-        <div className="hero-doodle hero-doodle-one" style={{ transform: `translate(${pointer.x * 18}px, ${pointer.y * 12}px) rotate(-12deg)` }}><CircleDot /></div>
-        <div className="hero-doodle hero-doodle-two" style={{ transform: `translate(${pointer.x * -24}px, ${pointer.y * -14}px) rotate(18deg)` }}><Flower2 /></div>
-        <div className="hero-doodle hero-doodle-three" style={{ transform: `translate(${pointer.x * 12}px, ${pointer.y * -20}px) rotate(25deg)` }}><Scissors /></div>
-        <div className="hero-doodle hero-doodle-four" style={{ transform: `translate(${pointer.x * -15}px, ${pointer.y * 18}px)` }}><Heart /></div>
-        <div className="hero-doodle hero-doodle-five" style={{ transform: `translate(${pointer.x * 28}px, ${pointer.y * 8}px)` }}><Sparkles /></div>
-        <div className="hero-doodle hero-doodle-six" style={{ transform: `translate(${pointer.x * -30}px, ${pointer.y * 10}px) rotate(-18deg)` }}><Star /></div>
-        <div className="hero-doodle hero-doodle-seven" style={{ transform: `translate(${pointer.x * 20}px, ${pointer.y * -12}px) rotate(10deg)` }}><Clover /></div>
-        <div className="hero-doodle hero-doodle-eight" style={{ transform: `translate(${pointer.x * -12}px, ${pointer.y * -18}px) rotate(22deg)` }}><WandSparkles /></div>
-        <div className="hero-doodle hero-doodle-nine" style={{ transform: `translate(${pointer.x * 34}px, ${pointer.y * 20}px)` }}><CircleDot /></div>
-        <div className="hero-thread" />
-      </div>
+      <HeroDoodles />
       <div className="hero-floating-motifs pointer-events-none absolute inset-0 z-[1] overflow-hidden" aria-hidden="true">
         <span className="motif motif-a">✦</span><span className="motif motif-b">○</span><span className="motif motif-c">✧</span>
         <span className="motif motif-d">+</span><span className="motif motif-e">✦</span><span className="motif motif-f">○</span>
@@ -143,16 +146,47 @@ export function HeroSection() {
                   <Link href="/about">Our Story</Link>
                 </Button>
               </div>
-              <div className="mt-10 flex flex-wrap gap-3">
-                <div className="hero-widget rounded-2xl border border-border/70 bg-background/80 px-4 py-3 shadow-soft backdrop-blur-sm">
-                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Made slowly</p>
-                  <p className="font-serif text-lg font-semibold">One stitch at a time</p>
+
+              {/* Interactive "check our collection" widget — live bestseller/featured picks */}
+              {showcaseProducts.length > 0 ? (
+                <div className="mt-10">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-3">This week&apos;s favorites</p>
+                  <div className="flex flex-wrap gap-3">
+                    {showcaseProducts.map((product, i) => (
+                      <Link
+                        key={product.id}
+                        href={`/product/${product.slug}`}
+                        className="hero-widget group flex items-center gap-3 rounded-2xl border border-border/70 bg-background/80 py-2 pl-2 pr-4 shadow-soft backdrop-blur-sm transition-colors hover:border-secondary"
+                        style={{ animationDelay: `${i * 110}ms` }}
+                      >
+                        <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl bg-muted">
+                          <Image
+                            src={product.images[0] ?? '/placeholder.svg'}
+                            alt={product.name}
+                            fill
+                            className="object-cover transition-transform duration-300 group-hover:scale-110"
+                          />
+                        </div>
+                        <div>
+                          <p className="line-clamp-1 max-w-[9rem] text-sm font-medium leading-tight">{product.name}</p>
+                          <p className="text-xs font-semibold text-secondary">{formatPrice(product.price)}</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
                 </div>
-                <div className="hero-widget rounded-2xl border border-border/70 bg-background/80 px-4 py-3 shadow-soft backdrop-blur-sm">
-                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Loved by</p>
-                  <p className="font-serif text-lg font-semibold">500+ happy makers</p>
+              ) : (
+                <div className="mt-10 flex flex-wrap gap-3">
+                  <div className="hero-widget rounded-2xl border border-border/70 bg-background/80 px-4 py-3 shadow-soft backdrop-blur-sm">
+                    <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Made slowly</p>
+                    <p className="font-serif text-lg font-semibold">One stitch at a time</p>
+                  </div>
+                  <div className="hero-widget rounded-2xl border border-border/70 bg-background/80 px-4 py-3 shadow-soft backdrop-blur-sm" style={{ animationDelay: '120ms' }}>
+                    <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Loved by</p>
+                    <p className="font-serif text-lg font-semibold">500+ happy makers</p>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
