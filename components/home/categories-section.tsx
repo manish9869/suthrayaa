@@ -2,10 +2,12 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import type { Category } from '@/lib/data'
+import { buildCategoryTree, totalProductCount } from '@/lib/utils/category-tree'
 import { Reveal } from '@/components/motion/reveal'
 
 export function CategoriesSection({ categories }: { categories: Category[] }) {
-  if (categories.length === 0) return null
+  const topLevel = buildCategoryTree(categories).filter((c) => c.showOnHomepage)
+  if (topLevel.length === 0) return null
 
   return (
     <section className="py-16 lg:py-24">
@@ -25,7 +27,7 @@ export function CategoriesSection({ categories }: { categories: Category[] }) {
 
         {/* Categories Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 lg:gap-6">
-          {categories.map((category, index) => (
+          {topLevel.map((category, index) => (
             <Reveal
               key={category.id}
               delay={Math.min(index, 4) * 0.06}
@@ -52,7 +54,7 @@ export function CategoriesSection({ categories }: { categories: Category[] }) {
                         {category.name}
                       </h3>
                       <p className="text-white/80 text-sm hidden sm:block">
-                        {category.productCount} products
+                        {totalProductCount(category)} products
                       </p>
                     </div>
                     <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover:bg-secondary transition-colors">

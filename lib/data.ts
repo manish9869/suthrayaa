@@ -11,6 +11,7 @@ export interface CustomizationValue {
   value: string
   priceAdjustment: number
   enabled: boolean
+  sku?: string
 }
 
 export interface ProductCustomization {
@@ -36,6 +37,8 @@ export interface Product {
   description: string
   shortDescription: string
   price: number
+  originalPrice?: number
+  discountPercent?: number
   comparePrice?: number
   images: string[]
   category: string
@@ -66,6 +69,18 @@ export interface Product {
   dimensions?: string
   materials: string[]
   careInstructions: string[]
+  status: 'draft' | 'active' | 'hidden' | 'out_of_stock' | 'archived'
+  productType: 'ready_to_ship' | 'made_to_order' | 'custom_order'
+  processingMinDays?: number
+  processingMaxDays?: number
+  processingMessage?: string
+  trackInventory: boolean
+  allowBackorders: boolean
+  continueSellingWhenOutOfStock: boolean
+  freeShipping: boolean
+  localPickupAvailable: boolean
+  metaTitle?: string
+  metaDescription?: string
 }
 
 export interface Category {
@@ -75,6 +90,13 @@ export interface Category {
   description: string
   image: string
   productCount: number
+  parentId: string | null
+  isDummy: boolean
+  showInNavigation: boolean
+  showOnHomepage: boolean
+  isFeatured: boolean
+  seoTitle?: string
+  seoDescription?: string
 }
 
 export interface Review {

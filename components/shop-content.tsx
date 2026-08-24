@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, type ReactNode } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Navbar } from '@/components/navbar'
 import { Footer } from '@/components/footer'
@@ -17,6 +17,7 @@ import { Separator } from '@/components/ui/separator'
 import { SlidersHorizontal, X, Search, Grid3X3, Grid2X2, LayoutList } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatPrice, type Product, type Category } from '@/lib/data'
+import { buildCategoryTree, collectSlugs, totalProductCount, type CategoryNode } from '@/lib/utils/category-tree'
 
 type ViewMode = 'grid-4' | 'grid-3' | 'list'
 type SortOption = 'featured' | 'newest' | 'price-low' | 'price-high' | 'bestselling' | 'rating'
@@ -43,6 +44,32 @@ export function ShopContent({ products, categories }: { products: Product[]; cat
   const [viewMode, setViewMode] = useState<ViewMode>('grid-4')
   const [showFilters, setShowFilters] = useState(false)
 
+  const categoryTree = useMemo(() => buildCategoryTree(categories), [categories])
+  const nodeBySlug = useMemo(() => {
+    const map = new Map<string, CategoryNode>()
+    const walk = (nodes: CategoryNode[]) => {
+      for (const n of nodes) {
+        map.set(n.slug, n)
+        walk(n.children)
+      }
+    }
+    walk(categoryTree)
+    return map
+  }, [categoryTree])
+
+  // A selected parent category (e.g. "Flowers & Floral") should match every product under
+  // its whole branch, not just products whose categorySlug is that exact parent — products
+  // only ever attach to leaf categories.
+  const matchingSlugs = useMemo(() => {
+    const set = new Set<string>()
+    for (const slug of selectedCategories) {
+      const node = nodeBySlug.get(slug)
+      if (node) collectSlugs(node).forEach((s) => set.add(s))
+      else set.add(slug)
+    }
+    return set
+  }, [selectedCategories, nodeBySlug])
+
   // Filter and sort products
   const filteredProducts = useMemo(() => {
     let result = [...products]
@@ -60,7 +87,7 @@ export function ShopContent({ products, categories }: { products: Product[]; cat
 
     // Category filter
     if (selectedCategories.length > 0) {
-      result = result.filter((p) => selectedCategories.includes(p.categorySlug))
+      result = result.filter((p) => matchingSlugs.has(p.categorySlug))
     }
 
     // Price filter
@@ -88,7 +115,7 @@ export function ShopContent({ products, categories }: { products: Product[]; cat
     }
 
     return result
-  }, [searchQuery, selectedCategories, priceRange, sortBy])
+  }, [products, searchQuery, selectedCategories, matchingSlugs, priceRange, sortBy])
 
   const handleCategoryToggle = (categorySlug: string) => {
     setSelectedCategories((prev) =>
@@ -109,6 +136,29 @@ export function ShopContent({ products, categories }: { products: Product[]; cat
     (searchQuery ? 1 : 0) +
     selectedCategories.length +
     (priceRange[0] > 0 || priceRange[1] < 1000 ? 1 : 0)
+
+  const renderCategoryFilterNode = (node: CategoryNode, depth: number): ReactNode => (
+    <div key={node.slug}>
+      <div className="flex items-center gap-2" style={{ paddingLeft: depth * 16 }}>
+        <Checkbox
+          id={node.slug}
+          checked={selectedCategories.includes(node.slug)}
+          onCheckedChange={() => handleCategoryToggle(node.slug)}
+        />
+        <label
+          htmlFor={node.slug}
+          className={cn(
+            'text-sm cursor-pointer flex-1 flex items-center justify-between py-0.5',
+            depth === 0 && 'font-semibold'
+          )}
+        >
+          <span>{node.name}</span>
+          <span className="text-muted-foreground text-xs">({totalProductCount(node)})</span>
+        </label>
+      </div>
+      {node.children.map((child) => renderCategoryFilterNode(child, depth + 1))}
+    </div>
+  )
 
   const FilterContent = () => (
     <div className="space-y-6">
@@ -132,23 +182,8 @@ export function ShopContent({ products, categories }: { products: Product[]; cat
       {/* Categories */}
       <div>
         <Label className="text-sm font-medium mb-3 block">Categories</Label>
-        <div className="space-y-2">
-          {categories.map((category) => (
-            <div key={category.slug} className="flex items-center gap-2">
-              <Checkbox
-                id={category.slug}
-                checked={selectedCategories.includes(category.slug)}
-                onCheckedChange={() => handleCategoryToggle(category.slug)}
-              />
-              <label
-                htmlFor={category.slug}
-                className="text-sm cursor-pointer flex-1 flex items-center justify-between"
-              >
-                <span>{category.name}</span>
-                <span className="text-muted-foreground">({category.productCount})</span>
-              </label>
-            </div>
-          ))}
+        <div className="space-y-1 max-h-96 overflow-y-auto pr-1">
+          {categoryTree.map((node) => renderCategoryFilterNode(node, 0))}
         </div>
       </div>
 

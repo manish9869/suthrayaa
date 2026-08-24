@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, Fragment } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils'
 import { useCartStore } from '@/lib/store'
 import { useAuth } from '@/lib/hooks/use-auth'
 import type { Category } from '@/lib/data'
+import { buildCategoryTree, type CategoryNode } from '@/lib/utils/category-tree'
 import { CartDrawer } from './cart-drawer'
 
 const navLinks = [
@@ -24,6 +25,10 @@ const navLinks = [
 ]
 
 export function Navbar({ categories = [] }: { categories?: Category[] }) {
+  const categoryTree = useMemo(
+    () => buildCategoryTree(categories.filter((c) => c.showInNavigation)),
+    [categories]
+  )
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
@@ -106,15 +111,37 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
                         Categories
                       </h3>
                       <div className="space-y-1">
-                        {categories.map((category) => (
-                          <Link
-                            key={category.slug}
-                            href={`/shop?category=${category.slug}`}
-                            onClick={() => setIsMobileMenuOpen(false)}
-                            className="block px-4 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors"
-                          >
-                            {category.name}
-                          </Link>
+                        {categoryTree.map((top) => (
+                          <div key={top.id} className="mb-2">
+                            <Link
+                              href={`/shop?category=${top.slug}`}
+                              onClick={() => setIsMobileMenuOpen(false)}
+                              className="block px-4 py-2 text-sm font-semibold text-foreground hover:bg-muted rounded-lg transition-colors"
+                            >
+                              {top.name}
+                            </Link>
+                            {top.children.map((sub) => (
+                              <div key={sub.id}>
+                                <Link
+                                  href={`/shop?category=${sub.slug}`}
+                                  onClick={() => setIsMobileMenuOpen(false)}
+                                  className="block pl-8 pr-4 py-1.5 text-sm text-foreground/80 hover:bg-muted rounded-lg transition-colors"
+                                >
+                                  {sub.name}
+                                </Link>
+                                {sub.children.map((leaf) => (
+                                  <Link
+                                    key={leaf.id}
+                                    href={`/shop?category=${leaf.slug}`}
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className="block pl-12 pr-4 py-1 text-xs text-muted-foreground hover:bg-muted rounded-lg transition-colors"
+                                  >
+                                    {leaf.name}
+                                  </Link>
+                                ))}
+                              </div>
+                            ))}
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -155,13 +182,27 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
                 <DropdownMenuTrigger className="relative py-2 text-sm font-medium text-foreground/80 hover:text-primary outline-none">
                   Categories
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="center" className="w-56">
+                <DropdownMenuContent align="center" className="w-72 max-h-[75vh] overflow-y-auto">
                   <DropdownMenuLabel>Shop by category</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  {categories.map((category) => (
-                    <DropdownMenuItem key={category.slug} asChild>
-                      <Link href={`/shop?category=${category.slug}`}>{category.name}</Link>
-                    </DropdownMenuItem>
+                  {categoryTree.map((top) => (
+                    <Fragment key={top.id}>
+                      <DropdownMenuItem asChild className="font-semibold mt-1 first:mt-0">
+                        <Link href={`/shop?category=${top.slug}`}>{top.name}</Link>
+                      </DropdownMenuItem>
+                      {top.children.map((sub) => (
+                        <Fragment key={sub.id}>
+                          <DropdownMenuItem asChild className="pl-6 text-foreground/80">
+                            <Link href={`/shop?category=${sub.slug}`}>{sub.name}</Link>
+                          </DropdownMenuItem>
+                          {sub.children.map((leaf) => (
+                            <DropdownMenuItem key={leaf.id} asChild className="pl-10 text-sm text-muted-foreground">
+                              <Link href={`/shop?category=${leaf.slug}`}>{leaf.name}</Link>
+                            </DropdownMenuItem>
+                          ))}
+                        </Fragment>
+                      ))}
+                    </Fragment>
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>

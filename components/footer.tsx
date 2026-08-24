@@ -8,11 +8,11 @@ import { Instagram, Facebook, Mail, Phone, MapPin } from 'lucide-react'
 const footerLinks = {
   shop: [
     { label: 'All Products', href: '/shop' },
-    { label: 'Keychains', href: '/shop?category=keychains' },
-    { label: 'Amigurumi', href: '/shop?category=amigurumi' },
-    { label: 'Home Decor', href: '/shop?category=home-decor' },
-    { label: 'Baby Collection', href: '/shop?category=baby' },
-    { label: 'Custom Orders', href: '/shop?category=custom' },
+    { label: 'Flowers & Floral', href: '/shop?category=flowers-floral' },
+    { label: 'Home & Décor', href: '/shop?category=home-and-decor' },
+    { label: 'Accessories', href: '/shop?category=accessories-v2' },
+    { label: 'Devghar Collection', href: '/shop?category=devghar-collection-v2' },
+    { label: 'Kids & Gifts', href: '/shop?category=kids-gifts' },
   ],
   support: [
     { label: 'Contact Us', href: '/contact' },

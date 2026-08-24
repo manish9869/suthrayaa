@@ -48,6 +48,23 @@ export const getStockAlerts = () =>
 // ---- Products ----
 export interface AdminProductListItem extends Product {
   isActive: boolean
+  costPrice?: number
+  isTaxable: boolean
+  taxClass?: string
+  salePrice?: number
+  saleStartDate?: string
+  saleEndDate?: string
+  lowStockThreshold: number
+  isPhysical: boolean
+  weight?: number
+  length?: number
+  width?: number
+  height?: number
+  shippingClass?: string
+  searchKeywords?: string
+  categoryId: string | null
+  additionalCategoryIds: string[]
+  updatedAt?: string
 }
 export const getAdminProducts = (params: { page?: number; limit?: number; search?: string } = {}) => {
   const q = new URLSearchParams()
@@ -60,32 +77,64 @@ export const getAdminProducts = (params: { page?: number; limit?: number; search
 }
 export const getAdminProduct = (id: string) => adminFetch<AdminProductListItem>(`/admin/products/${id}`)
 
+export type ProductStatus = 'draft' | 'active' | 'hidden' | 'out_of_stock' | 'archived'
+export type ProductType = 'ready_to_ship' | 'made_to_order' | 'custom_order'
+
 export interface ProductFormInput {
+  sku?: string | null
   name: string
-  slug: string
+  slug?: string
   description: string
   shortDescription: string
   price: number
   comparePrice?: number | null
   categoryId?: string | null
+  additionalCategoryIds?: string[]
   tags: string[]
   stock: number
   lowStockThreshold?: number
   featured?: boolean
   bestseller?: boolean
   newArrival?: boolean
-  isActive?: boolean
+  status?: ProductStatus
   estimatedDelivery?: string
   dimensions?: string
   materials: string[]
   careInstructions: string[]
   colorIds?: string[]
+  customizable?: boolean
+  productType?: ProductType
+  processingMinDays?: number | null
+  processingMaxDays?: number | null
+  processingMessage?: string | null
+  costPrice?: number | null
+  isTaxable?: boolean
+  taxClass?: string | null
+  salePrice?: number | null
+  saleStartDate?: string | null
+  saleEndDate?: string | null
+  allowBackorders?: boolean
+  continueSellingWhenOutOfStock?: boolean
+  trackInventory?: boolean
+  isPhysical?: boolean
+  weight?: number | null
+  length?: number | null
+  width?: number | null
+  height?: number | null
+  freeShipping?: boolean
+  shippingClass?: string | null
+  localPickupAvailable?: boolean
+  metaTitle?: string | null
+  metaDescription?: string | null
+  searchKeywords?: string | null
 }
 export const createProduct = (input: ProductFormInput) =>
-  adminFetch<Product>('/admin/products', { method: 'POST', body: JSON.stringify(input) })
+  adminFetch<AdminProductListItem>('/admin/products', { method: 'POST', body: JSON.stringify(input) })
 export const updateProduct = (id: string, input: Partial<ProductFormInput>) =>
-  adminFetch<Product>(`/admin/products/${id}`, { method: 'PATCH', body: JSON.stringify(input) })
+  adminFetch<AdminProductListItem>(`/admin/products/${id}`, { method: 'PATCH', body: JSON.stringify(input) })
 export const deleteProduct = (id: string) => adminFetch<void>(`/admin/products/${id}`, { method: 'DELETE' })
+export const duplicateProduct = (id: string) =>
+  adminFetch<AdminProductListItem>(`/admin/products/${id}/duplicate`, { method: 'POST' })
 
 export async function uploadProductImage(productId: string, file: File) {
   const form = new FormData()
@@ -118,22 +167,87 @@ export const updateCustomizationRules = (productId: string, input: Customization
     body: JSON.stringify(input),
   })
 
+// ---- Customization engine (admin-defined option groups: choice/color/text/number/checkbox) ----
+export interface CustomizationGroupInput {
+  name: string
+  label: string
+  type: 'choice' | 'color' | 'text' | 'number' | 'checkbox'
+  required?: boolean
+  enabled?: boolean
+  sortOrder?: number
+  maxLength?: number | null
+  placeholder?: string | null
+  defaultValue?: string | null
+  conditionalParentValueId?: string | null
+}
+export const createCustomizationGroup = (productId: string, input: CustomizationGroupInput) =>
+  adminFetch<AdminProductListItem>(`/admin/products/${productId}/customizations`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+export const updateCustomizationGroup = (productId: string, groupId: string, input: Partial<CustomizationGroupInput>) =>
+  adminFetch<AdminProductListItem>(`/admin/products/${productId}/customizations/${groupId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  })
+export const deleteCustomizationGroup = (productId: string, groupId: string) =>
+  adminFetch<AdminProductListItem>(`/admin/products/${productId}/customizations/${groupId}`, { method: 'DELETE' })
+
+export interface CustomizationValueInput {
+  label: string
+  value: string
+  priceAdjustment?: number
+  sortOrder?: number
+  enabled?: boolean
+  sku?: string | null
+}
+export const createCustomizationValue = (productId: string, groupId: string, input: CustomizationValueInput) =>
+  adminFetch<AdminProductListItem>(`/admin/products/${productId}/customizations/${groupId}/values`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+export const updateCustomizationValue = (
+  productId: string,
+  groupId: string,
+  valueId: string,
+  input: Partial<CustomizationValueInput>
+) =>
+  adminFetch<AdminProductListItem>(`/admin/products/${productId}/customizations/${groupId}/values/${valueId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  })
+export const deleteCustomizationValue = (productId: string, groupId: string, valueId: string) =>
+  adminFetch<AdminProductListItem>(`/admin/products/${productId}/customizations/${groupId}/values/${valueId}`, {
+    method: 'DELETE',
+  })
+
 // ---- Categories / Colors / Testimonials / Hero Slides ----
 export interface AdminCategory {
   id: string
   name: string
   slug: string
   description?: string
-  image_url?: string
-  sort_order: number
-  is_active: boolean
+  imageUrl?: string
+  sortOrder: number
+  isActive: boolean
+  parentId: string | null
+  seoTitle?: string
+  seoDescription?: string
+  showInNavigation: boolean
+  showOnHomepage: boolean
+  isFeatured: boolean
 }
 export const getAdminCategories = () => adminFetch<AdminCategory[]>('/admin/categories')
-export const createCategory = (input: Partial<AdminCategory> & { name: string; slug: string }) =>
+export const createCategory = (input: Partial<AdminCategory> & { name: string; slug?: string }) =>
   adminFetch<AdminCategory>('/admin/categories', { method: 'POST', body: JSON.stringify(input) })
 export const updateCategory = (id: string, input: Partial<AdminCategory>) =>
   adminFetch<AdminCategory>(`/admin/categories/${id}`, { method: 'PATCH', body: JSON.stringify(input) })
-export const deleteCategory = (id: string) => adminFetch<void>(`/admin/categories/${id}`, { method: 'DELETE' })
+export const reorderCategories = (items: { id: string; sortOrder: number }[]) =>
+  adminFetch<void>('/admin/categories/reorder', { method: 'PATCH', body: JSON.stringify({ items }) })
+export const getCategoryDeletionImpact = (id: string) =>
+  adminFetch<{ childCategories: { id: string; name: string }[]; productCount: number }>(`/admin/categories/${id}/impact`)
+export const deleteCategory = (id: string, input: { reassignTo?: string; force?: boolean } = {}) =>
+  adminFetch<void>(`/admin/categories/${id}`, { method: 'DELETE', body: JSON.stringify(input) })
 
 export interface AdminColor {
   id: string

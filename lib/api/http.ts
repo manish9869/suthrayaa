@@ -13,10 +13,12 @@ interface FetchOptions extends RequestInit {
 export class ApiError extends Error {
   status: number
   code?: string
-  constructor(status: number, message: string, code?: string) {
+  details?: unknown
+  constructor(status: number, message: string, code?: string, details?: unknown) {
     super(message)
     this.status = status
     this.code = code
+    this.details = details
   }
 }
 
@@ -39,7 +41,7 @@ export async function apiFetch<T>(path: string, options: FetchOptions = {}): Pro
 
   if (!res.ok) {
     const message = body?.error?.message ?? `Request failed (${res.status})`
-    throw new ApiError(res.status, message, body?.error?.code)
+    throw new ApiError(res.status, message, body?.error?.code, body?.error?.details)
   }
 
   return body as T
