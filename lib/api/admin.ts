@@ -307,21 +307,135 @@ export interface AdminOrderSummary {
   paymentMethod: string
   total: number
   itemCount: number
+  isCustomOrder: boolean
+  trackingNumber: string | null
   placedAt: string | null
   createdAt: string
 }
-export const getAdminOrders = (params: { status?: string; paymentStatus?: string; page?: number } = {}) => {
+export const getAdminOrders = (params: { status?: string; paymentStatus?: string; custom?: boolean; page?: number } = {}) => {
   const q = new URLSearchParams()
   if (params.status) q.set('status', params.status)
   if (params.paymentStatus) q.set('paymentStatus', params.paymentStatus)
+  if (params.custom !== undefined) q.set('custom', String(params.custom))
   if (params.page) q.set('page', String(params.page))
   return adminFetch<{ items: AdminOrderSummary[]; total: number; page: number; limit: number }>(
     `/admin/orders?${q.toString()}`
   )
 }
-export const getAdminOrder = (id: string) => adminFetch<any>(`/admin/orders/${id}`)
-export const updateOrderStatus = (id: string, status: string, note?: string) =>
-  adminFetch<{ ok: boolean }>(`/admin/orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status, note }) })
+
+export interface AdminOrderItem {
+  id: string
+  productId: string | null
+  name: string
+  sku: string | null
+  image?: string
+  unitPrice: number
+  quantity: number
+  lineTotal: number
+  selectedColor?: string
+  customText?: string
+  customizations: { label: string; type: string; valueLabel?: string; textValue?: string; priceAdjustment: number }[]
+}
+export interface AdminOrderDetail extends AdminOrderSummary {
+  subtotal: number
+  discountAmount: number
+  shippingCost: number
+  giftWrapCost: number
+  shippingAddress: Record<string, string>
+  shippingMethod: string
+  guestEmail: string | null
+  guestPhone: string | null
+  razorpayOrderId: string | null
+  razorpayPaymentId: string | null
+  courier: string | null
+  adminNotes: string | null
+  customerNotes: string | null
+  invoiceNumber: string | null
+  items: AdminOrderItem[]
+  statusHistory: { status: string; note?: string; created_at: string }[]
+}
+export const getAdminOrder = (id: string) => adminFetch<AdminOrderDetail>(`/admin/orders/${id}`)
+export const updateOrderStatus = (id: string, status: string, note?: string, trackingNumber?: string, courier?: string) =>
+  adminFetch<{ ok: boolean }>(`/admin/orders/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status, note, trackingNumber, courier }),
+  })
+export const updateOrderNotes = (id: string, input: { adminNotes?: string; customerNotes?: string }) =>
+  adminFetch<{ ok: boolean }>(`/admin/orders/${id}/notes`, { method: 'PATCH', body: JSON.stringify(input) })
+
+// ---- Invoices ----
+export const getOrderInvoice = (orderId: string) =>
+  adminFetch<{ invoiceNumber: string; createdAt: string; snapshot: unknown; orderStatus: string; paymentStatus: string }>(
+    `/admin/orders/${orderId}/invoice`
+  )
+export const regenerateInvoice = (orderId: string) =>
+  adminFetch<{ invoiceNumber: string }>(`/admin/orders/${orderId}/invoice/regenerate`, { method: 'POST' })
+export const emailInvoice = (orderId: string) =>
+  adminFetch<{ ok: boolean }>(`/admin/orders/${orderId}/invoice/email`, { method: 'POST' })
+export async function fetchInvoicePdfBlob(orderId: string): Promise<Blob> {
+  const t = await token()
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/orders/${orderId}/invoice/pdf`, {
+    headers: t ? { Authorization: `Bearer ${t}` } : {},
+  })
+  if (!res.ok) throw new Error('Failed to load invoice PDF')
+  return res.blob()
+}
+
+// ---- Email templates & logs ----
+export interface AdminEmailTemplate {
+  id: string
+  type: string
+  subject: string
+  bodyHtml: string
+  enabled: boolean
+  updatedAt: string
+}
+export const getEmailTemplates = () => adminFetch<AdminEmailTemplate[]>('/admin/emails/templates')
+export const updateEmailTemplate = (id: string, input: Partial<Pick<AdminEmailTemplate, 'subject' | 'bodyHtml' | 'enabled'>>) =>
+  adminFetch<AdminEmailTemplate>(`/admin/emails/templates/${id}`, { method: 'PATCH', body: JSON.stringify(input) })
+export const previewEmailTemplate = (id: string) =>
+  adminFetch<{ subject: string; bodyHtml: string }>(`/admin/emails/templates/${id}/preview`, { method: 'POST' })
+export const testSendEmailTemplate = (id: string, to: string) =>
+  adminFetch<{ ok: boolean }>(`/admin/emails/templates/${id}/test-send`, { method: 'POST', body: JSON.stringify({ to }) })
+
+export interface AdminEmailLog {
+  id: string
+  type: string
+  recipient: string
+  orderId: string | null
+  subject: string | null
+  status: 'sent' | 'failed' | 'pending'
+  errorMessage: string | null
+  sentAt: string
+}
+export const getEmailLogs = (params: { status?: string; type?: string; page?: number } = {}) => {
+  const q = new URLSearchParams()
+  if (params.status) q.set('status', params.status)
+  if (params.type) q.set('type', params.type)
+  if (params.page) q.set('page', String(params.page))
+  return adminFetch<{ items: AdminEmailLog[]; total: number; page: number; limit: number }>(`/admin/emails/logs?${q.toString()}`)
+}
+export const retryEmailLog = (id: string) => adminFetch<{ ok: boolean }>(`/admin/emails/logs/${id}/retry`, { method: 'POST' })
+
+// ---- Invoice settings ----
+export interface AdminInvoiceSettings {
+  businessName: string
+  logoUrl: string
+  address: string
+  email: string
+  phone: string
+  taxNumber: string
+  invoicePrefix: string
+  footer: string
+  terms: string
+  currency: string
+  showSku: boolean
+  showTax: boolean
+  showCustomizationPricing: boolean
+}
+export const getInvoiceSettings = () => adminFetch<AdminInvoiceSettings>('/admin/settings/invoice')
+export const updateInvoiceSettings = (input: Partial<AdminInvoiceSettings>) =>
+  adminFetch<AdminInvoiceSettings>('/admin/settings/invoice', { method: 'PATCH', body: JSON.stringify(input) })
 
 // ---- Coupons ----
 export interface AdminCoupon {

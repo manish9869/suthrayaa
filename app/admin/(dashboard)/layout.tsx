@@ -15,6 +15,9 @@ import {
   Users,
   MessageSquareQuote,
   Image as ImageIcon,
+  Mail,
+  History,
+  Receipt,
   LogOut,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -30,6 +33,9 @@ const navItems = [
   { href: '/admin/customers', label: 'Customers', icon: Users },
   { href: '/admin/testimonials', label: 'Testimonials', icon: MessageSquareQuote },
   { href: '/admin/hero-slides', label: 'Hero Slides', icon: ImageIcon },
+  { href: '/admin/emails/templates', label: 'Email Templates', icon: Mail },
+  { href: '/admin/emails/logs', label: 'Email Logs', icon: History },
+  { href: '/admin/settings/invoice', label: 'Invoice Settings', icon: Receipt },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
