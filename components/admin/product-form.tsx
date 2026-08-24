@@ -20,7 +20,6 @@ import {
   createProduct,
   updateProduct,
   getAdminProduct,
-  getAdminProducts,
   uploadProductImage,
   deleteProductImage,
   updateCustomizationRules,
@@ -145,12 +144,6 @@ function CascadingCategoryPicker({
   )
 }
 
-/** CR-XXXX-YYYY style code from a category name — a starting point, not a guarantee of matching hand-picked SKUs. */
-function skuSegment(name: string): string {
-  const firstWord = name.replace(/[^a-zA-Z\s]/g, '').trim().split(/\s+/)[0] ?? ''
-  return firstWord.slice(0, 4).toUpperCase() || 'GEN'
-}
-
 export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
   const router = useRouter()
   const isEditing = Boolean(product)
@@ -222,8 +215,6 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
   const [allowedColorHexes, setAllowedColorHexes] = useState<string[]>(rules?.allowedColors ?? [])
 
   const [savedProduct, setSavedProduct] = useState(product)
-  const [skuTouched, setSkuTouched] = useState(isEditing)
-  const [existingSkus, setExistingSkus] = useState<string[]>([])
 
   useEffect(() => {
     getAdminCategories().then(setCategories)
@@ -234,7 +225,6 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
         setSelectedColorIds(matched)
       }
     })
-    getAdminProducts({ limit: 500 }).then((res) => setExistingSkus(res.items.map((p) => p.sku).filter((s): s is string => Boolean(s))))
     if (product) {
       getAdminCategories().then((cats) => {
         const match = cats.find((c) => c.slug === product.categorySlug)
@@ -242,24 +232,6 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
       })
     }
   }, [product])
-
-  // Suggests a SKU from the category selection (e.g. CR-DOOR-FLR-002) once both are known.
-  // Only a starting point — never overwrites a SKU the admin already typed or that came with an existing product.
-  useEffect(() => {
-    if (skuTouched || !form.categoryId || categories.length === 0) return
-    const chain = categoryChain(categories, form.categoryId)
-    if (chain.length < 2) return
-    const sub = chain[1]
-    const leaf = chain[2] ?? sub
-    const prefix = `CR-${skuSegment(sub.name)}-${skuSegment(leaf.name)}-`
-    const usedNumbers = existingSkus
-      .filter((s) => s.startsWith(prefix))
-      .map((s) => parseInt(s.slice(prefix.length), 10))
-      .filter((n) => !Number.isNaN(n))
-    const next = (usedNumbers.length ? Math.max(...usedNumbers) : 0) + 1
-    setForm((f) => ({ ...f, sku: `${prefix}${String(next).padStart(3, '0')}` }))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.categoryId, categories, existingSkus, skuTouched])
 
   const discountPercent =
     form.salePrice && form.price && form.salePrice < form.price
@@ -399,23 +371,21 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
 
         {/* ---- Basic Info ---- */}
         <TabsContent value="basic" className="space-y-4 pt-4">
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className={isEditing ? 'grid sm:grid-cols-2 gap-4' : 'space-y-2'}>
             <div className="space-y-2">
               <Label>Product Name</Label>
               <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
             </div>
-            <div className="space-y-2">
-              <Label>SKU</Label>
-              <Input
-                value={form.sku}
-                onChange={(e) => {
-                  setSkuTouched(true)
-                  setForm((f) => ({ ...f, sku: e.target.value }))
-                }}
-                placeholder="Suggested automatically once a category is picked"
-              />
-            </div>
+            {isEditing && (
+              <div className="space-y-2">
+                <Label>SKU</Label>
+                <Input value={form.sku} onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))} />
+              </div>
+            )}
           </div>
+          {!isEditing && (
+            <p className="text-xs text-muted-foreground -mt-2">SKU is generated automatically once you pick a category — you can edit it after creating the product.</p>
+          )}
           <div className="space-y-2">
             <Label>Short Description</Label>
             <Input value={form.shortDescription} onChange={(e) => setForm((f) => ({ ...f, shortDescription: e.target.value }))} />
