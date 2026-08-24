@@ -1,0 +1,268 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Suthrayaa Brand Colors */
+  --background: oklch(0.99 0.005 85);
+  --foreground: oklch(0.25 0.02 250);
+  
+  /* Navy - Primary brand color */
+  --primary: oklch(0.28 0.06 250);
+  --primary-foreground: oklch(0.98 0.005 85);
+  
+  /* Cream/Off-white cards */
+  --card: oklch(0.98 0.008 85);
+  --card-foreground: oklch(0.25 0.02 250);
+  
+  --popover: oklch(0.99 0.005 85);
+  --popover-foreground: oklch(0.25 0.02 250);
+  
+  /* Gold accent */
+  --secondary: oklch(0.78 0.12 85);
+  --secondary-foreground: oklch(0.25 0.02 250);
+  
+  /* Soft peach for muted backgrounds */
+  --muted: oklch(0.95 0.025 55);
+  --muted-foreground: oklch(0.45 0.02 250);
+  
+  /* Lavender accent */
+  --accent: oklch(0.92 0.04 300);
+  --accent-foreground: oklch(0.25 0.02 250);
+  
+  /* Mint for success/special */
+  --mint: oklch(0.92 0.06 165);
+  --mint-foreground: oklch(0.25 0.02 250);
+  
+  /* Gold for highlights */
+  --gold: oklch(0.78 0.12 85);
+  --gold-foreground: oklch(0.25 0.02 250);
+  
+  /* Peach for warmth */
+  --peach: oklch(0.92 0.06 55);
+  --peach-foreground: oklch(0.25 0.02 250);
+  
+  /* Lavender */
+  --lavender: oklch(0.90 0.05 300);
+  --lavender-foreground: oklch(0.25 0.02 250);
+  
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.98 0.005 85);
+  
+  --border: oklch(0.90 0.015 85);
+  --input: oklch(0.92 0.01 85);
+  --ring: oklch(0.78 0.12 85);
+  
+  /* Chart colors using brand palette */
+  --chart-1: oklch(0.28 0.06 250);
+  --chart-2: oklch(0.78 0.12 85);
+  --chart-3: oklch(0.92 0.06 165);
+  --chart-4: oklch(0.90 0.05 300);
+  --chart-5: oklch(0.92 0.06 55);
+  
+  --radius: 0.75rem;
+  
+  --sidebar: oklch(0.98 0.008 85);
+  --sidebar-foreground: oklch(0.25 0.02 250);
+  --sidebar-primary: oklch(0.28 0.06 250);
+  --sidebar-primary-foreground: oklch(0.98 0.005 85);
+  --sidebar-accent: oklch(0.95 0.025 55);
+  --sidebar-accent-foreground: oklch(0.25 0.02 250);
+  --sidebar-border: oklch(0.90 0.015 85);
+  --sidebar-ring: oklch(0.78 0.12 85);
+}
+
+.dark {
+  --background: oklch(0.18 0.02 250);
+  --foreground: oklch(0.95 0.008 85);
+  
+  --primary: oklch(0.85 0.10 85);
+  --primary-foreground: oklch(0.18 0.02 250);
+  
+  --card: oklch(0.22 0.02 250);
+  --card-foreground: oklch(0.95 0.008 85);
+  
+  --popover: oklch(0.22 0.02 250);
+  --popover-foreground: oklch(0.95 0.008 85);
+  
+  --secondary: oklch(0.65 0.10 85);
+  --secondary-foreground: oklch(0.18 0.02 250);
+  
+  --muted: oklch(0.28 0.02 250);
+  --muted-foreground: oklch(0.65 0.02 85);
+  
+  --accent: oklch(0.35 0.04 300);
+  --accent-foreground: oklch(0.95 0.008 85);
+  
+  --mint: oklch(0.45 0.08 165);
+  --mint-foreground: oklch(0.95 0.008 85);
+  
+  --gold: oklch(0.75 0.12 85);
+  --gold-foreground: oklch(0.18 0.02 250);
+  
+  --peach: oklch(0.45 0.08 55);
+  --peach-foreground: oklch(0.95 0.008 85);
+  
+  --lavender: oklch(0.45 0.06 300);
+  --lavender-foreground: oklch(0.95 0.008 85);
+  
+  --destructive: oklch(0.45 0.2 27);
+  --destructive-foreground: oklch(0.95 0.008 85);
+  
+  --border: oklch(0.32 0.02 250);
+  --input: oklch(0.28 0.02 250);
+  --ring: oklch(0.65 0.10 85);
+  
+  --chart-1: oklch(0.85 0.10 85);
+  --chart-2: oklch(0.65 0.10 85);
+  --chart-3: oklch(0.55 0.08 165);
+  --chart-4: oklch(0.55 0.06 300);
+  --chart-5: oklch(0.55 0.08 55);
+  
+  --sidebar: oklch(0.22 0.02 250);
+  --sidebar-foreground: oklch(0.95 0.008 85);
+  --sidebar-primary: oklch(0.85 0.10 85);
+  --sidebar-primary-foreground: oklch(0.18 0.02 250);
+  --sidebar-accent: oklch(0.28 0.02 250);
+  --sidebar-accent-foreground: oklch(0.95 0.008 85);
+  --sidebar-border: oklch(0.32 0.02 250);
+  --sidebar-ring: oklch(0.65 0.10 85);
+}
+
+@theme inline {
+  --font-sans: 'Cormorant Garamond', serif;
+  --font-serif: 'Playfair Display', serif;
+  --font-script: 'Allura', cursive;
+  --font-mono: 'Geist Mono', 'Geist Mono Fallback', monospace;
+  --font-script: 'Allura', cursive;
+  
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  
+  /* Custom brand colors */
+  --color-mint: var(--mint);
+  --color-mint-foreground: var(--mint-foreground);
+  --color-gold: var(--gold);
+  --color-gold-foreground: var(--gold-foreground);
+  --color-peach: var(--peach);
+  --color-peach-foreground: var(--peach-foreground);
+  --color-lavender: var(--lavender);
+  --color-lavender-foreground: var(--lavender-foreground);
+  
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-full: 9999px;
+  
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  
+  /* Custom selection color */
+  ::selection {
+    background-color: oklch(0.78 0.12 85 / 0.3);
+  }
+}
+
+@layer utilities {
+  /* Text balance for better typography */
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  /* Soft shadow for cards */
+  .shadow-soft {
+    box-shadow: 0 4px 20px -4px oklch(0.25 0.02 250 / 0.08);
+  }
+  
+  /* Hover lift effect */
+  .hover-lift {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px -8px oklch(0.25 0.02 250 / 0.12);
+  }
+
+  .hero-doodle {
+    position: absolute;
+    color: var(--gold);
+    opacity: 0.7;
+    transition: transform 180ms ease-out;
+  }
+  .hero-doodle svg { width: 2.5rem; height: 2.5rem; stroke-width: 1.2; }
+  .hero-doodle-one { top: 18%; left: 8%; }
+  .hero-doodle-two { top: 25%; right: 12%; color: var(--peach-foreground); }
+  .hero-doodle-three { bottom: 22%; right: 22%; color: var(--primary); }
+  .hero-doodle-four { bottom: 18%; left: 14%; color: var(--peach-foreground); }
+  .hero-doodle-five { top: 13%; right: 31%; color: var(--gold); }
+  .hero-doodle-six { top: 52%; left: 24%; color: var(--lavender-foreground); }
+  .hero-doodle-seven { top: 70%; right: 10%; color: var(--mint-foreground); }
+  .hero-doodle-eight { top: 10%; left: 48%; color: var(--peach-foreground); }
+  .hero-doodle-nine { bottom: 12%; left: 42%; color: var(--gold); }
+  .hero-doodle:nth-child(odd) { animation: doodle-bob 7s ease-in-out infinite; }
+  .hero-doodle:nth-child(even) { animation: doodle-bob 9s ease-in-out -3s infinite reverse; }
+  .hero-thread { position: absolute; top: 24%; right: 16%; width: 10rem; height: 8rem; border: 1px solid var(--gold); border-left-color: transparent; border-bottom-color: transparent; border-radius: 50%; opacity: 0.25; transform: rotate(22deg); }
+  .motif { position: absolute; color: var(--primary); opacity: 0.12; font-family: var(--font-serif); animation: motif-float 9s ease-in-out infinite; }
+  .motif-a { top: 15%; left: 28%; font-size: 2rem; }
+  .motif-b { top: 38%; left: 5%; font-size: 3rem; animation-delay: -2s; }
+  .motif-c { top: 68%; left: 34%; font-size: 2.5rem; animation-delay: -4s; }
+  .motif-d { top: 16%; right: 6%; font-size: 2rem; animation-delay: -6s; }
+  .motif-e { bottom: 16%; right: 38%; font-size: 2.5rem; animation-delay: -3s; }
+  .motif-f { bottom: 10%; right: 7%; font-size: 3rem; animation-delay: -7s; }
+  .motif-g { top: 28%; right: 39%; font-size: 2.25rem; color: var(--peach-foreground); animation-duration: 12s; animation-delay: -8s; }
+  .motif-h { bottom: 32%; left: 8%; font-size: 2rem; color: var(--lavender-foreground); animation-duration: 10s; animation-delay: -5s; }
+  .motif-i { top: 58%; right: 5%; font-size: 3rem; color: var(--mint-foreground); animation-duration: 14s; animation-delay: -10s; }
+  .motif-j { top: 78%; left: 52%; font-size: 1.75rem; color: var(--gold); animation-duration: 11s; animation-delay: -1s; }
+  .motif-k { top: 7%; left: 12%; font-size: 2rem; color: var(--peach-foreground); animation-duration: 13s; animation-delay: -6s; }
+  .motif-l { bottom: 8%; left: 4%; font-size: 2.5rem; color: var(--lavender-foreground); animation-duration: 9s; animation-delay: -4s; }
+  .hero-widget { animation: widget-rise 700ms ease-out both; }
+  .hero-widget:nth-child(2) { animation-delay: 120ms; }
+
+  @keyframes motif-float { 0%, 100% { transform: translate(0, 0) rotate(0deg); } 35% { transform: translate(16px, -10px) rotate(8deg); } 70% { transform: translate(-10px, 12px) rotate(-5deg); } }
+  @keyframes doodle-bob { 0%, 100% { margin-top: 0; } 50% { margin-top: -10px; } }
+  @keyframes widget-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  @media (prefers-reduced-motion: reduce) {
+    .motif, .hero-widget, .hero-doodle { animation: none; }
+    .hero-doodle { transition: none; }
+  }
+}
