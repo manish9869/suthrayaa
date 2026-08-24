@@ -51,7 +51,7 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
   const searchParams = useSearchParams()
   const couponFromCart = searchParams.get('coupon') ?? undefined
 
-  const { items, getTotalPrice, clearCart } = useCartStore()
+  const { items, getTotalPrice, getItemUnitPrice, clearCart } = useCartStore()
   const hydrated = useHydrated()
   const [currentStep, setCurrentStep] = useState<CheckoutStep>('information')
   const [isProcessing, setIsProcessing] = useState(false)
@@ -127,8 +127,13 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
       const orderItems = items.map((item) => ({
         productId: item.product.id,
         quantity: item.quantity,
-        selectedColor: item.selectedColor,
+        selectedColor: item.selectedColor || undefined,
         customText: item.customText,
+        customizations: item.customizations?.map((c) => ({
+          customizationId: c.customizationId,
+          valueId: c.valueId,
+          textValue: c.textValue,
+        })),
       }))
 
       const shippingAddress = {
@@ -526,7 +531,7 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
                 <CardContent className="space-y-4">
                   <div className="space-y-4 max-h-64 overflow-auto">
                     {items.map((item) => {
-                      const itemKey = `${item.product.id}-${item.selectedColor}-${item.customText || ''}`
+                      const itemKey = `${item.product.id}-${item.selectedColor}-${item.customText || ''}-${(item.customizations ?? []).map((c) => c.valueId ?? c.textValue).join(',')}`
                       return (
                         <div key={itemKey} className="flex gap-3">
                           <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
@@ -537,12 +542,20 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate">{item.product.name}</p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <div className="w-3 h-3 rounded-full border" style={{ backgroundColor: item.selectedColor }} />
-                              {item.customText && <span className="text-xs text-muted-foreground truncate">&quot;{item.customText}&quot;</span>}
-                            </div>
+                            {item.customizations && item.customizations.length > 0 ? (
+                              <p className="text-xs text-muted-foreground truncate mt-1">
+                                {item.customizations.map((c) => c.displayValue).join(' · ')}
+                              </p>
+                            ) : (
+                              <div className="flex items-center gap-2 mt-1">
+                                {item.selectedColor && (
+                                  <div className="w-3 h-3 rounded-full border" style={{ backgroundColor: item.selectedColor }} />
+                                )}
+                                {item.customText && <span className="text-xs text-muted-foreground truncate">&quot;{item.customText}&quot;</span>}
+                              </div>
+                            )}
                           </div>
-                          <span className="font-medium text-sm">{formatPrice(item.product.price * item.quantity)}</span>
+                          <span className="font-medium text-sm">{formatPrice(getItemUnitPrice(item) * item.quantity)}</span>
                         </div>
                       )
                     })}

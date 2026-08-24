@@ -27,7 +27,7 @@ import { toast } from 'sonner'
 import { useState } from 'react'
 
 export function CartContent({ categories }: { categories: Category[] }) {
-  const { items, updateQuantity, removeItem, getTotalPrice, clearCart } = useCartStore()
+  const { items, updateQuantity, removeItem, getTotalPrice, getItemUnitPrice, clearCart } = useCartStore()
   const hydrated = useHydrated()
   const [couponCode, setCouponCode] = useState('')
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null)
@@ -156,7 +156,8 @@ export function CartContent({ categories }: { categories: Category[] }) {
               <Card>
                 <CardContent className="divide-y">
                   {items.map((item) => {
-                    const itemKey = `${item.product.id}-${item.selectedColor}-${item.customText || ''}`
+                    const itemKey = `${item.product.id}-${item.selectedColor}-${item.customText || ''}-${(item.customizations ?? []).map((c) => c.valueId ?? c.textValue).join(',')}`
+                    const unitPrice = getItemUnitPrice(item)
                     return (
                       <div key={itemKey} className="py-6 first:pt-6">
                         <div className="flex gap-4">
@@ -175,13 +176,21 @@ export function CartContent({ categories }: { categories: Category[] }) {
                               {item.product.name}
                             </Link>
 
-                            <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
-                              <div className="flex items-center gap-1.5">
-                                <span>Color:</span>
-                                <div className="w-4 h-4 rounded-full border" style={{ backgroundColor: item.selectedColor }} />
+                            {item.customizations && item.customizations.length > 0 ? (
+                              <p className="mt-2 text-sm text-muted-foreground">
+                                {item.customizations.map((c) => `${c.label}: ${c.displayValue}`).join(' · ')}
+                              </p>
+                            ) : (
+                              <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
+                                {item.selectedColor && (
+                                  <div className="flex items-center gap-1.5">
+                                    <span>Color:</span>
+                                    <div className="w-4 h-4 rounded-full border" style={{ backgroundColor: item.selectedColor }} />
+                                  </div>
+                                )}
+                                {item.customText && <span>Text: &quot;{item.customText}&quot;</span>}
                               </div>
-                              {item.customText && <span>Text: &quot;{item.customText}&quot;</span>}
-                            </div>
+                            )}
 
                             <div className="flex items-center justify-between mt-4">
                               <div className="flex items-center border rounded-lg">
@@ -190,7 +199,7 @@ export function CartContent({ categories }: { categories: Category[] }) {
                                   size="icon"
                                   className="h-8 w-8"
                                   onClick={() =>
-                                    updateQuantity(item.product.id, item.selectedColor, item.quantity - 1, item.customText)
+                                    updateQuantity(item.product.id, item.selectedColor, item.quantity - 1, item.customText, item.customizations)
                                   }
                                 >
                                   <Minus className="h-3 w-3" />
@@ -201,7 +210,7 @@ export function CartContent({ categories }: { categories: Category[] }) {
                                   size="icon"
                                   className="h-8 w-8"
                                   onClick={() =>
-                                    updateQuantity(item.product.id, item.selectedColor, item.quantity + 1, item.customText)
+                                    updateQuantity(item.product.id, item.selectedColor, item.quantity + 1, item.customText, item.customizations)
                                   }
                                 >
                                   <Plus className="h-3 w-3" />
@@ -209,13 +218,13 @@ export function CartContent({ categories }: { categories: Category[] }) {
                               </div>
 
                               <div className="flex items-center gap-4">
-                                <span className="font-semibold">{formatPrice(item.product.price * item.quantity)}</span>
+                                <span className="font-semibold">{formatPrice(unitPrice * item.quantity)}</span>
                                 <Button
                                   variant="ghost"
                                   size="icon"
                                   className="h-8 w-8 text-muted-foreground hover:text-destructive"
                                   onClick={() => {
-                                    removeItem(item.product.id, item.selectedColor, item.customText)
+                                    removeItem(item.product.id, item.selectedColor, item.customText, item.customizations)
                                     toast.info(`${item.product.name} removed from cart`)
                                   }}
                                 >

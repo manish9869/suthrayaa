@@ -33,6 +33,7 @@ import { cn } from '@/lib/utils'
 import { useCartStore, useWishlistStore } from '@/lib/store'
 import { useHydrated } from '@/lib/hooks/use-hydrated'
 import { formatPrice, type Product, type Review, type Category } from '@/lib/data'
+import { ProductCustomizer, type ResolvedCustomization } from '@/components/product-customizer'
 import { toast } from 'sonner'
 
 interface ProductDetailProps {
@@ -54,17 +55,48 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
   const [customText, setCustomText] = useState('')
   const [quantity, setQuantity] = useState(1)
 
+  // New admin-controlled customization engine — takes over entirely when configured.
+  const usesNewCustomizer = product.customizations.length > 0
+  const [resolvedCustomizations, setResolvedCustomizations] = useState<ResolvedCustomization[]>([])
+  const [customizationPriceAdjustment, setCustomizationPriceAdjustment] = useState(0)
+  const [missingRequired, setMissingRequired] = useState<string[]>([])
+
   const { addItem, openCart } = useCartStore()
   const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlistStore()
   const hydrated = useHydrated()
   const inWishlist = hydrated && isInWishlist(product.id)
 
-  const isCustomizing = product.isCustomizable && rules?.allowText
+  const isCustomizing = !usesNewCustomizer && product.isCustomizable && rules?.allowText
   // When the admin has fixed the color for customized orders, the customer's swatch
   // choice while customizing collapses to the first admin-allowed color.
   const effectiveColor = isCustomizing && customText && !allowColorChoice ? allowedColors[0] : selectedColor
 
+  const displayUnitPrice = usesNewCustomizer ? product.price + customizationPriceAdjustment : product.price
+
   const handleAddToCart = () => {
+    if (usesNewCustomizer) {
+      if (missingRequired.length > 0) {
+        toast.error(`Please choose ${missingRequired[0].toLowerCase()}`)
+        return
+      }
+      addItem(
+        product,
+        '',
+        undefined,
+        resolvedCustomizations.map((c) => ({
+          customizationId: c.customizationId,
+          valueId: c.valueId,
+          textValue: c.textValue,
+          label: c.label,
+          displayValue: c.displayValue,
+          priceAdjustment: c.priceAdjustment,
+        }))
+      )
+      openCart()
+      toast.success(`${product.name} added to cart!`)
+      return
+    }
+
     if (isCustomizing && !customText.trim()) {
       toast.error('Please enter your custom text')
       return
@@ -204,8 +236,10 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                 </div>
 
                 <div className="flex items-baseline gap-3">
-                  <span className="text-3xl font-bold text-primary">{formatPrice(product.price)}</span>
-                  {product.comparePrice && (
+                  <span className="text-3xl font-bold text-primary">
+                    {usesNewCustomizer ? formatPrice(displayUnitPrice) : formatPrice(product.price)}
+                  </span>
+                  {product.comparePrice && !usesNewCustomizer && (
                     <>
                       <span className="text-lg text-muted-foreground line-through">
                         {formatPrice(product.comparePrice)}
@@ -213,13 +247,29 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                       <Badge variant="destructive">{discount}% OFF</Badge>
                     </>
                   )}
+                  {usesNewCustomizer && customizationPriceAdjustment > 0 && (
+                    <span className="text-sm text-muted-foreground">
+                      (base {formatPrice(product.price)} + {formatPrice(customizationPriceAdjustment)})
+                    </span>
+                  )}
                 </div>
               </div>
 
               <Separator />
 
+              {usesNewCustomizer && (
+                <ProductCustomizer
+                  customizations={product.customizations}
+                  onChange={(resolved, priceAdjustment, missing) => {
+                    setResolvedCustomizations(resolved)
+                    setCustomizationPriceAdjustment(priceAdjustment)
+                    setMissingRequired(missing)
+                  }}
+                />
+              )}
+
               {/* Color Selection — locked while customizing if the admin disabled color choice */}
-              {product.colors.length > 0 && (
+              {!usesNewCustomizer && product.colors.length > 0 && (
                 <div>
                   <Label className="text-sm font-medium mb-3 block">
                     Select Color: <span className="text-muted-foreground capitalize">{effectiveColor}</span>
@@ -337,7 +387,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
               <div className="flex gap-3">
                 <Button size="lg" className="flex-1" onClick={handleAddToCart} disabled={product.stock === 0}>
                   <ShoppingBag className="h-5 w-5 mr-2" />
-                  {product.stock === 0 ? 'Out of Stock' : `Add to Cart - ${formatPrice(product.price * quantity)}`}
+                  {product.stock === 0 ? 'Out of Stock' : `Add to Cart - ${formatPrice(displayUnitPrice * quantity)}`}
                 </Button>
                 <Button
                   size="lg"

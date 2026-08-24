@@ -5,8 +5,32 @@ import { apiFetch } from "@/lib/api/http"
 // three admin-controlled fields (allowColorChoice, isLimitedEdition, allowedColors) that
 // are additive and safe for existing call sites that only read allowText/maxTextLength.
 
+export interface CustomizationValue {
+  id: string
+  label: string
+  value: string
+  priceAdjustment: number
+  enabled: boolean
+}
+
+export interface ProductCustomization {
+  id: string
+  name: string
+  label: string
+  type: 'choice' | 'color' | 'text' | 'number' | 'checkbox'
+  required: boolean
+  enabled: boolean
+  sortOrder: number
+  maxLength?: number
+  placeholder?: string
+  defaultValue?: string
+  conditionalParentValueId?: string
+  values: CustomizationValue[]
+}
+
 export interface Product {
   id: string
+  sku?: string | null
   name: string
   slug: string
   description: string
@@ -27,6 +51,11 @@ export interface Product {
     isLimitedEdition?: boolean
     allowedColors?: string[]
   }
+  /** New admin-controlled customization engine — independent of the legacy fields above. */
+  customizable: boolean
+  customizations: ProductCustomization[]
+  /** Lowest possible total price once required customizations are factored in. */
+  fromPrice?: number
   stock: number
   featured: boolean
   bestseller: boolean

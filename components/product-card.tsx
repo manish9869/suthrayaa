@@ -146,10 +146,12 @@ export function ProductCard({ product, className }: ProductCardProps) {
 
         {/* Price */}
         <div className="flex items-center gap-2">
-          <span className="font-semibold text-primary">
-            {formatPrice(product.price)}
-          </span>
-          {product.comparePrice && (
+          {product.fromPrice != null ? (
+            <span className="font-semibold text-primary">From {formatPrice(product.fromPrice)}</span>
+          ) : (
+            <span className="font-semibold text-primary">{formatPrice(product.price)}</span>
+          )}
+          {product.comparePrice && product.fromPrice == null && (
             <span className="text-sm text-muted-foreground line-through">
               {formatPrice(product.comparePrice)}
             </span>

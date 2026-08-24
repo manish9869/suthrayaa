@@ -9,11 +9,18 @@ async function getBrowserToken(): Promise<string | undefined> {
   return session?.access_token
 }
 
+export interface CustomizationSelectionInput {
+  customizationId: string
+  valueId?: string
+  textValue?: string
+}
+
 export interface CartItemInput {
   productId: string
   quantity: number
   selectedColor?: string
   customText?: string
+  customizations?: CustomizationSelectionInput[]
 }
 
 export interface PricedCart {

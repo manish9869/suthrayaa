@@ -11,7 +11,7 @@ import { useCartStore } from '@/lib/store'
 import { formatPrice } from '@/lib/data'
 
 export function CartDrawer() {
-  const { items, isOpen, closeCart, updateQuantity, removeItem, getTotalPrice } = useCartStore()
+  const { items, isOpen, closeCart, updateQuantity, removeItem, getTotalPrice, getItemUnitPrice } = useCartStore()
   const totalPrice = getTotalPrice()
   const shippingThreshold = 999
   const freeShipping = totalPrice >= shippingThreshold
@@ -73,7 +73,8 @@ export function CartDrawer() {
             <ScrollArea className="flex-1">
               <div className="px-4 py-4 space-y-4">
                 {items.map((item) => {
-                  const itemKey = `${item.product.id}-${item.selectedColor}-${item.customText || ''}`
+                  const itemKey = `${item.product.id}-${item.selectedColor}-${item.customText || ''}-${(item.customizations ?? []).map((c) => c.valueId ?? c.textValue).join(',')}`
+                  const unitPrice = getItemUnitPrice(item)
                   return (
                     <div key={itemKey} className="flex gap-4">
                       <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-muted flex-shrink-0">
@@ -88,17 +89,25 @@ export function CartDrawer() {
                         <h4 className="font-medium text-sm leading-tight truncate">
                           {item.product.name}
                         </h4>
-                        <div className="flex items-center gap-2 mt-1">
-                          <div
-                            className="w-4 h-4 rounded-full border border-border"
-                            style={{ backgroundColor: item.selectedColor }}
-                          />
-                          {item.customText && (
-                            <span className="text-xs text-muted-foreground">
-                              &quot;{item.customText}&quot;
-                            </span>
-                          )}
-                        </div>
+                        {item.customizations && item.customizations.length > 0 ? (
+                          <p className="text-xs text-muted-foreground mt-1 truncate">
+                            {item.customizations.map((c) => c.displayValue).join(' · ')}
+                          </p>
+                        ) : (
+                          <div className="flex items-center gap-2 mt-1">
+                            {item.selectedColor && (
+                              <div
+                                className="w-4 h-4 rounded-full border border-border"
+                                style={{ backgroundColor: item.selectedColor }}
+                              />
+                            )}
+                            {item.customText && (
+                              <span className="text-xs text-muted-foreground">
+                                &quot;{item.customText}&quot;
+                              </span>
+                            )}
+                          </div>
+                        )}
                         <div className="flex items-center justify-between mt-2">
                           <div className="flex items-center border rounded-lg">
                             <Button
@@ -110,7 +119,8 @@ export function CartDrawer() {
                                   item.product.id,
                                   item.selectedColor,
                                   item.quantity - 1,
-                                  item.customText
+                                  item.customText,
+                                  item.customizations
                                 )
                               }
                             >
@@ -126,7 +136,8 @@ export function CartDrawer() {
                                   item.product.id,
                                   item.selectedColor,
                                   item.quantity + 1,
-                                  item.customText
+                                  item.customText,
+                                  item.customizations
                                 )
                               }
                             >
@@ -134,7 +145,7 @@ export function CartDrawer() {
                             </Button>
                           </div>
                           <span className="font-semibold text-sm">
-                            {formatPrice(item.product.price * item.quantity)}
+                            {formatPrice(unitPrice * item.quantity)}
                           </span>
                         </div>
                       </div>
@@ -143,7 +154,7 @@ export function CartDrawer() {
                         size="icon"
                         className="h-8 w-8 text-muted-foreground hover:text-destructive flex-shrink-0"
                         onClick={() =>
-                          removeItem(item.product.id, item.selectedColor, item.customText)
+                          removeItem(item.product.id, item.selectedColor, item.customText, item.customizations)
                         }
                       >
                         <Trash2 className="h-4 w-4" />
