@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
 import { Plus, Trash2 } from 'lucide-react'
 import { getAdminColors, createColor, deleteColor, type AdminColor } from '@/lib/api/admin'
+import { ColorYarnSwatch } from '@/components/color-yarn-swatch'
 import { toast } from 'sonner'
 
 export default function AdminColorsPage() {
@@ -83,7 +84,9 @@ export default function AdminColorsPage() {
       <div className="flex flex-wrap gap-3">
         {colors.map((c) => (
           <div key={c.id} className="flex items-center gap-2 pl-2 pr-3 py-2 rounded-full border bg-background">
-            <span className="w-6 h-6 rounded-full border" style={{ backgroundColor: c.hex }} />
+            <span className="w-6 h-6 rounded-full border bg-muted p-1">
+              <ColorYarnSwatch color={c.hex} />
+            </span>
             <span className="text-sm font-medium">{c.name}</span>
             <button onClick={() => handleDelete(c.id, c.name)} className="text-muted-foreground hover:text-destructive">
               <Trash2 className="h-3.5 w-3.5" />

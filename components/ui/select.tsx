@@ -5,6 +5,7 @@ import * as SelectPrimitive from '@radix-ui/react-select'
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import { usePortalContainer } from '@/components/theme-portal'
 
 function Select({
   ...props
@@ -54,10 +55,12 @@ function SelectContent({
   className,
   children,
   position = 'popper',
+  container,
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Content>) {
+}: React.ComponentProps<typeof SelectPrimitive.Content> & { container?: HTMLElement | null }) {
+  const portalContainer = usePortalContainer()
   return (
-    <SelectPrimitive.Portal>
+    <SelectPrimitive.Portal container={container ?? portalContainer}>
       <SelectPrimitive.Content
         data-slot="select-content"
         className={cn(

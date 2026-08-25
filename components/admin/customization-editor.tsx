@@ -22,6 +22,7 @@ import {
 } from '@/lib/api/admin'
 import type { ProductCustomization, CustomizationValue } from '@/lib/data'
 import type { AdminColor } from '@/lib/api/admin'
+import { ColorYarnSwatch } from '@/components/color-yarn-swatch'
 
 const TYPE_LABELS: Record<CustomizationGroupInput['type'], string> = {
   choice: 'Dropdown / Radio (choose one)',
@@ -318,7 +319,11 @@ export function CustomizationEditor({ productId, customizations, colors, onChang
                   {g.values.map((v) => (
                     <div key={v.id} className="flex items-center justify-between text-sm px-2 py-1.5 rounded hover:bg-muted">
                       <div className="flex items-center gap-2">
-                        {g.type === 'color' && <span className="w-3.5 h-3.5 rounded-full border" style={{ backgroundColor: v.value }} />}
+                        {g.type === 'color' && (
+                          <span className="w-3.5 h-3.5 rounded-full border bg-muted p-0.5">
+                            <ColorYarnSwatch color={v.value} />
+                          </span>
+                        )}
                         <span className={!v.enabled ? 'text-muted-foreground line-through' : ''}>{v.label}</span>
                         {v.priceAdjustment !== 0 && (
                           <span className="text-muted-foreground">
@@ -405,11 +410,12 @@ export function CustomizationEditor({ productId, customizations, colors, onChang
                           type="button"
                           onClick={() => setValueForm((f) => ({ ...f, label: f.label || c.name, value: c.hex }))}
                           title={c.name}
-                          className={`w-8 h-8 rounded-full border-2 transition-transform ${
+                          className={`w-8 h-8 rounded-full border-2 bg-muted p-1 transition-transform ${
                             selected ? 'border-primary scale-110' : 'border-border hover:scale-105'
                           }`}
-                          style={{ backgroundColor: c.hex }}
-                        />
+                        >
+                          <ColorYarnSwatch color={c.hex} />
+                        </button>
                       )
                     })}
                   </div>

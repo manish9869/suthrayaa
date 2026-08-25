@@ -358,12 +358,13 @@ export default function AdminDashboardPage() {
                   <YAxis tick={{ fontSize: 12 }} stroke="var(--muted-foreground)" allowDecimals={false} tickLine={false} axisLine={false} width={32} />
                   <Tooltip {...tooltipStyle} />
                   <Line
-                    type="monotone"
+                    type="natural"
                     dataKey="count"
                     name="Registrations"
                     stroke="var(--mint)"
-                    strokeWidth={2}
+                    strokeWidth={2.5}
                     strokeLinecap="round"
+                    strokeLinejoin="round"
                     dot={{ r: 4, fill: 'var(--mint)', stroke: 'var(--card)', strokeWidth: 2 }}
                     activeDot={{ r: 5, fill: 'var(--mint)', stroke: 'var(--card)', strokeWidth: 2 }}
                   />

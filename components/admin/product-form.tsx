@@ -32,6 +32,7 @@ import {
   type ProductType,
 } from '@/lib/api/admin'
 import { CustomizationEditor } from '@/components/admin/customization-editor'
+import { ColorYarnSwatch } from '@/components/color-yarn-swatch'
 
 interface ProductFormProps {
   product?: AdminProductListItem & { id: string }
@@ -546,7 +547,9 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
                         selected ? 'border-primary bg-primary/5' : 'border-border hover:border-muted-foreground'
                       }`}
                     >
-                      <span className="w-3.5 h-3.5 rounded-full border" style={{ backgroundColor: c.hex }} />
+                      <span className="w-3.5 h-3.5 rounded-full border bg-muted p-0.5">
+                        <ColorYarnSwatch color={c.hex} />
+                      </span>
                       {c.name}
                     </button>
                   )
@@ -689,7 +692,9 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
                                 selected ? 'border-primary bg-primary/5' : 'border-border hover:border-muted-foreground'
                               }`}
                             >
-                              <span className="w-3.5 h-3.5 rounded-full border" style={{ backgroundColor: c.hex }} />
+                              <span className="w-3.5 h-3.5 rounded-full border bg-muted p-0.5">
+                        <ColorYarnSwatch color={c.hex} />
+                      </span>
                               {c.name}
                             </button>
                           )

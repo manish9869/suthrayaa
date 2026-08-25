@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { PortalContainerContext } from '@/components/theme-portal'
 
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
@@ -45,6 +46,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [admin, setAdmin] = useState<AdminMe | null>(null)
   const [checking, setChecking] = useState(true)
   const [denied, setDenied] = useState(false)
+  const [darkContainer, setDarkContainer] = useState<HTMLElement | null>(null)
 
   useEffect(() => {
     if (authLoading) return
@@ -81,7 +83,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="dark min-h-screen flex bg-background text-foreground">
+    <PortalContainerContext.Provider value={darkContainer}>
+    <div ref={setDarkContainer} className="dark min-h-screen flex bg-background text-foreground">
       <aside className="w-64 border-r border-sidebar-border bg-sidebar flex flex-col">
         <div className="p-6 border-b border-sidebar-border">
           <Link href="/admin" className="font-serif text-xl font-bold text-sidebar-foreground">
@@ -128,5 +131,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="p-6 lg:p-8 max-w-7xl mx-auto">{children}</div>
       </main>
     </div>
+    </PortalContainerContext.Provider>
   )
 }

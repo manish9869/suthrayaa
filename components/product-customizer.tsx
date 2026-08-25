@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import { formatPrice, type ProductCustomization } from '@/lib/data'
+import { ColorYarnSwatch } from '@/components/color-yarn-swatch'
 
 export interface CustomizerSelection {
   customizationId: string
@@ -163,15 +164,15 @@ export function ProductCustomizer({ customizations, onChange }: ProductCustomize
                         title={value.label}
                         aria-label={value.label}
                         className={cn(
-                          'relative h-10 w-10 rounded-full border-2 transition-all',
+                          'relative h-10 w-10 rounded-full border-2 bg-muted p-1.5 transition-all',
                           active ? 'border-primary ring-2 ring-primary ring-offset-2' : 'border-border hover:border-muted-foreground'
                         )}
-                        style={{ backgroundColor: value.value }}
                       >
+                        <ColorYarnSwatch color={value.value} />
                         {active && (
                           <Check
                             className={cn(
-                              'absolute inset-0 m-auto h-5 w-5',
+                              'absolute inset-0 m-auto h-4 w-4 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]',
                               LIGHT_HEXES.includes(value.value.toUpperCase()) ? 'text-foreground' : 'text-white'
                             )}
                           />
