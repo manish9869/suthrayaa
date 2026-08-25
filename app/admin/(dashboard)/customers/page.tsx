@@ -32,6 +32,8 @@ import { DateRangeFilter, type DateRangeValue } from '@/components/admin/date-ra
 import { StatCard } from '@/components/admin/stat-card'
 import { GLASS_PANEL, exportRowsToCsv } from '@/lib/admin-ui'
 import { toast } from 'sonner'
+import { DataTablePagination } from '@/components/admin/data-table-pagination'
+import { usePaginated } from '@/lib/hooks/use-paginated'
 
 const ALL_TIME: DateRangeValue = { days: 3650, label: 'Any time joined' }
 
@@ -117,6 +119,8 @@ export default function AdminCustomersPage() {
     return result
   }, [customers, search, sinceCutoff, untilCutoff, minOrders, spentRange, sortKey])
 
+  const { pageItems, page, setPage, pageCount, total: pageTotal } = usePaginated(filtered, 15)
+
   const stats = useMemo(
     () => ({
       totalSpent: filtered.reduce((sum, c) => sum + c.totalSpent, 0),
@@ -190,11 +194,11 @@ export default function AdminCustomersPage() {
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative max-w-sm flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search name, email, or phone..." className="pl-10" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input placeholder="Search name, email, or phone..." className="pl-10 rounded-full" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
 
         <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="rounded-full w-44">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -209,8 +213,8 @@ export default function AdminCustomersPage() {
         <DateRangeFilter value={joinedRange} onChange={setJoinedRange} />
 
         <Select value={minOrders} onValueChange={setMinOrders}>
-          <SelectTrigger className="w-36">
-            <SlidersHorizontal className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+          <SelectTrigger className="rounded-full w-40">
+            <SlidersHorizontal className="h-3.5 w-3.5 mr-1 text-muted-foreground flex-shrink-0" />
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -224,7 +228,7 @@ export default function AdminCustomersPage() {
 
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="font-normal">
+            <Button variant="outline" className="rounded-full font-normal">
               <Wallet className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
               {spentRange[0] > 0 || spentRange[1] < maxSpent ? `${formatPrice(spentRange[0])} – ${formatPrice(spentRange[1])}` : 'Any spend'}
             </Button>
@@ -272,7 +276,7 @@ export default function AdminCustomersPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((c) => (
+              pageItems.map((c) => (
                 <TableRow key={c.id} className="hover:bg-muted/50">
                   <TableCell className="font-medium">
                     <Link href={`/admin/customers/${c.id}`} className="text-primary hover:underline flex items-center gap-1.5">
@@ -339,6 +343,7 @@ export default function AdminCustomersPage() {
             )}
           </TableBody>
         </Table>
+        <DataTablePagination page={page} pageCount={pageCount} total={pageTotal} pageSize={15} onPageChange={setPage} />
       </div>
     </div>
   )

@@ -2,22 +2,24 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { DualRangeSlider } from '@/components/ui/dual-range-slider'
-import { Search, SlidersHorizontal, Sparkles, RefreshCw, Download, Mail, FileDown, ShoppingCart, IndianRupee, Clock, XCircle, Eye, Copy } from 'lucide-react'
+import { Search, SlidersHorizontal, Sparkles, RefreshCw, Download, Mail, FileDown, ShoppingCart, IndianRupee, Clock, XCircle, Eye, Copy, X } from 'lucide-react'
 import { getAdminOrders, fetchInvoicePdfBlob, emailInvoice, type AdminOrderSummary } from '@/lib/api/admin'
 import { formatPrice } from '@/lib/data'
 import { DateRangeFilter, type DateRangeValue } from '@/components/admin/date-range-filter'
 import { StatCard } from '@/components/admin/stat-card'
-import { StatusDot, type DotTone } from '@/components/admin/status-dot'
+import { StatusDot, DOT_CLASSES, type DotTone } from '@/components/admin/status-dot'
 import { GLASS_PANEL, exportRowsToCsv } from '@/lib/admin-ui'
 import { toast } from 'sonner'
+import { SortableTh } from '@/components/admin/sortable-th'
+import { DataTablePagination } from '@/components/admin/data-table-pagination'
+import { useSortableData } from '@/lib/hooks/use-sortable-data'
+import { usePaginated } from '@/lib/hooks/use-paginated'
 
 const STATUS_DOT: Record<string, DotTone> = {
   pending_payment: 'muted',
@@ -43,7 +45,6 @@ export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<AdminOrderSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [showFilters, setShowFilters] = useState(false)
 
   const [status, setStatus] = useState<string>('all')
   const [paymentStatus, setPaymentStatus] = useState<string>('all')
@@ -95,6 +96,17 @@ export default function AdminOrdersPage() {
     result = result.filter((o) => o.total >= totalRange[0] && o.total <= totalRange[1])
     return result
   }, [orders, search, status, paymentStatus, custom, sinceCutoff, untilCutoff, totalRange])
+
+  const { sorted, sortKey, direction, toggleSort } = useSortableData(filtered, {
+    order: (o) => o.orderNumber,
+    customer: (o) => o.customerName,
+    items: (o) => o.itemCount,
+    total: (o) => o.total,
+    payment: (o) => o.paymentStatus,
+    status: (o) => o.status,
+    date: (o) => o.createdAt,
+  })
+  const { pageItems, page, setPage, pageCount, total: pageTotal } = usePaginated(sorted, 15)
 
   const stats = useMemo(() => {
     const paid = filtered.filter((o) => o.paymentStatus === 'paid')
@@ -196,106 +208,93 @@ export default function AdminOrdersPage() {
         <StatCard icon={XCircle} label="Cancelled / Refunded" value={stats.cancelledOrRefunded} tone="destructive" />
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2">
         <div className="relative max-w-sm flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search order #, customer, tracking..." className="pl-10" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input placeholder="Search order #, customer, tracking..." className="pl-10 rounded-full" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <Sheet open={showFilters} onOpenChange={setShowFilters}>
-          <SheetTrigger asChild>
-            <Button variant="outline">
-              <SlidersHorizontal className="h-4 w-4 mr-2" />
-              Filters
-              {activeFilterCount > 0 && <Badge className="ml-2 h-5 w-5 p-0 flex items-center justify-center">{activeFilterCount}</Badge>}
+
+        <Select value={custom} onValueChange={setCustom}>
+          <SelectTrigger className="rounded-full w-36">
+            <span className={`h-2 w-2 rounded-full flex-shrink-0 ${custom === 'all' ? DOT_CLASSES.muted : DOT_CLASSES.primary}`} />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Orders</SelectItem>
+            <SelectItem value="custom">Custom Orders</SelectItem>
+            <SelectItem value="standard">Standard Orders</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={status} onValueChange={setStatus}>
+          <SelectTrigger className="rounded-full w-40">
+            <span className={`h-2 w-2 rounded-full flex-shrink-0 ${status === 'all' ? DOT_CLASSES.muted : DOT_CLASSES[STATUS_DOT[status] ?? 'muted']}`} />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            {(Object.keys(STATUS_DOT) as (keyof typeof STATUS_DOT)[]).map((s) => (
+              <SelectItem key={s} value={s}>
+                <span className={`h-2 w-2 rounded-full ${DOT_CLASSES[STATUS_DOT[s]]}`} />
+                {s === 'pending_payment' ? 'Pending Payment' : s === 'in_production' ? 'Making' : s.replace(/_/g, ' ')}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={paymentStatus} onValueChange={setPaymentStatus}>
+          <SelectTrigger className="rounded-full w-40">
+            <span className={`h-2 w-2 rounded-full flex-shrink-0 ${paymentStatus === 'all' ? DOT_CLASSES.muted : DOT_CLASSES[PAYMENT_DOT[paymentStatus] ?? 'muted']}`} />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Any Payment</SelectItem>
+            {(Object.keys(PAYMENT_DOT) as (keyof typeof PAYMENT_DOT)[]).map((s) => (
+              <SelectItem key={s} value={s}>
+                <span className={`h-2 w-2 rounded-full ${DOT_CLASSES[PAYMENT_DOT[s]]}`} />
+                {s.replace(/_/g, ' ')}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <DateRangeFilter value={placedRange} onChange={setPlacedRange} />
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="rounded-full font-normal">
+              <SlidersHorizontal className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+              {totalRange[0] > 0 || totalRange[1] < maxTotal ? `${formatPrice(totalRange[0])} – ${formatPrice(totalRange[1])}` : 'Any total'}
             </Button>
-          </SheetTrigger>
-          <SheetContent side="right" className="w-80 overflow-y-auto">
-            <SheetHeader>
-              <SheetTitle>Filters</SheetTitle>
-            </SheetHeader>
-            <div className="mt-6 space-y-5">
-              <div className="space-y-2">
-                <Label className="text-sm">Order Type</Label>
-                <Select value={custom} onValueChange={setCustom}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Orders</SelectItem>
-                    <SelectItem value="custom">Custom Orders</SelectItem>
-                    <SelectItem value="standard">Standard Orders</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm">Order Status</Label>
-                <Select value={status} onValueChange={setStatus}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="pending_payment">Pending Payment</SelectItem>
-                    <SelectItem value="confirmed">Confirmed</SelectItem>
-                    <SelectItem value="in_production">Making</SelectItem>
-                    <SelectItem value="ready">Ready</SelectItem>
-                    <SelectItem value="shipped">Shipped</SelectItem>
-                    <SelectItem value="delivered">Delivered</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                    <SelectItem value="refunded">Refunded</SelectItem>
-                    <SelectItem value="partially_refunded">Partially Refunded</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm">Payment Status</Label>
-                <Select value={paymentStatus} onValueChange={setPaymentStatus}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Any Payment Status</SelectItem>
-                    <SelectItem value="paid">Paid</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="failed">Failed</SelectItem>
-                    <SelectItem value="refunded">Refunded</SelectItem>
-                    <SelectItem value="partially_refunded">Partially Refunded</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm">Placed On</Label>
-                <DateRangeFilter value={placedRange} onChange={setPlacedRange} />
-              </div>
-              <div className="space-y-3">
-                <Label className="text-sm">Order Total</Label>
-                <DualRangeSlider value={sliderRange} onValueChange={setSliderRange} onValueCommit={setTotalRange} min={0} max={maxTotal} step={50} />
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>{formatPrice(sliderRange[0])}</span>
-                  <span>{formatPrice(sliderRange[1])}</span>
-                </div>
-              </div>
-              {activeFilterCount > 0 && (
-                <Button variant="outline" className="w-full" onClick={clearFilters}>
-                  Clear Filters
-                </Button>
-              )}
+          </PopoverTrigger>
+          <PopoverContent className="w-72 p-4" align="start">
+            <p className="text-sm font-medium mb-3">Order Total</p>
+            <DualRangeSlider value={sliderRange} onValueChange={setSliderRange} onValueCommit={setTotalRange} min={0} max={maxTotal} step={50} />
+            <div className="flex items-center justify-between text-sm text-muted-foreground mt-2">
+              <span>{formatPrice(sliderRange[0])}</span>
+              <span>{formatPrice(sliderRange[1])}</span>
             </div>
-          </SheetContent>
-        </Sheet>
+          </PopoverContent>
+        </Popover>
+
+        {activeFilterCount > 0 && (
+          <Button variant="ghost" size="sm" onClick={clearFilters}>
+            <X className="h-3.5 w-3.5 mr-1.5" /> Clear filters
+          </Button>
+        )}
       </div>
 
       <div className={`${GLASS_PANEL} overflow-x-auto`}>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Order</TableHead>
-              <TableHead>Items</TableHead>
-              <TableHead>Total</TableHead>
-              <TableHead>Payment</TableHead>
-              <TableHead>Status</TableHead>
+              <SortableTh label="Order" sortKey="order" activeKey={sortKey} direction={direction} onSort={toggleSort} />
+              <SortableTh label="Items" sortKey="items" activeKey={sortKey} direction={direction} onSort={toggleSort} />
+              <SortableTh label="Total" sortKey="total" activeKey={sortKey} direction={direction} onSort={toggleSort} />
+              <SortableTh label="Payment" sortKey="payment" activeKey={sortKey} direction={direction} onSort={toggleSort} />
+              <SortableTh label="Status" sortKey="status" activeKey={sortKey} direction={direction} onSort={toggleSort} />
               <TableHead>Tracking</TableHead>
-              <TableHead>Date</TableHead>
+              <SortableTh label="Date" sortKey="date" activeKey={sortKey} direction={direction} onSort={toggleSort} />
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -313,7 +312,7 @@ export default function AdminOrdersPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((o) => (
+              pageItems.map((o) => (
                 <TableRow key={o.id} className="hover:bg-muted/50">
                   <TableCell>
                     <Link href={`/admin/orders/${o.id}`} className="font-medium text-primary hover:underline flex items-center gap-1.5">
@@ -361,6 +360,7 @@ export default function AdminOrdersPage() {
             )}
           </TableBody>
         </Table>
+        <DataTablePagination page={page} pageCount={pageCount} total={pageTotal} pageSize={15} onPageChange={setPage} />
       </div>
     </div>
   )

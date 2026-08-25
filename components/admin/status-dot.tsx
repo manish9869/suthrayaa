@@ -2,7 +2,7 @@ import { cn } from '@/lib/utils'
 
 export type DotTone = 'mint' | 'gold' | 'destructive' | 'primary' | 'violet' | 'muted'
 
-const DOT_CLASSES: Record<DotTone, string> = {
+export const DOT_CLASSES: Record<DotTone, string> = {
   mint: 'bg-mint',
   gold: 'bg-gold',
   destructive: 'bg-destructive',

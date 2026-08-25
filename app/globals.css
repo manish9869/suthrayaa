@@ -83,64 +83,66 @@
    Scoped via a `dark` class on the admin layout wrapper only (see app/admin), so it never
    affects the customer-facing pages, which have no theme toggle. */
 .dark {
-  --background: #14171c;
+  --background: #0a0b0d;
   --foreground: #e9e7e2;
 
-  --primary: #e2895e;
-  --primary-foreground: #1a1006;
+  --primary: #ff6b3d;
+  --primary-foreground: #1a0800;
 
-  --card: #1b1f26;
+  --card: #121317;
   --card-foreground: #e9e7e2;
 
-  --popover: #1b1f26;
+  --popover: #121317;
   --popover-foreground: #e9e7e2;
 
-  --secondary: #e3b45c;
-  --secondary-foreground: #241a08;
+  --secondary: #ffc136;
+  --secondary-foreground: #2b1a00;
 
-  --muted: #232830;
+  --muted: #1a1b20;
   --muted-foreground: #98a0ac;
 
-  --accent: #8fae86;
-  --accent-foreground: #0f160d;
+  /* Teal — kept distinct from mint (both were near-identical sage greens) for more
+     hue variety across the admin's accent set. */
+  --accent: #1fd1c7;
+  --accent-foreground: #04211f;
 
-  --mint: #7fbe87;
-  --mint-foreground: #0d1f0e;
+  --mint: #2fdc84;
+  --mint-foreground: #04220f;
 
-  --gold: #e3b45c;
-  --gold-foreground: #241a08;
+  --gold: #ffc136;
+  --gold-foreground: #2b1a00;
 
-  --peach: #c98f5e;
+  --peach: #ff9d5c;
   --peach-foreground: #2a1808;
 
-  --lavender: #c97a5e;
+  --lavender: #ff7d66;
   --lavender-foreground: #2a1408;
 
   /* Violet — 5th category color, used for admin dashboard section coding */
-  --violet: #a599e8;
-  --violet-foreground: #211a4a;
+  --violet: #a374ff;
+  --violet-foreground: #1c0f3d;
 
-  --destructive: #e5484d;
+  --destructive: #ff4759;
   --destructive-foreground: #fff5f5;
 
-  --border: #2b313a;
-  --input: #232830;
-  --ring: #e2895e;
+  --border: #24262c;
+  --input: #1a1b20;
+  --ring: #ff6b3d;
 
-  --chart-1: #e2895e;
-  --chart-2: #e3b45c;
-  --chart-3: #8fae86;
-  --chart-4: #c97a5e;
-  --chart-5: #7fbe87;
+  --chart-1: #ff6b3d;
+  --chart-2: #ffc136;
+  --chart-3: #1fd1c7;
+  --chart-4: #ff7d66;
+  --chart-5: #2fdc84;
 
-  --sidebar: #171b21;
+  --sidebar: #0a0b0d;
   --sidebar-foreground: #e9e7e2;
-  --sidebar-primary: #e2895e;
-  --sidebar-primary-foreground: #1a1006;
-  --sidebar-accent: #232830;
+  --sidebar-primary: #ff6b3d;
+  --sidebar-primary-foreground: #1a0800;
+  --sidebar-accent: #1a1b20;
   --sidebar-accent-foreground: #e9e7e2;
-  --sidebar-border: #2b313a;
-  --sidebar-ring: #e2895e;
+  --sidebar-border: #24262c;
+  --sidebar-ring: #ff6b3d;
 }
 
 @theme inline {
@@ -323,9 +325,10 @@
   }
 }
 
-/* Admin console — square-cornered cards. Scoped to .dark (the admin layout wrapper) so the
-   storefront's cozy, larger-radius cards elsewhere are unaffected. Left unlayered so it
-   reliably wins over the Card component's rounded-xl utility regardless of source order. */
+/* Admin console — a small, subtle corner curve on cards (not the storefront's large cozy
+   radius, not fully square either). Scoped to .dark (the admin layout wrapper) so the
+   storefront's cards elsewhere are unaffected. Left unlayered so it reliably wins over the
+   Card component's rounded-xl utility regardless of source order. */
 .dark [data-slot="card"] {
-  border-radius: 0;
+  border-radius: 0.5rem;
 }

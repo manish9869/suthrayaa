@@ -25,6 +25,7 @@ import {
   History,
   RefreshCw,
   Sparkles,
+  Eye,
 } from 'lucide-react'
 import {
   getAdminCustomer,
@@ -252,7 +253,7 @@ export default function AdminCustomerDetailPage() {
                       <TableHead>Payment</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Date</TableHead>
-                      <TableHead className="text-right">Invoice</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -283,6 +284,11 @@ export default function AdminCustomerDetailPage() {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
+                              <Button variant="ghost" size="icon" title="View order" asChild>
+                                <Link href={`/admin/orders/${o.id}`}>
+                                  <Eye className="h-4 w-4" />
+                                </Link>
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"

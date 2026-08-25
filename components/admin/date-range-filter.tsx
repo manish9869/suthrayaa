@@ -43,7 +43,7 @@ export function DateRangeFilter({ value, onChange }: { value: DateRangeValue; on
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" className="justify-start text-left font-normal">
+        <Button variant="outline" className="rounded-full justify-start text-left font-normal">
           <CalendarIcon className="h-4 w-4 mr-2" />
           {value.label}
         </Button>

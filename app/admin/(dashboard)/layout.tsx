@@ -84,8 +84,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <PortalContainerContext.Provider value={darkContainer}>
-    <div ref={setDarkContainer} className="dark min-h-screen flex bg-background text-foreground">
-      <aside className="w-64 border-r border-sidebar-border bg-sidebar flex flex-col">
+    <div ref={setDarkContainer} className="dark h-screen flex bg-background text-foreground overflow-hidden">
+      <aside className="w-64 flex-shrink-0 border-r border-sidebar-border bg-sidebar flex flex-col h-full">
         <div className="p-6 border-b border-sidebar-border">
           <Link href="/admin" className="font-serif text-xl font-bold text-sidebar-foreground">
             Suthrayaa Admin
@@ -127,8 +127,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </button>
         </div>
       </aside>
-      <main className="flex-1 overflow-x-hidden bg-background">
-        <div className="p-6 lg:p-8 max-w-7xl mx-auto">{children}</div>
+      <main className="flex-1 overflow-y-auto overflow-x-hidden bg-background">
+        <div className="p-6 lg:p-8">{children}</div>
       </main>
     </div>
     </PortalContainerContext.Provider>

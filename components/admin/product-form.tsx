@@ -357,9 +357,9 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 max-w-5xl">
       <Tabs defaultValue="basic">
-        <TabsList>
+        <TabsList className="rounded-full h-auto p-1">
           <TabsTrigger value="basic">Basic Info</TabsTrigger>
           <TabsTrigger value="category">Category</TabsTrigger>
           <TabsTrigger value="media">Media</TabsTrigger>
@@ -371,7 +371,9 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
         </TabsList>
 
         {/* ---- Basic Info ---- */}
-        <TabsContent value="basic" className="space-y-4 pt-4">
+        <TabsContent value="basic" className="pt-4">
+        <Card>
+        <CardContent className="p-6 space-y-4">
           <div className={isEditing ? 'grid sm:grid-cols-2 gap-4' : 'space-y-2'}>
             <div className="space-y-2">
               <Label>Product Name</Label>
@@ -463,10 +465,14 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
               </label>
             ))}
           </div>
+        </CardContent>
+        </Card>
         </TabsContent>
 
         {/* ---- Category ---- */}
-        <TabsContent value="category" className="space-y-4 pt-4">
+        <TabsContent value="category" className="pt-4">
+        <Card>
+        <CardContent className="p-6 space-y-4">
           <div className="space-y-2">
             <Label>Category</Label>
             <CascadingCategoryPicker categories={categories} value={form.categoryId} onChange={(v) => setForm((f) => ({ ...f, categoryId: v }))} />
@@ -501,6 +507,8 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
             <Label>Tags (comma separated)</Label>
             <Input value={form.tags} onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))} />
           </div>
+        </CardContent>
+        </Card>
         </TabsContent>
 
         {/* ---- Media ---- */}
@@ -560,7 +568,9 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
         </TabsContent>
 
         {/* ---- Pricing ---- */}
-        <TabsContent value="pricing" className="space-y-4 pt-4">
+        <TabsContent value="pricing" className="pt-4">
+        <Card>
+        <CardContent className="p-6 space-y-4">
           <div className="grid sm:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Base Price (₹)</Label>
@@ -623,6 +633,8 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
               <Badge variant="secondary">{discountPercent}% OFF</Badge>
             </div>
           )}
+        </CardContent>
+        </Card>
         </TabsContent>
 
         {/* ---- Customization ---- */}
@@ -712,7 +724,9 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
         </TabsContent>
 
         {/* ---- Inventory ---- */}
-        <TabsContent value="inventory" className="space-y-4 pt-4">
+        <TabsContent value="inventory" className="pt-4">
+        <Card>
+        <CardContent className="p-6 space-y-4">
           <label className="flex items-center justify-between cursor-pointer">
             <div>
               <p className="font-medium text-sm">Track Inventory</p>
@@ -752,10 +766,14 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
           <p className="text-xs text-muted-foreground">
             {form.stock <= 0 ? 'Out of Stock' : form.stock <= form.lowStockThreshold ? 'Low Stock' : 'In Stock'}
           </p>
+        </CardContent>
+        </Card>
         </TabsContent>
 
         {/* ---- Shipping ---- */}
-        <TabsContent value="shipping" className="space-y-4 pt-4">
+        <TabsContent value="shipping" className="pt-4">
+        <Card>
+        <CardContent className="p-6 space-y-4">
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             <Switch checked={form.isPhysical} onCheckedChange={(v) => setForm((f) => ({ ...f, isPhysical: v }))} />
             Physical Product
@@ -809,10 +827,14 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
             <Label className="text-xs">Care Instructions (comma separated)</Label>
             <Input value={form.careInstructions} onChange={(e) => setForm((f) => ({ ...f, careInstructions: e.target.value }))} />
           </div>
+        </CardContent>
+        </Card>
         </TabsContent>
 
         {/* ---- SEO ---- */}
-        <TabsContent value="seo" className="space-y-4 pt-4">
+        <TabsContent value="seo" className="pt-4">
+        <Card>
+        <CardContent className="p-6 space-y-4">
           <div className="space-y-2">
             <Label>URL Slug</Label>
             <Input value={form.slug} onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))} placeholder="Auto-generated from name if left blank" />
@@ -832,13 +854,15 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
           <div className="border rounded-lg p-4 bg-muted/40">
             <p className="text-xs text-muted-foreground mb-2">Search result preview</p>
             <p className="text-primary text-sm truncate">suthrayaa.com/product/{form.slug || 'your-product-slug'}</p>
-            <p className="text-blue-700 text-base leading-tight">{form.metaTitle || form.name || 'Product name'}</p>
+            <p className="text-blue-400 text-base leading-tight">{form.metaTitle || form.name || 'Product name'}</p>
             <p className="text-sm text-muted-foreground line-clamp-2">{form.metaDescription || form.shortDescription || 'Product description...'}</p>
           </div>
+        </CardContent>
+        </Card>
         </TabsContent>
       </Tabs>
 
-      <div className="flex justify-end gap-3">
+      <div className="flex justify-end gap-3 border-t pt-6">
         <Button variant="outline" onClick={() => router.push('/admin/products')}>
           Cancel
         </Button>

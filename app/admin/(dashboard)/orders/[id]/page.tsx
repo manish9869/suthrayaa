@@ -11,7 +11,21 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { ArrowLeft, FileText, Mail, RefreshCw, Download, CheckCircle2, RotateCcw, AlertCircle } from 'lucide-react'
+import {
+  ArrowLeft,
+  FileText,
+  Mail,
+  RefreshCw,
+  Download,
+  CheckCircle2,
+  RotateCcw,
+  AlertCircle,
+  IndianRupee,
+  Package,
+  CreditCard,
+  Truck,
+  History,
+} from 'lucide-react'
 import {
   getAdminOrder,
   updateOrderStatus,
@@ -24,6 +38,7 @@ import {
 import { formatPrice } from '@/lib/data'
 import { toast } from 'sonner'
 import { StatusDot, type DotTone } from '@/components/admin/status-dot'
+import { StatCard } from '@/components/admin/stat-card'
 
 const PAYMENT_DOT: Record<string, DotTone> = {
   paid: 'mint',
@@ -31,6 +46,17 @@ const PAYMENT_DOT: Record<string, DotTone> = {
   failed: 'destructive',
   refunded: 'muted',
   partially_refunded: 'muted',
+}
+const STATUS_DOT: Record<string, DotTone> = {
+  pending_payment: 'muted',
+  confirmed: 'gold',
+  in_production: 'gold',
+  ready: 'gold',
+  shipped: 'primary',
+  delivered: 'mint',
+  cancelled: 'destructive',
+  refunded: 'destructive',
+  partially_refunded: 'destructive',
 }
 
 const STATUSES = [
@@ -151,18 +177,39 @@ export default function AdminOrderDetailPage() {
   if (!order) return <p className="text-muted-foreground">Order not found</p>
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => router.push('/admin/orders')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-2xl font-serif font-bold">{order.orderNumber}</h1>
-          <p className="text-muted-foreground text-sm">
-            Placed {order.placedAt ? new Date(order.placedAt).toLocaleString('en-IN') : '—'}
-            {order.isCustomOrder && <Badge variant="secondary" className="ml-2 text-xs">Custom Order</Badge>}
-          </p>
+          <h1 className="text-2xl font-serif font-bold flex items-center gap-2">
+            {order.orderNumber}
+            {order.isCustomOrder && (
+              <Badge variant="secondary" className="text-xs">
+                Custom Order
+              </Badge>
+            )}
+          </h1>
+          <p className="text-muted-foreground text-sm">Placed {order.placedAt ? new Date(order.placedAt).toLocaleString('en-IN') : '—'}</p>
         </div>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard icon={IndianRupee} label="Order Total" value={formatPrice(order.total)} tone="primary" />
+        <StatCard icon={Package} label="Items" value={order.itemCount} subtitle={`${order.items.length} line item${order.items.length === 1 ? '' : 's'}`} tone="gold" />
+        <StatCard
+          icon={CreditCard}
+          label="Payment"
+          value={<StatusDot label={order.paymentStatus} tone={PAYMENT_DOT[order.paymentStatus] ?? 'muted'} className="text-lg font-bold" />}
+          tone={PAYMENT_DOT[order.paymentStatus] === 'destructive' ? 'destructive' : PAYMENT_DOT[order.paymentStatus] === 'mint' ? 'mint' : 'gold'}
+        />
+        <StatCard
+          icon={Truck}
+          label="Fulfilment"
+          value={<StatusDot label={STATUS_LABELS[order.status] ?? order.status.replace(/_/g, ' ')} tone={STATUS_DOT[order.status] ?? 'muted'} className="text-lg font-bold" />}
+          tone="violet"
+        />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">

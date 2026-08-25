@@ -10,8 +10,9 @@ import {
   Area,
   BarChart,
   Bar,
-  LineChart,
-  Line,
+  RadialBarChart,
+  RadialBar,
+  PolarAngleAxis,
   PieChart,
   Pie,
   Cell,
@@ -97,9 +98,15 @@ function funnelOpacity(status: string) {
   return 0.32 + (i / (FUNNEL_STAGES.length - 1)) * 0.68
 }
 
+// Rotating brand palette for nominal (non-ordinal, non-status) series — each bar/slice is a
+// distinct, unrelated category (a product, a customer), so cycling hue is what should carry
+// identity here, unlike the status charts above where hue is reserved for meaning.
+const CATEGORY_PALETTE = ['var(--chart-1)', 'var(--gold)', 'var(--mint)', 'var(--violet)', 'var(--accent)']
+
 const tooltipStyle = {
   contentStyle: { background: 'var(--popover)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--popover-foreground)' },
   labelStyle: { color: 'var(--popover-foreground)' },
+  itemStyle: { color: 'var(--popover-foreground)' },
   cursor: { fill: 'var(--muted)', opacity: 0.4 },
 }
 
@@ -156,12 +163,12 @@ export default function AdminDashboardPage() {
     return <div className="text-muted-foreground">Loading dashboard...</div>
   }
 
-  const kpiPrimary: { label: string; value: string; icon: typeof IndianRupee; change?: number | null }[] = [
-    { label: 'Revenue', value: formatPrice(summary?.revenue ?? 0), icon: IndianRupee, change: summary?.revenueChangePct },
-    { label: 'New Orders', value: String(summary?.orderCount ?? 0), icon: ShoppingBag, change: summary?.orderCountChangePct },
-    { label: 'Avg Order Value', value: formatPrice(summary?.avgOrderValue ?? 0), icon: TrendingUp },
-    { label: 'New Registrations', value: String(summary?.newCustomers ?? 0), icon: UserPlus, change: summary?.newCustomersChangePct },
-    { label: 'Total Customers', value: String(summary?.totalCustomers ?? 0), icon: Users },
+  const kpiPrimary: { label: string; value: string; icon: typeof IndianRupee; change?: number | null; tone: StatTone }[] = [
+    { label: 'Revenue', value: formatPrice(summary?.revenue ?? 0), icon: IndianRupee, change: summary?.revenueChangePct, tone: 'primary' },
+    { label: 'New Orders', value: String(summary?.orderCount ?? 0), icon: ShoppingBag, change: summary?.orderCountChangePct, tone: 'gold' },
+    { label: 'Avg Order Value', value: formatPrice(summary?.avgOrderValue ?? 0), icon: TrendingUp, tone: 'violet' },
+    { label: 'New Registrations', value: String(summary?.newCustomers ?? 0), icon: UserPlus, change: summary?.newCustomersChangePct, tone: 'mint' },
+    { label: 'Total Customers', value: String(summary?.totalCustomers ?? 0), icon: Users, tone: 'accent' },
   ]
 
   const kpiTransactions: { label: string; value: string; icon: typeof CreditCard; tone: StatTone }[] = [
@@ -218,7 +225,7 @@ export default function AdminDashboardPage() {
         <SectionLabel tone="primary">Business Performance</SectionLabel>
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
           {kpiPrimary.map((kpi) => (
-            <StatCard key={kpi.label} icon={kpi.icon} label={kpi.label} value={kpi.value} change={kpi.change} tone="primary" />
+            <StatCard key={kpi.label} icon={kpi.icon} label={kpi.label} value={kpi.value} change={kpi.change} tone={kpi.tone} />
           ))}
         </div>
       </div>
@@ -259,9 +266,17 @@ export default function AdminDashboardPage() {
                 <AreaChart data={revenue.map((d) => ({ ...d, label: formatShortDate(d.date) }))} margin={{ top: 12, right: 8, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="revenueFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--chart-2)" stopOpacity={0.22} />
-                      <stop offset="95%" stopColor="var(--chart-2)" stopOpacity={0.02} />
+                      <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.5} />
+                      <stop offset="55%" stopColor="var(--primary)" stopOpacity={0.12} />
+                      <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
                     </linearGradient>
+                    <linearGradient id="revenueStroke" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="var(--gold)" />
+                      <stop offset="100%" stopColor="var(--primary)" />
+                    </linearGradient>
+                    <filter id="revenueGlow" x="-100%" y="-100%" width="300%" height="300%">
+                      <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="var(--primary)" floodOpacity="0.9" />
+                    </filter>
                   </defs>
                   <CartesianGrid vertical={false} stroke="var(--border)" opacity={0.6} />
                   <XAxis dataKey="label" tick={{ fontSize: 12 }} stroke="var(--muted-foreground)" tickLine={false} axisLine={{ stroke: 'var(--border)' }} />
@@ -271,11 +286,12 @@ export default function AdminDashboardPage() {
                     type="monotone"
                     dataKey="revenue"
                     name="Revenue"
-                    stroke="var(--chart-2)"
+                    stroke="url(#revenueStroke)"
                     fill="url(#revenueFill)"
-                    strokeWidth={2}
+                    strokeWidth={2.5}
                     dot={false}
-                    activeDot={{ r: 4, fill: 'var(--chart-2)', stroke: 'var(--card)', strokeWidth: 2 }}
+                    activeDot={{ r: 5, fill: 'var(--primary)', stroke: 'var(--card)', strokeWidth: 2, filter: 'url(#revenueGlow)' }}
+                    animationDuration={700}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -294,13 +310,21 @@ export default function AdminDashboardPage() {
             {txnBreakdown.length === 0 ? (
               <p className="text-sm text-muted-foreground py-12 text-center">No transactions in this period</p>
             ) : (
-              <>
-                <p className="text-xs text-muted-foreground mb-1">
-                  <span className="font-semibold text-foreground">{txnBreakdown.reduce((s, x) => s + x.count, 0)}</span> total transactions
-                </p>
+              <div className="relative">
                 <ResponsiveContainer width="100%" height={220}>
                   <PieChart>
-                    <Pie data={txnBreakdown} dataKey="count" nameKey="status" innerRadius={52} outerRadius={80} paddingAngle={3} stroke="var(--card)" strokeWidth={2}>
+                    <Pie
+                      data={txnBreakdown}
+                      dataKey="count"
+                      nameKey="status"
+                      innerRadius={56}
+                      outerRadius={84}
+                      paddingAngle={4}
+                      cornerRadius={6}
+                      stroke="var(--card)"
+                      strokeWidth={2}
+                      animationDuration={700}
+                    >
                       {txnBreakdown.map((entry) => (
                         <Cell key={entry.status} fill={PAYMENT_COLORS[entry.status] ?? 'var(--muted-foreground)'} />
                       ))}
@@ -313,7 +337,11 @@ export default function AdminDashboardPage() {
                     <Legend formatter={(value: string) => PAYMENT_LABELS[value] ?? value} wrapperStyle={{ fontSize: 12 }} />
                   </PieChart>
                 </ResponsiveContainer>
-              </>
+                <div className="absolute inset-0 top-0 bottom-[38px] flex flex-col items-center justify-center pointer-events-none">
+                  <span className="text-2xl font-bold">{txnBreakdown.reduce((s, x) => s + x.count, 0)}</span>
+                  <span className="text-[11px] text-muted-foreground">transactions</span>
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -331,11 +359,17 @@ export default function AdminDashboardPage() {
             ) : (
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={ordersSeries.map((d) => ({ ...d, label: formatShortDate(d.date) }))} margin={{ top: 12, right: 8, left: 0, bottom: 0 }} barCategoryGap="20%">
+                  <defs>
+                    <linearGradient id="ordersFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--gold)" stopOpacity={1} />
+                      <stop offset="100%" stopColor="var(--primary)" stopOpacity={0.75} />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid vertical={false} stroke="var(--border)" opacity={0.6} />
                   <XAxis dataKey="label" tick={{ fontSize: 12 }} stroke="var(--muted-foreground)" tickLine={false} axisLine={{ stroke: 'var(--border)' }} />
                   <YAxis tick={{ fontSize: 12 }} stroke="var(--muted-foreground)" allowDecimals={false} tickLine={false} axisLine={false} width={32} />
-                  <Tooltip {...tooltipStyle} />
-                  <Bar dataKey="count" name="Orders" fill="var(--chart-1)" radius={[4, 4, 0, 0]} maxBarSize={24} />
+                  <Tooltip {...tooltipStyle} cursor={{ fill: 'var(--muted)', opacity: 0.3 }} />
+                  <Bar dataKey="count" name="Orders" fill="url(#ordersFill)" radius={[5, 5, 0, 0]} maxBarSize={24} animationDuration={600} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -354,23 +388,39 @@ export default function AdminDashboardPage() {
               <p className="text-sm text-muted-foreground py-12 text-center">No new registrations</p>
             ) : (
               <ResponsiveContainer width="100%" height={240}>
-                <LineChart data={customersSeries.map((d) => ({ ...d, label: formatShortDate(d.date) }))} margin={{ top: 12, right: 8, left: 0, bottom: 0 }}>
+                <AreaChart data={customersSeries.map((d) => ({ ...d, label: formatShortDate(d.date) }))} margin={{ top: 12, right: 8, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="registrationsFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--mint)" stopOpacity={0.5} />
+                      <stop offset="55%" stopColor="var(--mint)" stopOpacity={0.12} />
+                      <stop offset="100%" stopColor="var(--mint)" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="registrationsStroke" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="var(--accent)" />
+                      <stop offset="100%" stopColor="var(--mint)" />
+                    </linearGradient>
+                    <filter id="registrationsGlow" x="-100%" y="-100%" width="300%" height="300%">
+                      <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="var(--mint)" floodOpacity="0.9" />
+                    </filter>
+                  </defs>
                   <CartesianGrid vertical={false} stroke="var(--border)" opacity={0.6} />
                   <XAxis dataKey="label" tick={{ fontSize: 12 }} stroke="var(--muted-foreground)" tickLine={false} axisLine={{ stroke: 'var(--border)' }} />
                   <YAxis tick={{ fontSize: 12 }} stroke="var(--muted-foreground)" allowDecimals={false} tickLine={false} axisLine={false} width={32} domain={[0, 'auto']} />
                   <Tooltip {...tooltipStyle} labelFormatter={(label: string) => label} formatter={(value: number) => [value, 'New registrations']} />
-                  <Line
+                  <Area
                     type="monotone"
                     dataKey="count"
                     name="Registrations"
-                    stroke="var(--mint)"
+                    stroke="url(#registrationsStroke)"
+                    fill="url(#registrationsFill)"
                     strokeWidth={2.5}
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    dot={{ r: 4, fill: 'var(--mint)', stroke: 'var(--card)', strokeWidth: 2 }}
-                    activeDot={{ r: 5, fill: 'var(--mint)', stroke: 'var(--card)', strokeWidth: 2 }}
+                    dot={false}
+                    activeDot={{ r: 5, fill: 'var(--mint)', stroke: 'var(--card)', strokeWidth: 2, filter: 'url(#registrationsGlow)' }}
+                    animationDuration={700}
                   />
-                </LineChart>
+                </AreaChart>
               </ResponsiveContainer>
             )}
           </CardContent>
@@ -393,7 +443,10 @@ export default function AdminDashboardPage() {
                   <XAxis type="number" hide />
                   <YAxis type="category" dataKey="name" width={140} tick={{ fontSize: 12 }} stroke="var(--muted-foreground)" tickLine={false} axisLine={false} />
                   <Tooltip formatter={(value: number) => formatPrice(value)} {...tooltipStyle} cursor={{ fill: 'var(--muted)', opacity: 0.4 }} />
-                  <Bar dataKey="revenue" fill="var(--chart-1)" radius={[0, 4, 4, 0]} maxBarSize={20}>
+                  <Bar dataKey="revenue" radius={[0, 4, 4, 0]} maxBarSize={20} animationDuration={600}>
+                    {topProducts.map((p, i) => (
+                      <Cell key={p.name} fill={CATEGORY_PALETTE[i % CATEGORY_PALETTE.length]} />
+                    ))}
                     <LabelList dataKey="revenue" position="right" formatter={(v: number) => formatPrice(v)} fill="var(--muted-foreground)" fontSize={11} />
                   </Bar>
                 </BarChart>
@@ -460,9 +513,14 @@ export default function AdminDashboardPage() {
               <AlertTriangle className="h-4 w-4 text-destructive" /> Low Stock
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-3 min-h-[160px]">
             {stockAlerts.length === 0 ? (
-              <p className="text-sm text-muted-foreground">All products well stocked</p>
+              <div className="h-full flex flex-col items-center justify-center gap-2 py-6 text-center">
+                <span className="flex items-center justify-center h-10 w-10 rounded-full bg-mint/15">
+                  <CheckCircle2 className="h-5 w-5 text-mint" />
+                </span>
+                <p className="text-sm text-muted-foreground">All products well stocked</p>
+              </div>
             ) : (
               stockAlerts.slice(0, 6).map((p) => (
                 <div key={p.id} className="flex items-center justify-between text-sm">
@@ -482,8 +540,25 @@ export default function AdminDashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{customization?.percentage ?? 0}%</p>
-            <p className="text-sm text-muted-foreground mt-1">
+            <div className="relative">
+              <ResponsiveContainer width="100%" height={160}>
+                <RadialBarChart
+                  data={[{ value: customization?.percentage ?? 0 }]}
+                  startAngle={90}
+                  endAngle={-270}
+                  innerRadius="72%"
+                  outerRadius="100%"
+                  barSize={12}
+                >
+                  <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
+                  <RadialBar dataKey="value" fill="var(--violet)" cornerRadius={8} background={{ fill: 'var(--muted)' }} animationDuration={700} />
+                </RadialBarChart>
+              </ResponsiveContainer>
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span className="text-2xl font-bold">{customization?.percentage ?? 0}%</span>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground text-center -mt-2">
               {customization?.customized ?? 0} of {customization?.total ?? 0} line items were personalized
             </p>
           </CardContent>

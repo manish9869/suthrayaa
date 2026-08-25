@@ -8,10 +8,26 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { DualRangeSlider } from '@/components/ui/dual-range-slider'
-import { Label } from '@/components/ui/label'
-import { Plus, Search, Pencil, Trash2, Copy, EyeOff, Archive, Eye, SlidersHorizontal } from 'lucide-react'
+import {
+  Plus,
+  Search,
+  Pencil,
+  Trash2,
+  Copy,
+  EyeOff,
+  Archive,
+  Eye,
+  SlidersHorizontal,
+  RefreshCw,
+  FileDown,
+  X,
+  PackageCheck,
+  AlertTriangle,
+  PackageX,
+  Wallet,
+} from 'lucide-react'
 import {
   getAdminProducts,
   deleteProduct,
@@ -26,11 +42,13 @@ import {
 import { flattenCategoryTree, collectDescendantSlugs } from '@/lib/utils/admin-category-tree'
 import { formatPrice } from '@/lib/data'
 import { toast } from 'sonner'
-import { GLASS_PANEL } from '@/lib/admin-ui'
+import { GLASS_PANEL, exportRowsToCsv } from '@/lib/admin-ui'
 import { SortableTh } from '@/components/admin/sortable-th'
 import { DataTablePagination } from '@/components/admin/data-table-pagination'
 import { useSortableData } from '@/lib/hooks/use-sortable-data'
 import { usePaginated } from '@/lib/hooks/use-paginated'
+import { StatCard } from '@/components/admin/stat-card'
+import { StatusDot, DOT_CLASSES, type DotTone } from '@/components/admin/status-dot'
 
 const STATUS_LABELS: Record<ProductStatus, string> = {
   draft: 'Draft',
@@ -39,13 +57,14 @@ const STATUS_LABELS: Record<ProductStatus, string> = {
   out_of_stock: 'Out of Stock',
   archived: 'Archived',
 }
-const STATUS_VARIANT: Record<ProductStatus, 'secondary' | 'outline'> = {
-  draft: 'outline',
-  active: 'secondary',
-  hidden: 'outline',
-  out_of_stock: 'outline',
-  archived: 'outline',
+const STATUS_DOT: Record<ProductStatus, DotTone> = {
+  draft: 'muted',
+  active: 'mint',
+  hidden: 'gold',
+  out_of_stock: 'destructive',
+  archived: 'muted',
 }
+const STOCK_DOT = { in_stock: 'mint', low_stock: 'gold', out_of_stock: 'destructive' } as const
 const TYPE_LABELS: Record<ProductType, string> = {
   ready_to_ship: 'Ready to Ship',
   made_to_order: 'Made to Order',
@@ -57,7 +76,6 @@ export default function AdminProductsPage() {
   const [categories, setCategories] = useState<AdminCategory[]>([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
-  const [showFilters, setShowFilters] = useState(false)
 
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -104,6 +122,18 @@ export default function AdminProductsPage() {
     return result
   }, [products, categories, categoryFilter, statusFilter, typeFilter, stockFilter, featuredOnly, priceRange])
 
+  const { sorted, sortKey, direction, toggleSort } = useSortableData(filtered, {
+    name: (p) => p.name,
+    sku: (p) => p.sku,
+    category: (p) => p.category,
+    price: (p) => p.price,
+    stock: (p) => p.stock,
+    type: (p) => TYPE_LABELS[p.productType],
+    status: (p) => STATUS_LABELS[p.status],
+    updated: (p) => p.updatedAt,
+  })
+  const { pageItems, page, setPage, pageCount, total: pageTotal } = usePaginated(sorted, 15)
+
   const activeFilterCount =
     (categoryFilter !== 'all' ? 1 : 0) +
     (statusFilter !== 'all' ? 1 : 0) +
@@ -119,6 +149,24 @@ export default function AdminProductsPage() {
     setStockFilter('all')
     setFeaturedOnly(false)
     setPriceRange([0, 5000])
+  }
+
+  const stats = useMemo(
+    () => ({
+      active: filtered.filter((p) => p.status === 'active').length,
+      lowStock: filtered.filter((p) => p.stock > 0 && p.stock <= p.lowStockThreshold).length,
+      outOfStock: filtered.filter((p) => p.stock <= 0).length,
+      inventoryValue: filtered.reduce((sum, p) => sum + p.price * Math.max(p.stock, 0), 0),
+    }),
+    [filtered]
+  )
+
+  const handleExport = () => {
+    exportRowsToCsv(
+      `products-${new Date().toISOString().slice(0, 10)}.csv`,
+      ['Name', 'SKU', 'Category', 'Price', 'Stock', 'Type', 'Status', 'Updated'],
+      filtered.map((p) => [p.name, p.sku ?? '', p.category, p.price, p.stock, TYPE_LABELS[p.productType], STATUS_LABELS[p.status], p.updatedAt ?? ''])
+    )
   }
 
   const handleDelete = async (id: string, name: string) => {
@@ -152,12 +200,45 @@ export default function AdminProductsPage() {
     }
   }
 
-  const FilterContent = () => (
-    <div className="space-y-5">
-      <div className="space-y-2">
-        <Label className="text-sm">Category</Label>
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl font-serif font-bold">Products</h1>
+          <p className="text-muted-foreground text-sm">
+            {filtered.length} of {products.length} products
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+            <RefreshCw className={`h-3.5 w-3.5 mr-2 ${loading ? 'animate-spin' : ''}`} /> Refresh
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0}>
+            <FileDown className="h-3.5 w-3.5 mr-2" /> Export
+          </Button>
+          <Button asChild>
+            <Link href="/admin/products/new">
+              <Plus className="h-4 w-4 mr-2" /> Add Product
+            </Link>
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard icon={PackageCheck} label="Active" value={stats.active} tone="mint" />
+        <StatCard icon={AlertTriangle} label="Low Stock" value={stats.lowStock} tone="gold" />
+        <StatCard icon={PackageX} label="Out of Stock" value={stats.outOfStock} tone="destructive" />
+        <StatCard icon={Wallet} label="Inventory Value (shown)" value={formatPrice(stats.inventoryValue)} tone="violet" />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative max-w-sm flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Search products..." className="pl-10 rounded-full" value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+
         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger>
+          <SelectTrigger className="rounded-full w-40">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -169,27 +250,25 @@ export default function AdminProductsPage() {
             ))}
           </SelectContent>
         </Select>
-      </div>
-      <div className="space-y-2">
-        <Label className="text-sm">Status</Label>
+
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger>
+          <SelectTrigger className="rounded-full w-36">
+            <span className={`h-2 w-2 rounded-full flex-shrink-0 ${statusFilter === 'all' ? DOT_CLASSES.muted : DOT_CLASSES[STATUS_DOT[statusFilter as ProductStatus]]}`} />
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
             {(Object.keys(STATUS_LABELS) as ProductStatus[]).map((s) => (
               <SelectItem key={s} value={s}>
+                <span className={`h-2 w-2 rounded-full ${DOT_CLASSES[STATUS_DOT[s]]}`} />
                 {STATUS_LABELS[s]}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-      </div>
-      <div className="space-y-2">
-        <Label className="text-sm">Product Type</Label>
+
         <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger>
+          <SelectTrigger className="rounded-full w-40">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -201,101 +280,76 @@ export default function AdminProductsPage() {
             ))}
           </SelectContent>
         </Select>
-      </div>
-      <div className="space-y-2">
-        <Label className="text-sm">Stock</Label>
+
         <Select value={stockFilter} onValueChange={setStockFilter}>
-          <SelectTrigger>
+          <SelectTrigger className="rounded-full w-36">
+            <span
+              className={`h-2 w-2 rounded-full flex-shrink-0 ${
+                stockFilter === 'all' ? DOT_CLASSES.muted : DOT_CLASSES[STOCK_DOT[stockFilter as keyof typeof STOCK_DOT]]
+              }`}
+            />
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Any Stock Level</SelectItem>
-            <SelectItem value="in_stock">In Stock</SelectItem>
-            <SelectItem value="low_stock">Low Stock</SelectItem>
-            <SelectItem value="out_of_stock">Out of Stock</SelectItem>
+            <SelectItem value="all">Any Stock</SelectItem>
+            <SelectItem value="in_stock">
+              <span className={`h-2 w-2 rounded-full ${DOT_CLASSES.mint}`} /> In Stock
+            </SelectItem>
+            <SelectItem value="low_stock">
+              <span className={`h-2 w-2 rounded-full ${DOT_CLASSES.gold}`} /> Low Stock
+            </SelectItem>
+            <SelectItem value="out_of_stock">
+              <span className={`h-2 w-2 rounded-full ${DOT_CLASSES.destructive}`} /> Out of Stock
+            </SelectItem>
           </SelectContent>
         </Select>
-      </div>
-      <label className="flex items-center gap-2 text-sm cursor-pointer">
-        <input type="checkbox" checked={featuredOnly} onChange={(e) => setFeaturedOnly(e.target.checked)} className="h-4 w-4" />
-        Featured only
-      </label>
-      <div className="space-y-3">
-        <Label className="text-sm">Price Range</Label>
-        <DualRangeSlider
-          value={sliderRange}
-          onValueChange={setSliderRange}
-          onValueCommit={setPriceRange}
-          min={0}
-          max={5000}
-          step={1}
-        />
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>{formatPrice(sliderRange[0])}</span>
-          <span>{formatPrice(sliderRange[1])}</span>
-        </div>
-      </div>
-      {activeFilterCount > 0 && (
-        <Button variant="outline" className="w-full" onClick={clearFilters}>
-          Clear Filters
-        </Button>
-      )}
-    </div>
-  )
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-serif font-bold">Products</h1>
-          <p className="text-muted-foreground text-sm">
-            {filtered.length} of {products.length} products
-          </p>
-        </div>
-        <Button asChild>
-          <Link href="/admin/products/new">
-            <Plus className="h-4 w-4 mr-2" /> Add Product
-          </Link>
-        </Button>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative max-w-sm flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search products..." className="pl-10" value={search} onChange={(e) => setSearch(e.target.value)} />
-        </div>
-        <Sheet open={showFilters} onOpenChange={setShowFilters}>
-          <SheetTrigger asChild>
-            <Button variant="outline">
-              <SlidersHorizontal className="h-4 w-4 mr-2" />
-              Filters
-              {activeFilterCount > 0 && <Badge className="ml-2 h-5 w-5 p-0 flex items-center justify-center">{activeFilterCount}</Badge>}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="rounded-full font-normal">
+              <SlidersHorizontal className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+              {priceRange[0] > 0 || priceRange[1] < 5000 ? `${formatPrice(priceRange[0])} – ${formatPrice(priceRange[1])}` : 'Any price'}
             </Button>
-          </SheetTrigger>
-          <SheetContent side="right" className="w-80 overflow-y-auto">
-            <SheetHeader>
-              <SheetTitle>Filters</SheetTitle>
-            </SheetHeader>
-            <div className="mt-6">
-              {FilterContent()}
+          </PopoverTrigger>
+          <PopoverContent className="w-72 p-4" align="start">
+            <p className="text-sm font-medium mb-3">Price Range</p>
+            <DualRangeSlider value={sliderRange} onValueChange={setSliderRange} onValueCommit={setPriceRange} min={0} max={5000} step={1} />
+            <div className="flex items-center justify-between text-sm text-muted-foreground mt-2">
+              <span>{formatPrice(sliderRange[0])}</span>
+              <span>{formatPrice(sliderRange[1])}</span>
             </div>
-          </SheetContent>
-        </Sheet>
+          </PopoverContent>
+        </Popover>
+
+        <Button
+          variant={featuredOnly ? 'secondary' : 'outline'}
+          size="sm"
+          className="h-9 rounded-full"
+          onClick={() => setFeaturedOnly((v) => !v)}
+        >
+          Featured only
+        </Button>
+
+        {activeFilterCount > 0 && (
+          <Button variant="ghost" size="sm" onClick={clearFilters}>
+            <X className="h-3.5 w-3.5 mr-1.5" /> Clear filters
+          </Button>
+        )}
       </div>
 
-      <div className="border rounded-xl bg-background overflow-x-auto">
+      <div className={`${GLASS_PANEL} overflow-x-auto`}>
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Image</TableHead>
-              <TableHead>Product</TableHead>
-              <TableHead>SKU</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead>Stock</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Updated</TableHead>
+              <SortableTh label="Product" sortKey="name" activeKey={sortKey} direction={direction} onSort={toggleSort} />
+              <SortableTh label="SKU" sortKey="sku" activeKey={sortKey} direction={direction} onSort={toggleSort} />
+              <SortableTh label="Category" sortKey="category" activeKey={sortKey} direction={direction} onSort={toggleSort} />
+              <SortableTh label="Price" sortKey="price" activeKey={sortKey} direction={direction} onSort={toggleSort} />
+              <SortableTh label="Stock" sortKey="stock" activeKey={sortKey} direction={direction} onSort={toggleSort} />
+              <SortableTh label="Type" sortKey="type" activeKey={sortKey} direction={direction} onSort={toggleSort} />
+              <SortableTh label="Status" sortKey="status" activeKey={sortKey} direction={direction} onSort={toggleSort} />
+              <SortableTh label="Updated" sortKey="updated" activeKey={sortKey} direction={direction} onSort={toggleSort} />
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -313,7 +367,7 @@ export default function AdminProductsPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((p) => (
+              pageItems.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell>
                     <div className="relative w-10 h-10 rounded-md overflow-hidden bg-muted flex-shrink-0">
@@ -347,7 +401,7 @@ export default function AdminProductsPage() {
                   </TableCell>
                   <TableCell className="text-muted-foreground text-xs">{TYPE_LABELS[p.productType]}</TableCell>
                   <TableCell>
-                    <Badge variant={STATUS_VARIANT[p.status]}>{STATUS_LABELS[p.status]}</Badge>
+                    <StatusDot label={STATUS_LABELS[p.status]} tone={STATUS_DOT[p.status]} />
                   </TableCell>
                   <TableCell className="text-muted-foreground text-xs">
                     {p.updatedAt ? new Date(p.updatedAt).toLocaleDateString() : '—'}
@@ -386,6 +440,7 @@ export default function AdminProductsPage() {
             )}
           </TableBody>
         </Table>
+        <DataTablePagination page={page} pageCount={pageCount} total={pageTotal} pageSize={15} onPageChange={setPage} />
       </div>
     </div>
   )
