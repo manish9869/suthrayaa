@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { getInvoiceSettings, updateInvoiceSettings, type AdminInvoiceSettings } from '@/lib/api/admin'
 import { PageLoader } from '@/components/admin/loading-state'
+import { ProtectedRoute } from '@/components/admin/protected-route'
+import { Can } from '@/components/admin/can'
 
 export default function InvoiceSettingsPage() {
   const [settings, setSettings] = useState<AdminInvoiceSettings | null>(null)
@@ -43,6 +45,7 @@ export default function InvoiceSettingsPage() {
   if (!settings) return <p className="text-muted-foreground">Failed to load settings</p>
 
   return (
+    <ProtectedRoute permission="settings.view">
     <div className="space-y-6 max-w-2xl">
       <div>
         <h1 className="text-2xl font-serif font-bold">Invoice Settings</h1>
@@ -141,10 +144,13 @@ export default function InvoiceSettingsPage() {
       </Card>
 
       <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={saving}>
-          {saving ? 'Saving...' : 'Save Settings'}
-        </Button>
+        <Can permission="settings.update">
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving...' : 'Save Settings'}
+          </Button>
+        </Can>
       </div>
     </div>
+    </ProtectedRoute>
   )
 }

@@ -21,6 +21,8 @@ import { DataTablePagination } from '@/components/admin/data-table-pagination'
 import { TableLoadingRow } from '@/components/admin/loading-state'
 import { useSortableData } from '@/lib/hooks/use-sortable-data'
 import { usePaginated } from '@/lib/hooks/use-paginated'
+import { ProtectedRoute } from '@/components/admin/protected-route'
+import { Can } from '@/components/admin/can'
 
 const STATUS_DOT: Record<string, DotTone> = {
   pending_payment: 'muted',
@@ -184,6 +186,7 @@ export default function AdminOrdersPage() {
   }
 
   return (
+    <ProtectedRoute permission="orders.view">
     <div className="space-y-6">
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
@@ -347,9 +350,11 @@ export default function AdminOrdersPage() {
                       <Button variant="ghost" size="icon" title="Download invoice PDF" disabled={busyOrderId === o.id} onClick={() => handleDownloadInvoice(o.id)}>
                         <Download className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" title="Email invoice to customer" disabled={busyOrderId === o.id} onClick={() => handleEmailInvoice(o.id)}>
-                        <Mail className="h-4 w-4" />
-                      </Button>
+                      <Can permission="orders.update">
+                        <Button variant="ghost" size="icon" title="Email invoice to customer" disabled={busyOrderId === o.id} onClick={() => handleEmailInvoice(o.id)}>
+                          <Mail className="h-4 w-4" />
+                        </Button>
+                      </Can>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -360,5 +365,6 @@ export default function AdminOrdersPage() {
         <DataTablePagination page={page} pageCount={pageCount} total={pageTotal} pageSize={15} onPageChange={setPage} />
       </div>
     </div>
+    </ProtectedRoute>
   )
 }

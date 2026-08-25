@@ -33,6 +33,7 @@ import {
 } from '@/lib/api/admin'
 import { CustomizationEditor } from '@/components/admin/customization-editor'
 import { ColorYarnSwatch } from '@/components/color-yarn-swatch'
+import { Can } from '@/components/admin/can'
 
 interface ProductFormProps {
   product?: AdminProductListItem & { id: string }
@@ -520,19 +521,23 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
                   <div key={img.id} className="relative w-24 h-24 rounded-lg overflow-hidden bg-muted group">
                     <Image src={img.url} alt="" fill className="object-cover" />
                     {i === 0 && <Badge className="absolute bottom-1 left-1 text-[10px] px-1.5 py-0">Primary</Badge>}
-                    <button
-                      onClick={() => handleImageDelete(img.id)}
-                      className="absolute top-1 right-1 bg-background/90 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
+                    <Can permission="product_images.manage">
+                      <button
+                        onClick={() => handleImageDelete(img.id)}
+                        className="absolute top-1 right-1 bg-background/90 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Can>
                   </div>
                 ))}
-                <label className="w-24 h-24 rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-muted-foreground text-muted-foreground">
-                  <Upload className="h-5 w-5" />
-                  <span className="text-xs">{uploading ? 'Uploading...' : 'Add'}</span>
-                  <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleImageUpload} disabled={uploading} />
-                </label>
+                <Can permission="product_images.manage">
+                  <label className="w-24 h-24 rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-muted-foreground text-muted-foreground">
+                    <Upload className="h-5 w-5" />
+                    <span className="text-xs">{uploading ? 'Uploading...' : 'Add'}</span>
+                    <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleImageUpload} disabled={uploading} />
+                  </label>
+                </Can>
               </div>
               <p className="text-xs text-muted-foreground mt-3">
                 {product ? 'The first image is the main storefront image. Drag support coming soon — delete and re-add to reorder.' : 'Save the product first to enable image uploads.'}

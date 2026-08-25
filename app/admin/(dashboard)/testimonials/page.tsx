@@ -10,6 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Plus, Trash2, Star } from 'lucide-react'
 import { getAdminTestimonials, createTestimonial, deleteTestimonial, type AdminTestimonial } from '@/lib/api/admin'
 import { toast } from 'sonner'
+import { ProtectedRoute } from '@/components/admin/protected-route'
+import { Can } from '@/components/admin/can'
 
 export default function AdminTestimonialsPage() {
   const [testimonials, setTestimonials] = useState<AdminTestimonial[]>([])
@@ -46,15 +48,18 @@ export default function AdminTestimonialsPage() {
   }
 
   return (
+    <ProtectedRoute permission="content.view">
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-serif font-bold">Testimonials</h1>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" /> Add Testimonial
-            </Button>
-          </DialogTrigger>
+          <Can permission="content.create">
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" /> Add Testimonial
+              </Button>
+            </DialogTrigger>
+          </Can>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>New Testimonial</DialogTitle>
@@ -110,14 +115,17 @@ export default function AdminTestimonialsPage() {
                     {t.customer_name} {t.location && `· ${t.location}`}
                   </p>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => handleDelete(t.id)}>
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
+                <Can permission="content.delete">
+                  <Button variant="ghost" size="icon" onClick={() => handleDelete(t.id)}>
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </Can>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
     </div>
+    </ProtectedRoute>
   )
 }

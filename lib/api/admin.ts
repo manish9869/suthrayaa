@@ -15,10 +15,21 @@ async function adminFetch<T>(path: string, options: RequestInit = {}): Promise<T
 }
 
 // ---- Me ----
+export interface AdminRoleRef {
+  id: string
+  name: string
+  slug: string
+}
 export interface AdminMe {
   id: string
-  role: string
+  email: string | null
   displayName: string | null
+  isActive: boolean
+  /** @deprecated legacy single-role column, kept only for the rare consumer that hasn't moved to `roles`/`permissions` */
+  role: string
+  roles: AdminRoleRef[]
+  permissions: string[]
+  isSuperAdmin: boolean
 }
 export const getAdminMe = () => adminFetch<AdminMe>('/admin/me')
 

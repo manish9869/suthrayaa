@@ -17,6 +17,8 @@ import { SortableTh } from '@/components/admin/sortable-th'
 import { DataTablePagination } from '@/components/admin/data-table-pagination'
 import { useSortableData } from '@/lib/hooks/use-sortable-data'
 import { usePaginated } from '@/lib/hooks/use-paginated'
+import { ProtectedRoute } from '@/components/admin/protected-route'
+import { Can } from '@/components/admin/can'
 
 export default function AdminCouponsPage() {
   const [coupons, setCoupons] = useState<AdminCoupon[]>([])
@@ -75,6 +77,7 @@ export default function AdminCouponsPage() {
   const { pageItems, page, setPage, pageCount, total } = usePaginated(sorted, 10)
 
   return (
+    <ProtectedRoute permission="coupons.view">
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
@@ -84,11 +87,13 @@ export default function AdminCouponsPage() {
           </p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" /> Add Coupon
-            </Button>
-          </DialogTrigger>
+          <Can permission="coupons.create">
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" /> Add Coupon
+              </Button>
+            </DialogTrigger>
+          </Can>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>New Coupon</DialogTitle>
@@ -180,9 +185,11 @@ export default function AdminCouponsPage() {
                     <Badge variant={c.is_active ? 'secondary' : 'outline'}>{c.is_active ? 'Active' : 'Inactive'}</Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(c.id, c.code)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    <Can permission="coupons.delete">
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(c.id, c.code)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </Can>
                   </TableCell>
                 </TableRow>
               ))
@@ -192,5 +199,6 @@ export default function AdminCouponsPage() {
         <DataTablePagination page={page} pageCount={pageCount} total={total} pageSize={10} onPageChange={setPage} />
       </div>
     </div>
+    </ProtectedRoute>
   )
 }

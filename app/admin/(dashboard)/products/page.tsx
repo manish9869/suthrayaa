@@ -50,6 +50,8 @@ import { useSortableData } from '@/lib/hooks/use-sortable-data'
 import { usePaginated } from '@/lib/hooks/use-paginated'
 import { StatCard } from '@/components/admin/stat-card'
 import { StatusDot, DOT_CLASSES, type DotTone } from '@/components/admin/status-dot'
+import { ProtectedRoute } from '@/components/admin/protected-route'
+import { Can } from '@/components/admin/can'
 
 const STATUS_LABELS: Record<ProductStatus, string> = {
   draft: 'Draft',
@@ -202,6 +204,7 @@ export default function AdminProductsPage() {
   }
 
   return (
+    <ProtectedRoute permission="products.view">
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
@@ -217,11 +220,13 @@ export default function AdminProductsPage() {
           <Button variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0}>
             <FileDown className="h-3.5 w-3.5 mr-2" /> Export
           </Button>
-          <Button asChild>
-            <Link href="/admin/products/new">
-              <Plus className="h-4 w-4 mr-2" /> Add Product
-            </Link>
-          </Button>
+          <Can permission="products.create">
+            <Button asChild>
+              <Link href="/admin/products/new">
+                <Plus className="h-4 w-4 mr-2" /> Add Product
+              </Link>
+            </Button>
+          </Can>
         </div>
       </div>
 
@@ -405,31 +410,39 @@ export default function AdminProductsPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" asChild title="Edit">
-                        <Link href={`/admin/products/${p.id}`}>
-                          <Pencil className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                      <Button variant="ghost" size="icon" title="Duplicate" onClick={() => handleDuplicate(p.id)}>
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      {p.status !== 'hidden' ? (
-                        <Button variant="ghost" size="icon" title="Hide" onClick={() => handleSetStatus(p.id, 'hidden', 'Product hidden')}>
-                          <EyeOff className="h-4 w-4" />
+                      <Can permission="products.update">
+                        <Button variant="ghost" size="icon" asChild title="Edit">
+                          <Link href={`/admin/products/${p.id}`}>
+                            <Pencil className="h-4 w-4" />
+                          </Link>
                         </Button>
-                      ) : (
-                        <Button variant="ghost" size="icon" title="Unhide" onClick={() => handleSetStatus(p.id, 'active', 'Product unhidden')}>
-                          <Eye className="h-4 w-4" />
+                      </Can>
+                      <Can permission="products.create">
+                        <Button variant="ghost" size="icon" title="Duplicate" onClick={() => handleDuplicate(p.id)}>
+                          <Copy className="h-4 w-4" />
                         </Button>
-                      )}
-                      {p.status !== 'archived' && (
-                        <Button variant="ghost" size="icon" title="Archive" onClick={() => handleSetStatus(p.id, 'archived', 'Product archived')}>
-                          <Archive className="h-4 w-4" />
+                      </Can>
+                      <Can permission="products.update">
+                        {p.status !== 'hidden' ? (
+                          <Button variant="ghost" size="icon" title="Hide" onClick={() => handleSetStatus(p.id, 'hidden', 'Product hidden')}>
+                            <EyeOff className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <Button variant="ghost" size="icon" title="Unhide" onClick={() => handleSetStatus(p.id, 'active', 'Product unhidden')}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {p.status !== 'archived' && (
+                          <Button variant="ghost" size="icon" title="Archive" onClick={() => handleSetStatus(p.id, 'archived', 'Product archived')}>
+                            <Archive className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </Can>
+                      <Can permission="products.delete">
+                        <Button variant="ghost" size="icon" title="Delete" onClick={() => handleDelete(p.id, p.name)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
-                      )}
-                      <Button variant="ghost" size="icon" title="Delete" onClick={() => handleDelete(p.id, p.name)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      </Can>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -440,5 +453,6 @@ export default function AdminProductsPage() {
         <DataTablePagination page={page} pageCount={pageCount} total={pageTotal} pageSize={15} onPageChange={setPage} />
       </div>
     </div>
+    </ProtectedRoute>
   )
 }

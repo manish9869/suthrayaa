@@ -12,6 +12,8 @@ import { toast } from 'sonner'
 import { getEmailLogs, retryEmailLog, type AdminEmailLog } from '@/lib/api/admin'
 import { DateRangeFilter, type DateRangeValue } from '@/components/admin/date-range-filter'
 import { TableLoadingRow } from '@/components/admin/loading-state'
+import { ProtectedRoute } from '@/components/admin/protected-route'
+import { Can } from '@/components/admin/can'
 
 const STATUS_VARIANT: Record<string, 'secondary' | 'destructive' | 'outline'> = {
   sent: 'secondary',
@@ -75,6 +77,7 @@ export default function EmailLogsPage() {
   }
 
   return (
+    <ProtectedRoute permission="emails.view">
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-serif font-bold">Email Logs</h1>
@@ -158,9 +161,11 @@ export default function EmailLogsPage() {
                   <TableCell className="text-muted-foreground text-xs">{new Date(l.sentAt).toLocaleString('en-IN')}</TableCell>
                   <TableCell className="text-right">
                     {l.status === 'failed' && (
-                      <Button variant="ghost" size="icon" onClick={() => handleRetry(l.id)} disabled={retrying === l.id} title="Retry">
-                        <RotateCcw className="h-4 w-4" />
-                      </Button>
+                      <Can permission="emails.update">
+                        <Button variant="ghost" size="icon" onClick={() => handleRetry(l.id)} disabled={retrying === l.id} title="Retry">
+                          <RotateCcw className="h-4 w-4" />
+                        </Button>
+                      </Can>
                     )}
                   </TableCell>
                 </TableRow>
@@ -170,5 +175,6 @@ export default function EmailLogsPage() {
         </Table>
       </div>
     </div>
+    </ProtectedRoute>
   )
 }

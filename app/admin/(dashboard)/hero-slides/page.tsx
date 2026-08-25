@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Plus, Trash2 } from 'lucide-react'
 import { getAdminHeroSlides, createHeroSlide, deleteHeroSlide, type AdminHeroSlide } from '@/lib/api/admin'
 import { toast } from 'sonner'
+import { ProtectedRoute } from '@/components/admin/protected-route'
+import { Can } from '@/components/admin/can'
 
 export default function AdminHeroSlidesPage() {
   const [slides, setSlides] = useState<AdminHeroSlide[]>([])
@@ -45,6 +47,7 @@ export default function AdminHeroSlidesPage() {
   }
 
   return (
+    <ProtectedRoute permission="banners.view">
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
@@ -52,11 +55,13 @@ export default function AdminHeroSlidesPage() {
           <p className="text-muted-foreground text-sm">Shown on the homepage hero carousel</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" /> Add Slide
-            </Button>
-          </DialogTrigger>
+          <Can permission="banners.create">
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" /> Add Slide
+              </Button>
+            </DialogTrigger>
+          </Can>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>New Hero Slide</DialogTitle>
@@ -102,9 +107,11 @@ export default function AdminHeroSlidesPage() {
                 <p className="font-medium">{s.title}</p>
                 <p className="text-sm text-muted-foreground">{s.subtitle}</p>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => handleDelete(s.id)}>
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
+              <Can permission="banners.delete">
+                <Button variant="ghost" size="icon" onClick={() => handleDelete(s.id)}>
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </Can>
             </CardContent>
           </Card>
         ))}
@@ -115,5 +122,6 @@ export default function AdminHeroSlidesPage() {
         )}
       </div>
     </div>
+    </ProtectedRoute>
   )
 }

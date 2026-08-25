@@ -58,6 +58,7 @@ import {
 } from '@/lib/api/admin'
 import { formatPrice } from '@/lib/data'
 import { DateRangeFilter, DEFAULT_DATE_RANGE, type DateRangeValue } from '@/components/admin/date-range-filter'
+import { ProtectedRoute } from '@/components/admin/protected-route'
 
 // Payment status is a genuine status encoding (good/warning/critical/neutral), not
 // arbitrary series identity — colors carry that meaning, never the categorical palette.
@@ -196,6 +197,7 @@ export default function AdminDashboardPage() {
   ]
 
   return (
+    <ProtectedRoute permission="analytics.view">
     <div className="space-y-6">
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
@@ -596,5 +598,6 @@ export default function AdminDashboardPage() {
         </Card>
       </div>
     </div>
+    </ProtectedRoute>
   )
 }

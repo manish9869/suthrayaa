@@ -19,6 +19,8 @@ import {
   testSendEmailTemplate,
   type AdminEmailTemplate,
 } from '@/lib/api/admin'
+import { ProtectedRoute } from '@/components/admin/protected-route'
+import { Can } from '@/components/admin/can'
 
 const TYPE_LABELS: Record<string, string> = {
   order_placed: 'Order Placed',
@@ -118,6 +120,7 @@ export default function EmailTemplatesPage() {
   }
 
   return (
+    <ProtectedRoute permission="emails.view">
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-serif font-bold">Email Templates</h1>
@@ -135,7 +138,9 @@ export default function EmailTemplatesPage() {
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="font-semibold text-sm">{TYPE_LABELS[t.type] ?? t.type}</h3>
-                  <Switch checked={t.enabled} onCheckedChange={() => handleToggleEnabled(t)} />
+                  <Can permission="emails.update">
+                    <Switch checked={t.enabled} onCheckedChange={() => handleToggleEnabled(t)} />
+                  </Can>
                 </div>
                 <p className="text-xs text-muted-foreground truncate">{t.subject}</p>
                 <div className="flex items-center gap-2">
@@ -185,12 +190,14 @@ export default function EmailTemplatesPage() {
             </div>
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setTestSendOpen(true)}>
-              <Send className="h-3.5 w-3.5 mr-1.5" /> Send Test
-            </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? 'Saving...' : 'Save Changes'}
-            </Button>
+            <Can permission="emails.update">
+              <Button variant="outline" onClick={() => setTestSendOpen(true)}>
+                <Send className="h-3.5 w-3.5 mr-1.5" /> Send Test
+              </Button>
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </Can>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -223,5 +230,6 @@ export default function EmailTemplatesPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </ProtectedRoute>
   )
 }

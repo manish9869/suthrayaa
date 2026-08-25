@@ -35,6 +35,7 @@ import { toast } from 'sonner'
 import { DataTablePagination } from '@/components/admin/data-table-pagination'
 import { usePaginated } from '@/lib/hooks/use-paginated'
 import { TableLoadingRow } from '@/components/admin/loading-state'
+import { ProtectedRoute } from '@/components/admin/protected-route'
 
 const ALL_TIME: DateRangeValue = { days: 3650, label: 'Any time joined' }
 
@@ -167,6 +168,7 @@ export default function AdminCustomersPage() {
   }
 
   return (
+    <ProtectedRoute permission="customers.view">
     <div className="space-y-6">
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
@@ -343,5 +345,6 @@ export default function AdminCustomersPage() {
         <DataTablePagination page={page} pageCount={pageCount} total={pageTotal} pageSize={15} onPageChange={setPage} />
       </div>
     </div>
+    </ProtectedRoute>
   )
 }

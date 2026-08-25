@@ -44,6 +44,8 @@ import { toast } from 'sonner'
 import { PageLoader } from '@/components/admin/loading-state'
 import { StatusDot, type DotTone } from '@/components/admin/status-dot'
 import { StatCard } from '@/components/admin/stat-card'
+import { ProtectedRoute } from '@/components/admin/protected-route'
+import { Can } from '@/components/admin/can'
 
 const PAYMENT_DOT: Record<string, DotTone> = {
   paid: 'mint',
@@ -196,6 +198,7 @@ export default function AdminOrderDetailPage() {
   if (!order) return <p className="text-muted-foreground">Order not found</p>
 
   return (
+    <ProtectedRoute permission="orders.view">
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => router.push('/admin/orders')}>
@@ -307,9 +310,11 @@ export default function AdminOrderDetailPage() {
                   <Input value={tracking} onChange={(e) => setTracking(e.target.value)} />
                 </div>
               </div>
-              <Button size="sm" variant="outline" onClick={handleSaveShippingDetails} disabled={updating}>
-                Save
-              </Button>
+              <Can permission="orders.update">
+                <Button size="sm" variant="outline" onClick={handleSaveShippingDetails} disabled={updating}>
+                  Save
+                </Button>
+              </Can>
             </CardContent>
           </Card>
 
@@ -319,9 +324,11 @@ export default function AdminOrderDetailPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <Textarea value={adminNotes} onChange={(e) => setAdminNotes(e.target.value)} rows={3} placeholder="Internal notes — not visible to the customer" />
-              <Button size="sm" variant="outline" onClick={handleSaveNotes} disabled={savingNotes}>
-                Save Notes
-              </Button>
+              <Can permission="orders.update">
+                <Button size="sm" variant="outline" onClick={handleSaveNotes} disabled={savingNotes}>
+                  Save Notes
+                </Button>
+              </Can>
             </CardContent>
           </Card>
 
@@ -350,18 +357,20 @@ export default function AdminOrderDetailPage() {
               <CardTitle className="text-base">Order Status</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Select value={order.status} onValueChange={handleStatusChange} disabled={updating}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {STATUSES.map((s) => (
-                    <SelectItem key={s} value={s} className="capitalize">
-                      {STATUS_LABELS[s] ?? s.replace(/_/g, ' ')}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Can anyOf={['orders.update', 'orders.cancel', 'orders.refund']}>
+                <Select value={order.status} onValueChange={handleStatusChange} disabled={updating}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUSES.map((s) => (
+                      <SelectItem key={s} value={s} className="capitalize">
+                        {STATUS_LABELS[s] ?? s.replace(/_/g, ' ')}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Can>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Payment</span>
                 <StatusDot label={order.paymentStatus} tone={PAYMENT_DOT[order.paymentStatus] ?? 'muted'} />
@@ -436,12 +445,14 @@ export default function AdminOrderDetailPage() {
                 <Button variant="outline" size="sm" onClick={handleViewInvoice} disabled={invoiceBusy}>
                   <Download className="h-3.5 w-3.5 mr-2" /> View / Download PDF
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleEmailInvoice} disabled={invoiceBusy}>
-                  <Mail className="h-3.5 w-3.5 mr-2" /> Email Invoice
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleRegenerateInvoice} disabled={invoiceBusy}>
-                  <RefreshCw className="h-3.5 w-3.5 mr-2" /> Regenerate PDF
-                </Button>
+                <Can permission="orders.update">
+                  <Button variant="outline" size="sm" onClick={handleEmailInvoice} disabled={invoiceBusy}>
+                    <Mail className="h-3.5 w-3.5 mr-2" /> Email Invoice
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleRegenerateInvoice} disabled={invoiceBusy}>
+                    <RefreshCw className="h-3.5 w-3.5 mr-2" /> Regenerate PDF
+                  </Button>
+                </Can>
               </div>
             </CardContent>
           </Card>
@@ -468,13 +479,16 @@ export default function AdminOrderDetailPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <Button variant="outline" size="sm" className="w-full" onClick={handleSendEmail} disabled={sendingEmail}>
-                <Send className="h-3.5 w-3.5 mr-2" /> {sendingEmail ? 'Sending...' : 'Send Email'}
-              </Button>
+              <Can permission="orders.update">
+                <Button variant="outline" size="sm" className="w-full" onClick={handleSendEmail} disabled={sendingEmail}>
+                  <Send className="h-3.5 w-3.5 mr-2" /> {sendingEmail ? 'Sending...' : 'Send Email'}
+                </Button>
+              </Can>
             </CardContent>
           </Card>
         </div>
       </div>
     </div>
+    </ProtectedRoute>
   )
 }

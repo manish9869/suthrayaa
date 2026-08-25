@@ -24,6 +24,7 @@ import {
 } from '@/lib/api/admin'
 import { ApiError } from '@/lib/api/http'
 import { toast } from 'sonner'
+import { Can } from '@/components/admin/can'
 
 const levelNames = ['Category', 'Subcategory', 'Sub-subcategory']
 function depthOf(categories: AdminCategory[], id: string | null): number {
@@ -277,11 +278,13 @@ export function CategoryManager({ nodeId }: { nodeId: string | null }) {
             if (!next) resetForm()
           }}
         >
-          <DialogTrigger asChild>
-            <Button onClick={openCreate}>
-              <Plus className="h-4 w-4 mr-2" /> {addLabel}
-            </Button>
-          </DialogTrigger>
+          <Can permission="categories.create">
+            <DialogTrigger asChild>
+              <Button onClick={openCreate}>
+                <Plus className="h-4 w-4 mr-2" /> {addLabel}
+              </Button>
+            </DialogTrigger>
+          </Can>
           <DialogContent className="max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingNode ? `Edit ${levelLabel}` : addLabel}</DialogTitle>
@@ -369,37 +372,43 @@ export function CategoryManager({ nodeId }: { nodeId: string | null }) {
                   <p className="text-xs text-muted-foreground mt-1">{productCount(c)} products</p>
                 </Link>
                 <div className="flex items-center gap-1 justify-end -mb-1 -mr-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    title="Move up"
-                    disabled={i === 0}
-                    onClick={() => handleReorder(c, -1)}
-                  >
-                    <ChevronUp className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    title="Move down"
-                    disabled={i === children.length - 1}
-                    onClick={() => handleReorder(c, 1)}
-                  >
-                    <ChevronDown className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" title="Edit" onClick={() => openEdit(c)}>
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
+                  <Can permission="categories.update">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      title="Move up"
+                      disabled={i === 0}
+                      onClick={() => handleReorder(c, -1)}
+                    >
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      title="Move down"
+                      disabled={i === children.length - 1}
+                      onClick={() => handleReorder(c, 1)}
+                    >
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" title="Edit" onClick={() => openEdit(c)}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  </Can>
                   {c.isActive ? (
-                    <Button variant="ghost" size="icon" className="h-7 w-7" title="Deactivate" onClick={() => requestDelete(c)}>
-                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                    </Button>
+                    <Can permission="categories.delete">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" title="Deactivate" onClick={() => requestDelete(c)}>
+                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      </Button>
+                    </Can>
                   ) : (
-                    <Button variant="ghost" size="icon" className="h-7 w-7" title="Reactivate" onClick={() => handleReactivate(c)}>
-                      <RotateCcw className="h-3.5 w-3.5" />
-                    </Button>
+                    <Can permission="categories.update">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" title="Reactivate" onClick={() => handleReactivate(c)}>
+                        <RotateCcw className="h-3.5 w-3.5" />
+                      </Button>
+                    </Can>
                   )}
                 </div>
               </CardContent>
@@ -417,11 +426,13 @@ export function CategoryManager({ nodeId }: { nodeId: string | null }) {
               </h2>
               <p className="text-sm text-muted-foreground">{productsHere.length} product{productsHere.length === 1 ? '' : 's'}</p>
             </div>
-            <Button asChild variant="outline">
-              <Link href={`/admin/products/new?categoryId=${current.id}`}>
-                <Plus className="h-4 w-4 mr-2" /> Add Product
-              </Link>
-            </Button>
+            <Can permission="products.create">
+              <Button asChild variant="outline">
+                <Link href={`/admin/products/new?categoryId=${current.id}`}>
+                  <Plus className="h-4 w-4 mr-2" /> Add Product
+                </Link>
+              </Button>
+            </Can>
           </div>
           {productsHere.length > 0 ? (
             <div className="space-y-2">

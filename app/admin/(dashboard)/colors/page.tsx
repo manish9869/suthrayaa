@@ -9,6 +9,8 @@ import { Plus, Trash2, Pencil } from 'lucide-react'
 import { getAdminColors, createColor, updateColor, deleteColor, type AdminColor } from '@/lib/api/admin'
 import { ColorYarnSwatch } from '@/components/color-yarn-swatch'
 import { toast } from 'sonner'
+import { ProtectedRoute } from '@/components/admin/protected-route'
+import { Can } from '@/components/admin/can'
 
 export default function AdminColorsPage() {
   const [colors, setColors] = useState<AdminColor[]>([])
@@ -72,15 +74,18 @@ export default function AdminColorsPage() {
   }
 
   return (
+    <ProtectedRoute permission="colors.view">
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-serif font-bold">Colors</h1>
         <Dialog open={addOpen} onOpenChange={setAddOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" /> Add Color
-            </Button>
-          </DialogTrigger>
+          <Can permission="colors.create">
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" /> Add Color
+              </Button>
+            </DialogTrigger>
+          </Can>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>New Color</DialogTitle>
@@ -111,20 +116,24 @@ export default function AdminColorsPage() {
         {colors.map((c) => (
           <div key={c.id} className="relative flex flex-col items-center gap-2 rounded-xl border bg-background p-4 pt-3 text-center">
             <div className="absolute top-2 right-2 flex items-center gap-0.5">
-              <button
-                onClick={() => openEdit(c)}
-                title="Edit"
-                className="p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-              </button>
-              <button
-                onClick={() => handleDelete(c.id, c.name)}
-                title="Delete"
-                className="p-1.5 rounded-full text-muted-foreground hover:text-destructive hover:bg-muted transition-colors"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
+              <Can permission="colors.update">
+                <button
+                  onClick={() => openEdit(c)}
+                  title="Edit"
+                  className="p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+              </Can>
+              <Can permission="colors.delete">
+                <button
+                  onClick={() => handleDelete(c.id, c.name)}
+                  title="Delete"
+                  className="p-1.5 rounded-full text-muted-foreground hover:text-destructive hover:bg-muted transition-colors"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </Can>
             </div>
             <span className="w-16 h-16 rounded-full border">
               <ColorYarnSwatch color={c.hex} />
@@ -166,5 +175,6 @@ export default function AdminColorsPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </ProtectedRoute>
   )
 }

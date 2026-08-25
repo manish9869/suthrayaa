@@ -43,6 +43,8 @@ import { toast } from 'sonner'
 import { StatCard, type StatTone } from '@/components/admin/stat-card'
 import { StatusDot, type DotTone } from '@/components/admin/status-dot'
 import { PageLoader } from '@/components/admin/loading-state'
+import { ProtectedRoute } from '@/components/admin/protected-route'
+import { Can } from '@/components/admin/can'
 
 const STATUS_DOT: Record<string, DotTone> = {
   pending_payment: 'muted',
@@ -185,6 +187,7 @@ export default function AdminCustomerDetailPage() {
   ]
 
   return (
+    <ProtectedRoute permission="customers.view">
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => router.push('/admin/customers')}>
@@ -215,9 +218,11 @@ export default function AdminCustomerDetailPage() {
             </span>
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleSendWelcomeEmail} disabled={sendingWelcome || !customer.email}>
-          <Send className="h-3.5 w-3.5 mr-2" /> {sendingWelcome ? 'Sending...' : 'Send Welcome Email'}
-        </Button>
+        <Can permission="customers.update">
+          <Button variant="outline" size="sm" onClick={handleSendWelcomeEmail} disabled={sendingWelcome || !customer.email}>
+            <Send className="h-3.5 w-3.5 mr-2" /> {sendingWelcome ? 'Sending...' : 'Send Welcome Email'}
+          </Button>
+        </Can>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
@@ -318,24 +323,26 @@ export default function AdminCustomerDetailPage() {
                               >
                                 <Download className="h-4 w-4" />
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                title="Email invoice to customer"
-                                disabled={busyOrderId === o.id}
-                                onClick={() => handleEmailInvoice(o.id)}
-                              >
-                                <Send className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                title="Regenerate invoice"
-                                disabled={busyOrderId === o.id}
-                                onClick={() => handleRegenerateInvoice(o.id)}
-                              >
-                                <RefreshCw className="h-4 w-4" />
-                              </Button>
+                              <Can permission="orders.update">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  title="Email invoice to customer"
+                                  disabled={busyOrderId === o.id}
+                                  onClick={() => handleEmailInvoice(o.id)}
+                                >
+                                  <Send className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  title="Regenerate invoice"
+                                  disabled={busyOrderId === o.id}
+                                  onClick={() => handleRegenerateInvoice(o.id)}
+                                >
+                                  <RefreshCw className="h-4 w-4" />
+                                </Button>
+                              </Can>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -392,15 +399,17 @@ export default function AdminCustomerDetailPage() {
                           </TableCell>
                           <TableCell className="text-muted-foreground text-xs">{new Date(l.sentAt).toLocaleString('en-IN')}</TableCell>
                           <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              title="Resend"
-                              disabled={retryingEmailId === l.id}
-                              onClick={() => handleResendEmail(l.id)}
-                            >
-                              <RotateCcw className="h-4 w-4" />
-                            </Button>
+                            <Can permission="emails.update">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                title="Resend"
+                                disabled={retryingEmailId === l.id}
+                                onClick={() => handleResendEmail(l.id)}
+                              >
+                                <RotateCcw className="h-4 w-4" />
+                              </Button>
+                            </Can>
                           </TableCell>
                         </TableRow>
                       ))
@@ -451,5 +460,6 @@ export default function AdminCustomerDetailPage() {
         </div>
       </div>
     </div>
+    </ProtectedRoute>
   )
 }

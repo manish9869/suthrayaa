@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import { ProductForm } from '@/components/admin/product-form'
 import { PageLoader } from '@/components/admin/loading-state'
 import { getAdminProduct, type AdminProductListItem } from '@/lib/api/admin'
+import { ProtectedRoute } from '@/components/admin/protected-route'
 
 export default function EditProductPage() {
   const params = useParams<{ id: string }>()
@@ -21,9 +22,11 @@ export default function EditProductPage() {
   if (!product) return <p className="text-muted-foreground">Product not found</p>
 
   return (
+    <ProtectedRoute permission="products.update">
     <div className="space-y-6">
       <h1 className="text-2xl font-serif font-bold">Edit Product</h1>
       <ProductForm product={product} />
     </div>
+    </ProtectedRoute>
   )
 }
