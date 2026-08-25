@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { ProductForm } from '@/components/admin/product-form'
+import { PageLoader } from '@/components/admin/loading-state'
 import { getAdminProduct, type AdminProductListItem } from '@/lib/api/admin'
 
 export default function EditProductPage() {
@@ -16,7 +17,7 @@ export default function EditProductPage() {
       .finally(() => setLoading(false))
   }, [params.id])
 
-  if (loading) return <p className="text-muted-foreground">Loading...</p>
+  if (loading) return <PageLoader />
   if (!product) return <p className="text-muted-foreground">Product not found</p>
 
   return (

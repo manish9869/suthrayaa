@@ -424,6 +424,36 @@ export const updateOrderStatus = (id: string, status: string, note?: string, tra
 export const updateOrderNotes = (id: string, input: { adminNotes?: string; customerNotes?: string }) =>
   adminFetch<{ ok: boolean }>(`/admin/orders/${id}/notes`, { method: 'PATCH', body: JSON.stringify(input) })
 
+export type OrderEmailType =
+  | 'order_placed'
+  | 'order_confirmed'
+  | 'order_making'
+  | 'order_ready'
+  | 'order_shipped'
+  | 'order_tracking_updated'
+  | 'order_delivered'
+  | 'order_cancelled'
+  | 'payment_successful'
+  | 'payment_failed'
+  | 'refund_processed'
+  | 'custom_order_confirmation'
+export const ORDER_EMAIL_TYPE_LABELS: Record<OrderEmailType, string> = {
+  order_placed: 'Order Received',
+  order_confirmed: 'Order Confirmed',
+  order_making: 'In Production',
+  order_ready: 'Ready to Ship',
+  order_shipped: 'Shipped',
+  order_tracking_updated: 'Tracking Updated',
+  order_delivered: 'Delivered',
+  order_cancelled: 'Order Cancelled',
+  payment_successful: 'Payment Received',
+  payment_failed: 'Payment Failed',
+  refund_processed: 'Refund Processed',
+  custom_order_confirmation: 'Custom Order Confirmed',
+}
+export const sendOrderEmail = (orderId: string, type: OrderEmailType) =>
+  adminFetch<{ ok: boolean }>(`/admin/orders/${orderId}/send-email`, { method: 'POST', body: JSON.stringify({ type }) })
+
 // ---- Invoices ----
 export const getOrderInvoice = (orderId: string) =>
   adminFetch<{ invoiceNumber: string; createdAt: string; snapshot: unknown; orderStatus: string; paymentStatus: string }>(
@@ -585,6 +615,8 @@ export interface AdminCustomerDetail {
 }
 export const getAdminCustomer = (id: string) => adminFetch<AdminCustomerDetail>(`/admin/customers/${id}`)
 export const getCustomerEmails = (id: string) => adminFetch<AdminEmailLog[]>(`/admin/customers/${id}/emails`)
+export const sendCustomerWelcomeEmail = (id: string) =>
+  adminFetch<{ ok: boolean }>(`/admin/customers/${id}/send-welcome-email`, { method: 'POST' })
 
 // ---- Reviews ----
 export const getAdminReviews = (status: 'pending' | 'published' = 'pending') =>

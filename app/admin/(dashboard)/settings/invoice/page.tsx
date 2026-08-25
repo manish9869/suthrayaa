@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { getInvoiceSettings, updateInvoiceSettings, type AdminInvoiceSettings } from '@/lib/api/admin'
+import { PageLoader } from '@/components/admin/loading-state'
 
 export default function InvoiceSettingsPage() {
   const [settings, setSettings] = useState<AdminInvoiceSettings | null>(null)
@@ -38,7 +39,7 @@ export default function InvoiceSettingsPage() {
     }
   }
 
-  if (loading) return <p className="text-muted-foreground">Loading...</p>
+  if (loading) return <PageLoader />
   if (!settings) return <p className="text-muted-foreground">Failed to load settings</p>
 
   return (

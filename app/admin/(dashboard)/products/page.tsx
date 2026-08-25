@@ -45,6 +45,7 @@ import { toast } from 'sonner'
 import { GLASS_PANEL, exportRowsToCsv } from '@/lib/admin-ui'
 import { SortableTh } from '@/components/admin/sortable-th'
 import { DataTablePagination } from '@/components/admin/data-table-pagination'
+import { TableLoadingRow } from '@/components/admin/loading-state'
 import { useSortableData } from '@/lib/hooks/use-sortable-data'
 import { usePaginated } from '@/lib/hooks/use-paginated'
 import { StatCard } from '@/components/admin/stat-card'
@@ -355,11 +356,7 @@ export default function AdminProductsPage() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow>
-                <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
-                  Loading...
-                </TableCell>
-              </TableRow>
+              <TableLoadingRow colSpan={10} />
             ) : filtered.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={10} className="text-center text-muted-foreground py-8">

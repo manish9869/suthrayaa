@@ -11,6 +11,7 @@ import { RotateCcw, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { getEmailLogs, retryEmailLog, type AdminEmailLog } from '@/lib/api/admin'
 import { DateRangeFilter, type DateRangeValue } from '@/components/admin/date-range-filter'
+import { TableLoadingRow } from '@/components/admin/loading-state'
 
 const STATUS_VARIANT: Record<string, 'secondary' | 'destructive' | 'outline'> = {
   sent: 'secondary',
@@ -129,11 +130,7 @@ export default function EmailLogsPage() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                  Loading...
-                </TableCell>
-              </TableRow>
+              <TableLoadingRow colSpan={7} />
             ) : filtered.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center text-muted-foreground py-8">

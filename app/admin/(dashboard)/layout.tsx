@@ -19,24 +19,52 @@ import {
   History,
   Receipt,
   LogOut,
+  Store,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 import { PortalContainerContext } from '@/components/theme-portal'
 
-const navItems = [
-  { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/products', label: 'Products', icon: Package },
-  { href: '/admin/categories', label: 'Categories', icon: FolderTree },
-  { href: '/admin/colors', label: 'Colors', icon: Palette },
-  { href: '/admin/orders', label: 'Orders', icon: ShoppingCart },
-  { href: '/admin/coupons', label: 'Coupons', icon: Tags },
-  { href: '/admin/customers', label: 'Customers', icon: Users },
-  { href: '/admin/testimonials', label: 'Testimonials', icon: MessageSquareQuote },
-  { href: '/admin/hero-slides', label: 'Hero Slides', icon: ImageIcon },
-  { href: '/admin/emails/templates', label: 'Email Templates', icon: Mail },
-  { href: '/admin/emails/logs', label: 'Email Logs', icon: History },
-  { href: '/admin/settings/invoice', label: 'Invoice Settings', icon: Receipt },
+const navGroups = [
+  {
+    title: 'Overview',
+    items: [{ href: '/admin', label: 'Dashboard', icon: LayoutDashboard }],
+  },
+  {
+    title: 'Catalog',
+    items: [
+      { href: '/admin/products', label: 'Products', icon: Package },
+      { href: '/admin/categories', label: 'Categories', icon: FolderTree },
+      { href: '/admin/colors', label: 'Colors', icon: Palette },
+    ],
+  },
+  {
+    title: 'Sales',
+    items: [
+      { href: '/admin/orders', label: 'Orders', icon: ShoppingCart },
+      { href: '/admin/coupons', label: 'Coupons', icon: Tags },
+      { href: '/admin/customers', label: 'Customers', icon: Users },
+    ],
+  },
+  {
+    title: 'Content',
+    items: [
+      { href: '/admin/testimonials', label: 'Testimonials', icon: MessageSquareQuote },
+      { href: '/admin/hero-slides', label: 'Hero Slides', icon: ImageIcon },
+    ],
+  },
+  {
+    title: 'Communications',
+    items: [
+      { href: '/admin/emails/templates', label: 'Email Templates', icon: Mail },
+      { href: '/admin/emails/logs', label: 'Email Logs', icon: History },
+    ],
+  },
+  {
+    title: 'Settings',
+    items: [{ href: '/admin/settings/invoice', label: 'Invoice Settings', icon: Receipt }],
+  },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -62,8 +90,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (authLoading || checking) {
     return (
-      <div className="dark min-h-screen flex items-center justify-center bg-background text-muted-foreground">
-        Loading...
+      <div className="dark flex min-h-screen flex-col items-center justify-center gap-4 bg-background">
+        <p className="font-serif text-2xl font-bold tracking-tight text-foreground">Suthrayaa</p>
+        <Spinner className="size-6 text-primary" />
       </div>
     )
   }
@@ -85,45 +114,75 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <PortalContainerContext.Provider value={darkContainer}>
     <div ref={setDarkContainer} className="dark h-screen flex bg-background text-foreground overflow-hidden">
-      <aside className="w-64 flex-shrink-0 border-r border-sidebar-border bg-sidebar flex flex-col h-full">
-        <div className="p-6 border-b border-sidebar-border">
-          <Link href="/admin" className="font-serif text-xl font-bold text-sidebar-foreground">
-            Suthrayaa Admin
+      <aside className="w-72 flex-shrink-0 border-r border-sidebar-border bg-sidebar flex flex-col h-full">
+        <div className="px-6 py-6 border-b border-sidebar-border">
+          <Link href="/admin" className="font-serif text-xl font-bold text-sidebar-foreground tracking-tight">
+            Suthrayaa
           </Link>
-          <p className="text-xs text-muted-foreground mt-1">{admin.displayName ?? admin.role}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-sidebar-primary mt-0.5">
+            Admin
+          </p>
         </div>
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const active = pathname === item.href
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all',
-                  active
-                    ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-sm'
-                    : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
-                )}
-              >
-                <item.icon className="h-4 w-4" />
-                {item.label}
-              </Link>
-            )
-          })}
+
+        <nav className="flex-1 min-h-0 px-4 py-5 space-y-6 overflow-y-auto">
+          {navGroups.map((group) => (
+            <div key={group.title}>
+              <p className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
+                {group.title}
+              </p>
+              <div className="space-y-1">
+                {group.items.map((item) => {
+                  const active =
+                    item.href === '/admin'
+                      ? pathname === item.href
+                      : pathname === item.href || pathname.startsWith(item.href + '/')
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        'flex items-center gap-3 px-3 py-2.5 rounded-full text-sm font-medium transition-all',
+                        active
+                          ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-sm'
+                          : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                      )}
+                    >
+                      <item.icon className="h-4 w-4 shrink-0" />
+                      {item.label}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
-        <div className="p-3 border-t border-sidebar-border space-y-1">
+
+        <div className="px-4 pb-2">
           <Link
             href="/"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-full text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
           >
-            View Store
+            <Store className="h-4 w-4 shrink-0" /> View Store
           </Link>
+        </div>
+
+        <div className="p-4 border-t border-sidebar-border">
+          <div className="flex items-center gap-3 px-2 py-2">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sidebar-primary/15 text-sm font-semibold text-sidebar-primary">
+              {(admin.displayName ?? admin.role).charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-sidebar-foreground">
+                {admin.displayName ?? admin.role}
+              </p>
+              <p className="truncate text-xs text-sidebar-foreground/50 capitalize">{admin.role}</p>
+            </div>
+          </div>
           <button
             onClick={() => signOut()}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+            className="mt-1 w-full flex items-center gap-3 px-3 py-2.5 rounded-full text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
           >
-            <LogOut className="h-4 w-4" /> Sign Out
+            <LogOut className="h-4 w-4 shrink-0" /> Sign Out
           </button>
         </div>
       </aside>

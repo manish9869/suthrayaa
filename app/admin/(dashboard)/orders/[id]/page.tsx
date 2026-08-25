@@ -25,6 +25,7 @@ import {
   CreditCard,
   Truck,
   History,
+  Send,
 } from 'lucide-react'
 import {
   getAdminOrder,
@@ -33,10 +34,14 @@ import {
   emailInvoice,
   regenerateInvoice,
   fetchInvoicePdfBlob,
+  sendOrderEmail,
+  ORDER_EMAIL_TYPE_LABELS,
   type AdminOrderDetail,
+  type OrderEmailType,
 } from '@/lib/api/admin'
 import { formatPrice } from '@/lib/data'
 import { toast } from 'sonner'
+import { PageLoader } from '@/components/admin/loading-state'
 import { StatusDot, type DotTone } from '@/components/admin/status-dot'
 import { StatCard } from '@/components/admin/stat-card'
 
@@ -83,6 +88,8 @@ export default function AdminOrderDetailPage() {
   const [adminNotes, setAdminNotes] = useState('')
   const [savingNotes, setSavingNotes] = useState(false)
   const [invoiceBusy, setInvoiceBusy] = useState(false)
+  const [emailType, setEmailType] = useState<OrderEmailType>('order_shipped')
+  const [sendingEmail, setSendingEmail] = useState(false)
 
   const load = () => {
     setLoading(true)
@@ -173,7 +180,19 @@ export default function AdminOrderDetailPage() {
     }
   }
 
-  if (loading) return <p className="text-muted-foreground">Loading...</p>
+  const handleSendEmail = async () => {
+    setSendingEmail(true)
+    try {
+      await sendOrderEmail(params.id, emailType)
+      toast.success(`${ORDER_EMAIL_TYPE_LABELS[emailType]} email sent`)
+    } catch {
+      toast.error('Failed to send email')
+    } finally {
+      setSendingEmail(false)
+    }
+  }
+
+  if (loading) return <PageLoader />
   if (!order) return <p className="text-muted-foreground">Order not found</p>
 
   return (
@@ -424,6 +443,34 @@ export default function AdminOrderDetailPage() {
                   <RefreshCw className="h-3.5 w-3.5 mr-2" /> Regenerate PDF
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Send className="h-4 w-4" /> Send Email
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Manually send a lifecycle email to the customer — independent of the order&apos;s current status.
+              </p>
+              <Select value={emailType} onValueChange={(v) => setEmailType(v as OrderEmailType)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(ORDER_EMAIL_TYPE_LABELS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" className="w-full" onClick={handleSendEmail} disabled={sendingEmail}>
+                <Send className="h-3.5 w-3.5 mr-2" /> {sendingEmail ? 'Sending...' : 'Send Email'}
+              </Button>
             </CardContent>
           </Card>
         </div>

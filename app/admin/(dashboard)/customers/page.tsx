@@ -34,6 +34,7 @@ import { GLASS_PANEL, exportRowsToCsv } from '@/lib/admin-ui'
 import { toast } from 'sonner'
 import { DataTablePagination } from '@/components/admin/data-table-pagination'
 import { usePaginated } from '@/lib/hooks/use-paginated'
+import { TableLoadingRow } from '@/components/admin/loading-state'
 
 const ALL_TIME: DateRangeValue = { days: 3650, label: 'Any time joined' }
 
@@ -264,11 +265,7 @@ export default function AdminCustomersPage() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                  Loading...
-                </TableCell>
-              </TableRow>
+              <TableLoadingRow colSpan={6} />
             ) : filtered.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center text-muted-foreground py-8">

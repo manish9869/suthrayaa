@@ -18,6 +18,7 @@ import { GLASS_PANEL, exportRowsToCsv } from '@/lib/admin-ui'
 import { toast } from 'sonner'
 import { SortableTh } from '@/components/admin/sortable-th'
 import { DataTablePagination } from '@/components/admin/data-table-pagination'
+import { TableLoadingRow } from '@/components/admin/loading-state'
 import { useSortableData } from '@/lib/hooks/use-sortable-data'
 import { usePaginated } from '@/lib/hooks/use-paginated'
 
@@ -300,11 +301,7 @@ export default function AdminOrdersPage() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                  Loading...
-                </TableCell>
-              </TableRow>
+              <TableLoadingRow colSpan={8} />
             ) : filtered.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center text-muted-foreground py-8">

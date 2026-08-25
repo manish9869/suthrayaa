@@ -11,6 +11,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Eye, Send } from 'lucide-react'
 import { toast } from 'sonner'
+import { PageLoader } from '@/components/admin/loading-state'
 import {
   getEmailTemplates,
   updateEmailTemplate,
@@ -126,7 +127,7 @@ export default function EmailTemplatesPage() {
       </div>
 
       {loading ? (
-        <p className="text-muted-foreground">Loading...</p>
+        <PageLoader />
       ) : (
         <div className="grid sm:grid-cols-2 gap-4">
           {templates.map((t) => (

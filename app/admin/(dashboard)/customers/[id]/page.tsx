@@ -34,6 +34,7 @@ import {
   fetchInvoicePdfBlob,
   regenerateInvoice,
   retryEmailLog,
+  sendCustomerWelcomeEmail,
   type AdminCustomerDetail,
   type AdminEmailLog,
 } from '@/lib/api/admin'
@@ -41,6 +42,7 @@ import { formatPrice } from '@/lib/data'
 import { toast } from 'sonner'
 import { StatCard, type StatTone } from '@/components/admin/stat-card'
 import { StatusDot, type DotTone } from '@/components/admin/status-dot'
+import { PageLoader } from '@/components/admin/loading-state'
 
 const STATUS_DOT: Record<string, DotTone> = {
   pending_payment: 'muted',
@@ -74,6 +76,7 @@ export default function AdminCustomerDetailPage() {
   const [loading, setLoading] = useState(true)
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null)
   const [retryingEmailId, setRetryingEmailId] = useState<string | null>(null)
+  const [sendingWelcome, setSendingWelcome] = useState(false)
 
   const [statusFilter, setStatusFilter] = useState('all')
   const [paymentFilter, setPaymentFilter] = useState('all')
@@ -148,7 +151,21 @@ export default function AdminCustomerDetailPage() {
     }
   }
 
-  if (loading && !customer) return <p className="text-muted-foreground">Loading...</p>
+  const handleSendWelcomeEmail = async () => {
+    if (!customer) return
+    setSendingWelcome(true)
+    try {
+      await sendCustomerWelcomeEmail(customer.id)
+      toast.success('Welcome email sent')
+      load()
+    } catch {
+      toast.error('Failed to send welcome email')
+    } finally {
+      setSendingWelcome(false)
+    }
+  }
+
+  if (loading && !customer) return <PageLoader />
   if (!customer) return <p className="text-muted-foreground">Customer not found</p>
 
   const fullName = customer.firstName || customer.lastName ? `${customer.firstName ?? ''} ${customer.lastName ?? ''}`.trim() : 'Unnamed Customer'
@@ -198,6 +215,9 @@ export default function AdminCustomerDetailPage() {
             </span>
           </p>
         </div>
+        <Button variant="outline" size="sm" onClick={handleSendWelcomeEmail} disabled={sendingWelcome || !customer.email}>
+          <Send className="h-3.5 w-3.5 mr-2" /> {sendingWelcome ? 'Sending...' : 'Send Welcome Email'}
+        </Button>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
