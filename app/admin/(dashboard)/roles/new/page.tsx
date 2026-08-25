@@ -68,7 +68,9 @@ function NewRoleContent() {
         </div>
 
         <div>
-          <p className="mb-4 text-sm font-medium">Permissions ({permissions.length})</p>
+          <p className="mb-3 text-sm font-medium">
+            Permissions <span className="text-muted-foreground font-normal">({permissions.length} selected)</span>
+          </p>
           <PermissionGroupEditor catalog={catalog} selected={permissions} onChange={setPermissions} />
         </div>
       </div>

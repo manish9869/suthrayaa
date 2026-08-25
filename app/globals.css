@@ -332,3 +332,14 @@
 .dark [data-slot="card"] {
   border-radius: 0.5rem;
 }
+
+/* Hides the scrollbar on an internally-scrolling panel (e.g. the role picker in the admin
+   Users dialogs) without disabling scroll itself — the OS's default scrollbar clashes with
+   the dark admin theme far more than its absence is ever missed. */
+.scrollbar-hide {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Edge/IE legacy */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Edge Chromium */
+}

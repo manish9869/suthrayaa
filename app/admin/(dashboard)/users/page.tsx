@@ -11,12 +11,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Plus, MoreHorizontal, Copy, Check, KeyRound, Trash2, ShieldCheck } from 'lucide-react'
+import { Plus, MoreHorizontal, Copy, Check, KeyRound, Trash2, ShieldCheck, Search } from 'lucide-react'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 import { GLASS_PANEL } from '@/lib/admin-ui'
 import { PageLoader } from '@/components/admin/loading-state'
 import { ProtectedRoute } from '@/components/admin/protected-route'
 import { Can } from '@/components/admin/can'
+import { SortableTh } from '@/components/admin/sortable-th'
+import { useSortableData } from '@/lib/hooks/use-sortable-data'
 import { useRbac } from '@/lib/rbac/rbac-context'
 import {
   getAdminUsers,
@@ -40,6 +43,7 @@ function UsersPageContent() {
   const { admin: currentAdmin, isSuperAdmin } = useRbac()
   const [users, setUsers] = useState<AdminUserListItem[] | null>(null)
   const [roles, setRoles] = useState<AdminRoleListItem[]>([])
+  const [search, setSearch] = useState('')
 
   const load = () => {
     getAdminUsers().then(setUsers)
@@ -153,6 +157,21 @@ function UsersPageContent() {
 
   const selectableRoles = useMemo(() => (isSuperAdmin ? roles : roles.filter((r) => r.slug !== 'super-admin')), [roles, isSuperAdmin])
 
+  const filtered = useMemo(() => {
+    const list = users ?? []
+    const q = search.trim().toLowerCase()
+    if (!q) return list
+    return list.filter((u) => (u.displayName ?? '').toLowerCase().includes(q) || (u.email ?? '').toLowerCase().includes(q))
+  }, [users, search])
+
+  const { sorted, sortKey, direction, toggleSort } = useSortableData<AdminUserListItem>(filtered, {
+    name: (u) => u.displayName ?? u.email ?? '',
+    email: (u) => u.email ?? '',
+    status: (u) => (u.isActive ? 1 : 0),
+    lastLogin: (u) => u.lastLoginAt ?? '',
+    created: (u) => u.createdAt,
+  })
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -179,6 +198,13 @@ function UsersPageContent() {
         </div>
       </div>
 
+      {users && users.length > 0 && (
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Search by name or email..." className="pl-10" value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+      )}
+
       <div className={`${GLASS_PANEL} overflow-hidden`}>
         {!users ? (
           <PageLoader label="Loading users..." />
@@ -186,24 +212,24 @@ function UsersPageContent() {
           <Table>
             <TableHeader>
               <TableRow className="border-white/10 hover:bg-transparent">
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
+                <SortableTh label="Name" sortKey="name" activeKey={sortKey} direction={direction} onSort={toggleSort} />
+                <SortableTh label="Email" sortKey="email" activeKey={sortKey} direction={direction} onSort={toggleSort} />
                 <TableHead>Roles</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Last Login</TableHead>
-                <TableHead>Created</TableHead>
+                <SortableTh label="Status" sortKey="status" activeKey={sortKey} direction={direction} onSort={toggleSort} />
+                <SortableTh label="Last Login" sortKey="lastLogin" activeKey={sortKey} direction={direction} onSort={toggleSort} />
+                <SortableTh label="Created" sortKey="created" activeKey={sortKey} direction={direction} onSort={toggleSort} />
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.length === 0 ? (
+              {sorted.length === 0 ? (
                 <TableRow className="border-white/10">
                   <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                    No admin users yet
+                    {users.length === 0 ? 'No admin users yet' : 'No users match this search'}
                   </TableCell>
                 </TableRow>
               ) : (
-                users.map((u) => (
+                sorted.map((u) => (
                   <TableRow key={u.id} className="border-white/10">
                     <TableCell className="font-medium">
                       {u.displayName ?? '—'}
@@ -276,7 +302,7 @@ function UsersPageContent() {
 
       {/* Invite dialog */}
       <Dialog open={inviteOpen} onOpenChange={(o) => (o ? setInviteOpen(true) : closeInvite())}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Invite Admin</DialogTitle>
             <DialogDescription>
@@ -304,18 +330,32 @@ function UsersPageContent() {
               </div>
               <div className="space-y-2">
                 <Label>Roles</Label>
-                <div className="space-y-2 max-h-56 overflow-y-auto rounded-md border p-3">
-                  {selectableRoles.map((r) => (
-                    <label key={r.id} className="flex items-center gap-2 text-sm">
-                      <Checkbox
-                        checked={inviteRoleIds.includes(r.id)}
-                        onCheckedChange={(c) =>
-                          setInviteRoleIds((prev) => (c ? [...prev, r.id] : prev.filter((id) => id !== r.id)))
-                        }
-                      />
-                      {r.name}
-                    </label>
-                  ))}
+                <p className="text-xs text-muted-foreground">Pick everything this person needs — you can adjust it later.</p>
+                <div className="max-h-72 space-y-1.5 overflow-y-auto scrollbar-hide">
+                  {selectableRoles.map((r) => {
+                    const checked = inviteRoleIds.includes(r.id)
+                    return (
+                      <label
+                        key={r.id}
+                        className={cn(
+                          'flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors',
+                          checked ? 'border-primary/40 bg-primary/5' : 'border-border hover:bg-muted/40'
+                        )}
+                      >
+                        <Checkbox
+                          className="mt-0.5"
+                          checked={checked}
+                          onCheckedChange={(c) =>
+                            setInviteRoleIds((prev) => (c ? [...prev, r.id] : prev.filter((id) => id !== r.id)))
+                          }
+                        />
+                        <span className="min-w-0">
+                          <span className="block text-sm font-medium">{r.name}</span>
+                          {r.description && <span className="block text-xs text-muted-foreground">{r.description}</span>}
+                        </span>
+                      </label>
+                    )
+                  })}
                 </div>
               </div>
             </div>
@@ -335,40 +375,70 @@ function UsersPageContent() {
 
       {/* Edit dialog */}
       <Dialog open={!!editUser} onOpenChange={(o) => !o && setEditUser(null)}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Edit {editUser?.displayName ?? editUser?.email}</DialogTitle>
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/15 text-base font-semibold text-primary">
+                {(editUser?.displayName ?? editUser?.email ?? '?').charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <DialogTitle className="truncate">{editUser?.displayName || 'Admin User'}</DialogTitle>
+                <p className="truncate text-xs text-muted-foreground">{editUser?.email}</p>
+              </div>
+            </div>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-5">
             <Can permission="users.update">
               <div className="space-y-2">
                 <Label>Display Name</Label>
-                <Input value={editDisplayName} onChange={(e) => setEditDisplayName(e.target.value)} />
+                <Input
+                  value={editDisplayName}
+                  onChange={(e) => setEditDisplayName(e.target.value)}
+                  autoComplete="off"
+                  placeholder="e.g. Priya Sharma"
+                />
               </div>
             </Can>
             <Can permission="users.assign_role">
               <div className="space-y-2">
                 <Label>Roles</Label>
-                <div className="space-y-2 max-h-56 overflow-y-auto rounded-md border p-3">
-                  {selectableRoles.map((r) => (
-                    <label key={r.id} className="flex items-center gap-2 text-sm">
-                      <Checkbox
-                        checked={editRoleIds.includes(r.id)}
-                        onCheckedChange={(c) => setEditRoleIds((prev) => (c ? [...prev, r.id] : prev.filter((id) => id !== r.id)))}
-                      />
-                      {r.name}
-                    </label>
-                  ))}
+                <p className="text-xs text-muted-foreground">A user can hold more than one role — pick everything they need.</p>
+                <div className="max-h-72 space-y-1.5 overflow-y-auto scrollbar-hide">
+                  {selectableRoles.map((r) => {
+                    const checked = editRoleIds.includes(r.id)
+                    return (
+                      <label
+                        key={r.id}
+                        className={cn(
+                          'flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors',
+                          checked ? 'border-primary/40 bg-primary/5' : 'border-border hover:bg-muted/40'
+                        )}
+                      >
+                        <Checkbox
+                          className="mt-0.5"
+                          checked={checked}
+                          onCheckedChange={(c) => setEditRoleIds((prev) => (c ? [...prev, r.id] : prev.filter((id) => id !== r.id)))}
+                        />
+                        <span className="min-w-0">
+                          <span className="block text-sm font-medium">{r.name}</span>
+                          {r.description && <span className="block text-xs text-muted-foreground">{r.description}</span>}
+                        </span>
+                      </label>
+                    )
+                  })}
                   {editUser?.roles.some((r) => r.slug === 'super-admin') && !isSuperAdmin && (
-                    <p className="text-xs text-muted-foreground">This user holds Super Admin — only a Super Admin can change that.</p>
+                    <p className="px-1 text-xs text-muted-foreground">This user holds Super Admin — only a Super Admin can change that.</p>
                   )}
                 </div>
               </div>
             </Can>
           </div>
           <DialogFooter>
+            <Button variant="outline" onClick={() => setEditUser(null)}>
+              Cancel
+            </Button>
             <Button onClick={handleSaveEdit} disabled={savingEdit}>
-              {savingEdit ? 'Saving...' : 'Save'}
+              {savingEdit ? 'Saving...' : 'Save Changes'}
             </Button>
           </DialogFooter>
         </DialogContent>

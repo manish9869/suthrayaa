@@ -13,6 +13,8 @@ import { GLASS_PANEL } from '@/lib/admin-ui'
 import { PageLoader } from '@/components/admin/loading-state'
 import { ProtectedRoute } from '@/components/admin/protected-route'
 import { Can } from '@/components/admin/can'
+import { SortableTh } from '@/components/admin/sortable-th'
+import { useSortableData } from '@/lib/hooks/use-sortable-data'
 import { getAdminRoles, deleteAdminRole, type AdminRoleListItem } from '@/lib/api/rbac'
 
 function RolesPageContent() {
@@ -21,6 +23,17 @@ function RolesPageContent() {
   useEffect(() => {
     load()
   }, [])
+
+  const { sorted, sortKey, direction, toggleSort } = useSortableData<AdminRoleListItem>(
+    roles ?? [],
+    {
+      name: (r) => r.name,
+      users: (r) => r.userCount,
+      permissions: (r) => r.permissionCount,
+      status: (r) => (r.isSystemRole ? 0 : 1),
+    },
+    { key: 'name', direction: 'asc' }
+  )
 
   const handleDelete = async (r: AdminRoleListItem) => {
     if (!confirm(`Delete the "${r.name}" role? This cannot be undone.`)) return
@@ -68,16 +81,16 @@ function RolesPageContent() {
           <Table>
             <TableHeader>
               <TableRow className="border-white/10 hover:bg-transparent">
-                <TableHead>Role Name</TableHead>
+                <SortableTh label="Role Name" sortKey="name" activeKey={sortKey} direction={direction} onSort={toggleSort} />
                 <TableHead>Description</TableHead>
-                <TableHead>Users</TableHead>
-                <TableHead>Permissions</TableHead>
-                <TableHead>Status</TableHead>
+                <SortableTh label="Users" sortKey="users" activeKey={sortKey} direction={direction} onSort={toggleSort} />
+                <SortableTh label="Permissions" sortKey="permissions" activeKey={sortKey} direction={direction} onSort={toggleSort} />
+                <SortableTh label="Status" sortKey="status" activeKey={sortKey} direction={direction} onSort={toggleSort} />
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {roles.map((r) => (
+              {sorted.map((r) => (
                 <TableRow key={r.id} className="border-white/10">
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
