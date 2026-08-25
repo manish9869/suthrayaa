@@ -10,21 +10,32 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { DualRangeSlider } from '@/components/ui/dual-range-slider'
-import { Search, SlidersHorizontal, Sparkles } from 'lucide-react'
-import { getAdminOrders, type AdminOrderSummary } from '@/lib/api/admin'
+import { Search, SlidersHorizontal, Sparkles, RefreshCw, Download, Mail, FileDown, ShoppingCart, IndianRupee, Clock, XCircle, Eye, Copy } from 'lucide-react'
+import { getAdminOrders, fetchInvoicePdfBlob, emailInvoice, type AdminOrderSummary } from '@/lib/api/admin'
 import { formatPrice } from '@/lib/data'
 import { DateRangeFilter, type DateRangeValue } from '@/components/admin/date-range-filter'
+import { StatCard } from '@/components/admin/stat-card'
+import { StatusDot, type DotTone } from '@/components/admin/status-dot'
+import { GLASS_PANEL, exportRowsToCsv } from '@/lib/admin-ui'
+import { toast } from 'sonner'
 
-const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  pending_payment: 'outline',
-  confirmed: 'secondary',
-  in_production: 'secondary',
-  ready: 'secondary',
-  shipped: 'default',
-  delivered: 'default',
+const STATUS_DOT: Record<string, DotTone> = {
+  pending_payment: 'muted',
+  confirmed: 'gold',
+  in_production: 'gold',
+  ready: 'gold',
+  shipped: 'primary',
+  delivered: 'mint',
   cancelled: 'destructive',
   refunded: 'destructive',
   partially_refunded: 'destructive',
+}
+const PAYMENT_DOT: Record<string, DotTone> = {
+  paid: 'mint',
+  pending: 'gold',
+  failed: 'destructive',
+  refunded: 'muted',
+  partially_refunded: 'muted',
 }
 const ALL_TIME: DateRangeValue = { days: 3650, label: 'Any time' }
 
@@ -85,6 +96,65 @@ export default function AdminOrdersPage() {
     return result
   }, [orders, search, status, paymentStatus, custom, sinceCutoff, untilCutoff, totalRange])
 
+  const stats = useMemo(() => {
+    const paid = filtered.filter((o) => o.paymentStatus === 'paid')
+    return {
+      revenue: paid.reduce((sum, o) => sum + o.total, 0),
+      paid: paid.length,
+      pending: filtered.filter((o) => o.paymentStatus === 'pending').length,
+      cancelledOrRefunded: filtered.filter((o) => ['cancelled', 'refunded', 'partially_refunded'].includes(o.status)).length,
+    }
+  }, [filtered])
+
+  const [busyOrderId, setBusyOrderId] = useState<string | null>(null)
+  const handleDownloadInvoice = async (orderId: string) => {
+    setBusyOrderId(orderId)
+    try {
+      const blob = await fetchInvoicePdfBlob(orderId)
+      window.open(URL.createObjectURL(blob), '_blank')
+    } catch {
+      toast.error('Failed to load invoice PDF')
+    } finally {
+      setBusyOrderId(null)
+    }
+  }
+  const handleEmailInvoice = async (orderId: string) => {
+    setBusyOrderId(orderId)
+    try {
+      await emailInvoice(orderId)
+      toast.success('Invoice emailed to customer')
+    } catch {
+      toast.error('Failed to email invoice')
+    } finally {
+      setBusyOrderId(null)
+    }
+  }
+  const handleCopyOrderNumber = async (orderNumber: string) => {
+    try {
+      await navigator.clipboard.writeText(orderNumber)
+      toast.success('Order number copied to clipboard')
+    } catch {
+      toast.error('Failed to copy order number')
+    }
+  }
+
+  const handleExport = () => {
+    exportRowsToCsv(
+      `orders-${new Date().toISOString().slice(0, 10)}.csv`,
+      ['Order', 'Customer', 'Items', 'Total', 'Payment', 'Status', 'Tracking', 'Date'],
+      filtered.map((o) => [
+        o.orderNumber,
+        o.customerName ?? 'Guest',
+        o.itemCount,
+        o.total,
+        o.paymentStatus,
+        o.status.replace(/_/g, ' '),
+        o.trackingNumber ?? '',
+        new Date(o.createdAt).toLocaleString('en-IN'),
+      ])
+    )
+  }
+
   const activeFilterCount =
     (status !== 'all' ? 1 : 0) +
     (paymentStatus !== 'all' ? 1 : 0) +
@@ -102,11 +172,28 @@ export default function AdminOrdersPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-serif font-bold">Orders</h1>
-        <p className="text-muted-foreground text-sm">
-          {filtered.length} of {orders.length} orders
-        </p>
+      <div className="flex items-start justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl font-serif font-bold">Orders</h1>
+          <p className="text-muted-foreground text-sm">
+            {filtered.length} of {orders.length} orders
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+            <RefreshCw className={`h-3.5 w-3.5 mr-2 ${loading ? 'animate-spin' : ''}`} /> Refresh
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0}>
+            <FileDown className="h-3.5 w-3.5 mr-2" /> Export
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard icon={ShoppingCart} label={`Shown of ${orders.length}`} value={filtered.length} tone="primary" />
+        <StatCard icon={IndianRupee} label="Revenue (shown)" value={formatPrice(stats.revenue)} tone="mint" />
+        <StatCard icon={Clock} label="Pending Payment" value={stats.pending} tone="gold" />
+        <StatCard icon={XCircle} label="Cancelled / Refunded" value={stats.cancelledOrRefunded} tone="destructive" />
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -198,18 +285,18 @@ export default function AdminOrdersPage() {
         </Sheet>
       </div>
 
-      <div className="border rounded-xl bg-background overflow-x-auto">
+      <div className={`${GLASS_PANEL} overflow-x-auto`}>
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Order</TableHead>
-              <TableHead>Customer</TableHead>
               <TableHead>Items</TableHead>
               <TableHead>Total</TableHead>
               <TableHead>Payment</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Tracking</TableHead>
               <TableHead>Date</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -227,7 +314,7 @@ export default function AdminOrdersPage() {
               </TableRow>
             ) : (
               filtered.map((o) => (
-                <TableRow key={o.id} className="cursor-pointer hover:bg-muted/50">
+                <TableRow key={o.id} className="hover:bg-muted/50">
                   <TableCell>
                     <Link href={`/admin/orders/${o.id}`} className="font-medium text-primary hover:underline flex items-center gap-1.5">
                       {o.orderNumber}
@@ -237,19 +324,37 @@ export default function AdminOrdersPage() {
                         </span>
                       )}
                     </Link>
+                    <span className="text-xs text-muted-foreground">{o.customerName ?? 'Guest'}</span>
                   </TableCell>
-                  <TableCell>{o.customerName ?? 'Guest'}</TableCell>
                   <TableCell>{o.itemCount}</TableCell>
                   <TableCell>{formatPrice(o.total)}</TableCell>
                   <TableCell>
-                    <Badge variant={o.paymentStatus === 'paid' ? 'secondary' : 'outline'}>{o.paymentStatus}</Badge>
+                    <StatusDot label={o.paymentStatus} tone={PAYMENT_DOT[o.paymentStatus] ?? 'muted'} />
                   </TableCell>
                   <TableCell>
-                    <Badge variant={STATUS_VARIANT[o.status] ?? 'outline'}>{o.status.replace(/_/g, ' ')}</Badge>
+                    <StatusDot label={o.status.replace(/_/g, ' ')} tone={STATUS_DOT[o.status] ?? 'muted'} />
                   </TableCell>
                   <TableCell className="text-muted-foreground text-xs">{o.trackingNumber ?? '—'}</TableCell>
                   <TableCell className="text-muted-foreground text-sm">
                     {new Date(o.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      <Button variant="ghost" size="icon" title="View order" asChild>
+                        <Link href={`/admin/orders/${o.id}`}>
+                          <Eye className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                      <Button variant="ghost" size="icon" title="Copy order number" onClick={() => handleCopyOrderNumber(o.orderNumber)}>
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" title="Download invoice PDF" disabled={busyOrderId === o.id} onClick={() => handleDownloadInvoice(o.id)}>
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" title="Email invoice to customer" disabled={busyOrderId === o.id} onClick={() => handleEmailInvoice(o.id)}>
+                        <Mail className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

@@ -48,6 +48,10 @@
   --lavender: #e8b4a0;
   --lavender-foreground: #5c2e1e;
 
+  /* Violet — 5th category color, used for admin dashboard section coding */
+  --violet: #8b7fd6;
+  --violet-foreground: #211a4a;
+
   --destructive: #d64545;
   --destructive-foreground: #fff8f0;
 
@@ -111,6 +115,10 @@
 
   --lavender: #c97a5e;
   --lavender-foreground: #2a1408;
+
+  /* Violet — 5th category color, used for admin dashboard section coding */
+  --violet: #a599e8;
+  --violet-foreground: #211a4a;
 
   --destructive: #e5484d;
   --destructive-foreground: #fff5f5;
@@ -176,6 +184,8 @@
   --color-peach-foreground: var(--peach-foreground);
   --color-lavender: var(--lavender);
   --color-lavender-foreground: var(--lavender-foreground);
+  --color-violet: var(--violet);
+  --color-violet-foreground: var(--violet-foreground);
   
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -311,4 +321,11 @@
     .tap-bounce { transition: none; }
     .animate-pop-in { animation: none; }
   }
+}
+
+/* Admin console — square-cornered cards. Scoped to .dark (the admin layout wrapper) so the
+   storefront's cozy, larger-radius cards elsewhere are unaffected. Left unlayered so it
+   reliably wins over the Card component's rounded-xl utility regardless of source order. */
+.dark [data-slot="card"] {
+  border-radius: 0;
 }

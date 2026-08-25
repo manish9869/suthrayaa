@@ -26,6 +26,11 @@ import {
 import { flattenCategoryTree, collectDescendantSlugs } from '@/lib/utils/admin-category-tree'
 import { formatPrice } from '@/lib/data'
 import { toast } from 'sonner'
+import { GLASS_PANEL } from '@/lib/admin-ui'
+import { SortableTh } from '@/components/admin/sortable-th'
+import { DataTablePagination } from '@/components/admin/data-table-pagination'
+import { useSortableData } from '@/lib/hooks/use-sortable-data'
+import { usePaginated } from '@/lib/hooks/use-paginated'
 
 const STATUS_LABELS: Record<ProductStatus, string> = {
   draft: 'Draft',

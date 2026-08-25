@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { ArrowLeft, FileText, Mail, RefreshCw, Download } from 'lucide-react'
+import { ArrowLeft, FileText, Mail, RefreshCw, Download, CheckCircle2, RotateCcw, AlertCircle } from 'lucide-react'
 import {
   getAdminOrder,
   updateOrderStatus,
@@ -23,6 +23,15 @@ import {
 } from '@/lib/api/admin'
 import { formatPrice } from '@/lib/data'
 import { toast } from 'sonner'
+import { StatusDot, type DotTone } from '@/components/admin/status-dot'
+
+const PAYMENT_DOT: Record<string, DotTone> = {
+  paid: 'mint',
+  pending: 'gold',
+  failed: 'destructive',
+  refunded: 'muted',
+  partially_refunded: 'muted',
+}
 
 const STATUSES = [
   'pending_payment',
@@ -289,7 +298,7 @@ export default function AdminOrderDetailPage() {
               </Select>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Payment</span>
-                <Badge variant={order.paymentStatus === 'paid' ? 'secondary' : 'outline'}>{order.paymentStatus}</Badge>
+                <StatusDot label={order.paymentStatus} tone={PAYMENT_DOT[order.paymentStatus] ?? 'muted'} />
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Method</span>
@@ -308,7 +317,7 @@ export default function AdminOrderDetailPage() {
                 <span>{formatPrice(order.subtotal)}</span>
               </div>
               {order.discountAmount > 0 && (
-                <div className="flex justify-between text-mint-foreground">
+                <div className="flex justify-between text-mint">
                   <span>Discount</span>
                   <span>-{formatPrice(order.discountAmount)}</span>
                 </div>
@@ -328,6 +337,20 @@ export default function AdminOrderDetailPage() {
                 <span>Total</span>
                 <span>{formatPrice(order.total)}</span>
               </div>
+              {order.paymentStatus === 'paid' ? (
+                <div className="flex items-center gap-2 rounded-lg bg-mint/10 text-mint px-3 py-2 text-xs font-medium mt-1">
+                  <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0" /> Fully paid — no balance due.
+                </div>
+              ) : order.paymentStatus === 'refunded' || order.paymentStatus === 'partially_refunded' ? (
+                <div className="flex items-center gap-2 rounded-lg bg-muted text-muted-foreground px-3 py-2 text-xs font-medium mt-1">
+                  <RotateCcw className="h-3.5 w-3.5 flex-shrink-0" />
+                  {order.paymentStatus === 'refunded' ? 'Fully refunded.' : 'Partially refunded.'}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 rounded-lg bg-gold/10 text-gold px-3 py-2 text-xs font-medium mt-1">
+                  <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" /> {formatPrice(order.total)} balance due — payment {order.paymentStatus}.
+                </div>
+              )}
             </CardContent>
           </Card>
 

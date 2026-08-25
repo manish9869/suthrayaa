@@ -38,22 +38,31 @@ import {
 } from '@/lib/api/admin'
 import { formatPrice } from '@/lib/data'
 import { toast } from 'sonner'
+import { StatCard, type StatTone } from '@/components/admin/stat-card'
+import { StatusDot, type DotTone } from '@/components/admin/status-dot'
 
-const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  pending_payment: 'outline',
-  confirmed: 'secondary',
-  in_production: 'secondary',
-  ready: 'secondary',
-  shipped: 'default',
-  delivered: 'default',
+const STATUS_DOT: Record<string, DotTone> = {
+  pending_payment: 'muted',
+  confirmed: 'gold',
+  in_production: 'gold',
+  ready: 'gold',
+  shipped: 'primary',
+  delivered: 'mint',
   cancelled: 'destructive',
   refunded: 'destructive',
   partially_refunded: 'destructive',
 }
-const EMAIL_STATUS_VARIANT: Record<string, 'secondary' | 'destructive' | 'outline'> = {
-  sent: 'secondary',
+const PAYMENT_DOT: Record<string, DotTone> = {
+  paid: 'mint',
+  pending: 'gold',
   failed: 'destructive',
-  pending: 'outline',
+  refunded: 'muted',
+  partially_refunded: 'muted',
+}
+const EMAIL_STATUS_DOT: Record<string, DotTone> = {
+  sent: 'mint',
+  failed: 'destructive',
+  pending: 'gold',
 }
 
 export default function AdminCustomerDetailPage() {
@@ -143,16 +152,17 @@ export default function AdminCustomerDetailPage() {
 
   const fullName = customer.firstName || customer.lastName ? `${customer.firstName ?? ''} ${customer.lastName ?? ''}`.trim() : 'Unnamed Customer'
 
-  const stats = [
-    { label: 'Total Orders', value: String(customer.stats.orderCount), icon: ShoppingBag },
-    { label: 'Total Spent', value: formatPrice(customer.stats.totalSpent), icon: Wallet },
-    { label: 'Avg Order Value', value: formatPrice(customer.stats.avgOrderValue), icon: TrendingUp },
-    { label: 'Failed Orders', value: String(customer.stats.failedOrderCount), icon: XCircle, tone: 'text-destructive' },
-    { label: 'Refunded Orders', value: String(customer.stats.refundedOrderCount), icon: RotateCcw },
+  const stats: { label: string; value: string; icon: typeof ShoppingBag; tone: StatTone }[] = [
+    { label: 'Total Orders', value: String(customer.stats.orderCount), icon: ShoppingBag, tone: 'primary' },
+    { label: 'Total Spent', value: formatPrice(customer.stats.totalSpent), icon: Wallet, tone: 'mint' },
+    { label: 'Avg Order Value', value: formatPrice(customer.stats.avgOrderValue), icon: TrendingUp, tone: 'gold' },
+    { label: 'Failed Orders', value: String(customer.stats.failedOrderCount), icon: XCircle, tone: 'destructive' },
+    { label: 'Refunded Orders', value: String(customer.stats.refundedOrderCount), icon: RotateCcw, tone: 'violet' },
     {
       label: 'Last Order',
       value: customer.stats.lastOrderAt ? new Date(customer.stats.lastOrderAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—',
       icon: Calendar,
+      tone: 'primary',
     },
   ]
 
@@ -191,13 +201,7 @@ export default function AdminCustomerDetailPage() {
 
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
         {stats.map((s) => (
-          <Card key={s.label}>
-            <CardContent className="p-4">
-              <s.icon className={`h-5 w-5 mb-2 ${s.tone ?? 'text-secondary'}`} />
-              <p className="text-xl font-bold">{s.value}</p>
-              <p className="text-xs text-muted-foreground">{s.label}</p>
-            </CardContent>
-          </Card>
+          <StatCard key={s.label} icon={s.icon} label={s.label} value={s.value} tone={s.tone} />
         ))}
       </div>
 
@@ -269,10 +273,10 @@ export default function AdminCustomerDetailPage() {
                           <TableCell>{o.itemCount}</TableCell>
                           <TableCell>{formatPrice(o.total)}</TableCell>
                           <TableCell>
-                            <Badge variant={o.paymentStatus === 'paid' ? 'secondary' : 'outline'}>{o.paymentStatus}</Badge>
+                            <StatusDot label={o.paymentStatus} tone={PAYMENT_DOT[o.paymentStatus] ?? 'muted'} />
                           </TableCell>
                           <TableCell>
-                            <Badge variant={STATUS_VARIANT[o.status] ?? 'outline'}>{o.status.replace(/_/g, ' ')}</Badge>
+                            <StatusDot label={o.status.replace(/_/g, ' ')} tone={STATUS_DOT[o.status] ?? 'muted'} />
                           </TableCell>
                           <TableCell className="text-muted-foreground text-xs">
                             {new Date(o.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -358,7 +362,7 @@ export default function AdminCustomerDetailPage() {
                             )}
                           </TableCell>
                           <TableCell>
-                            <Badge variant={EMAIL_STATUS_VARIANT[l.status] ?? 'outline'}>{l.status}</Badge>
+                            <StatusDot label={l.status} tone={EMAIL_STATUS_DOT[l.status] ?? 'muted'} />
                           </TableCell>
                           <TableCell className="text-muted-foreground text-xs">{new Date(l.sentAt).toLocaleString('en-IN')}</TableCell>
                           <TableCell className="text-right">

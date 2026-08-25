@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { StatCard, SectionLabel, type StatTone } from '@/components/admin/stat-card'
 import {
   AreaChart,
   Area,
@@ -27,7 +29,6 @@ import {
   Users,
   Clock,
   TrendingUp,
-  TrendingDown,
   AlertTriangle,
   Sparkles,
   UserPlus,
@@ -155,7 +156,7 @@ export default function AdminDashboardPage() {
     return <div className="text-muted-foreground">Loading dashboard...</div>
   }
 
-  const kpiPrimary = [
+  const kpiPrimary: { label: string; value: string; icon: typeof IndianRupee; change?: number | null }[] = [
     { label: 'Revenue', value: formatPrice(summary?.revenue ?? 0), icon: IndianRupee, change: summary?.revenueChangePct },
     { label: 'New Orders', value: String(summary?.orderCount ?? 0), icon: ShoppingBag, change: summary?.orderCountChangePct },
     { label: 'Avg Order Value', value: formatPrice(summary?.avgOrderValue ?? 0), icon: TrendingUp },
@@ -163,21 +164,28 @@ export default function AdminDashboardPage() {
     { label: 'Total Customers', value: String(summary?.totalCustomers ?? 0), icon: Users },
   ]
 
-  const kpiTransactions = [
-    { label: 'Total Transactions', value: String(summary?.totalTransactions ?? 0), icon: CreditCard },
-    { label: 'Successful', value: String(summary?.successfulTransactions ?? 0), icon: CheckCircle2, tone: 'text-mint-foreground' },
-    { label: 'Failed', value: String(summary?.failedTransactions ?? 0), icon: XCircle, tone: 'text-destructive' },
-    { label: 'Refunded', value: String(summary?.refundedTransactions ?? 0), icon: RotateCcw },
-    { label: 'Success Rate', value: `${(summary?.successRatePct ?? 0).toFixed(1)}%`, icon: TrendingUp },
-    { label: 'Pending Orders', value: String(summary?.pendingOrders ?? 0), icon: Clock },
+  const kpiTransactions: { label: string; value: string; icon: typeof CreditCard; tone: StatTone }[] = [
+    { label: 'Total Transactions', value: String(summary?.totalTransactions ?? 0), icon: CreditCard, tone: 'mint' },
+    { label: 'Successful', value: String(summary?.successfulTransactions ?? 0), icon: CheckCircle2, tone: 'mint' },
+    { label: 'Failed', value: String(summary?.failedTransactions ?? 0), icon: XCircle, tone: 'destructive' },
+    { label: 'Refunded', value: String(summary?.refundedTransactions ?? 0), icon: RotateCcw, tone: 'mint' },
+    { label: 'Success Rate', value: `${(summary?.successRatePct ?? 0).toFixed(1)}%`, icon: TrendingUp, tone: 'mint' },
+    { label: 'Pending Orders', value: String(summary?.pendingOrders ?? 0), icon: Clock, tone: 'gold' },
   ]
 
-  const kpiInventory = [
-    { label: 'Total Products', value: String(inventory?.totalProducts ?? 0), icon: Package },
-    { label: 'Active Products', value: String(inventory?.activeProducts ?? 0), icon: PackageCheck },
-    { label: 'Low Stock', value: String(inventory?.lowStockCount ?? 0), icon: AlertTriangle, tone: 'text-amber-500' },
-    { label: 'Out of Stock', value: String(inventory?.outOfStockCount ?? 0), icon: PackageX, tone: 'text-destructive' },
-    { label: 'Inventory Value', value: formatPrice(inventory?.inventoryValue ?? 0), icon: Wallet },
+  const kpiInventory: { label: string; value: string; icon: typeof Package; tone: StatTone }[] = [
+    { label: 'Total Products', value: String(inventory?.totalProducts ?? 0), icon: Package, tone: 'gold' },
+    { label: 'Active Products', value: String(inventory?.activeProducts ?? 0), icon: PackageCheck, tone: 'gold' },
+    { label: 'Low Stock', value: String(inventory?.lowStockCount ?? 0), icon: AlertTriangle, tone: 'destructive' },
+    { label: 'Out of Stock', value: String(inventory?.outOfStockCount ?? 0), icon: PackageX, tone: 'destructive' },
+    { label: 'Inventory Value', value: formatPrice(inventory?.inventoryValue ?? 0), icon: Wallet, tone: 'gold' },
+  ]
+
+  const QUICK_RANGES: { label: string; days: number }[] = [
+    { label: '7D', days: 7 },
+    { label: '30D', days: 30 },
+    { label: '90D', days: 90 },
+    { label: '1Y', days: 365 },
   ]
 
   return (
@@ -187,61 +195,55 @@ export default function AdminDashboardPage() {
           <h1 className="text-2xl font-serif font-bold">Dashboard</h1>
           <p className="text-muted-foreground text-sm">{range.label} overview</p>
         </div>
-        <DateRangeFilter value={range} onChange={setRange} />
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1 rounded-lg border p-1">
+            {QUICK_RANGES.map((qr) => (
+              <Button
+                key={qr.label}
+                size="sm"
+                variant={range.days === qr.days && !range.from ? 'secondary' : 'ghost'}
+                className="h-7 px-2.5 text-xs"
+                onClick={() => setRange({ days: qr.days, label: `Last ${qr.label === '1Y' ? '12 months' : qr.label.replace('D', ' days')}` })}
+              >
+                {qr.label}
+              </Button>
+            ))}
+          </div>
+          <DateRangeFilter value={range} onChange={setRange} />
+        </div>
       </div>
 
       {/* Sales KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        {kpiPrimary.map((kpi) => (
-          <Card key={kpi.label}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <kpi.icon className="h-5 w-5 text-secondary" />
-                {kpi.change != null && (
-                  <span className={`text-xs flex items-center gap-0.5 ${kpi.change >= 0 ? 'text-mint-foreground' : 'text-destructive'}`}>
-                    {kpi.change >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                    {Math.abs(kpi.change).toFixed(0)}%
-                  </span>
-                )}
-              </div>
-              <p className="text-xl font-bold">{kpi.value}</p>
-              <p className="text-xs text-muted-foreground">{kpi.label}</p>
-            </CardContent>
-          </Card>
-        ))}
+      <div>
+        <SectionLabel tone="primary">Business Performance</SectionLabel>
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          {kpiPrimary.map((kpi) => (
+            <StatCard key={kpi.label} icon={kpi.icon} label={kpi.label} value={kpi.value} change={kpi.change} tone="primary" />
+          ))}
+        </div>
       </div>
 
       {/* Transaction KPIs */}
       <div>
-        <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Transactions</h2>
+        <SectionLabel tone="mint">Transactions</SectionLabel>
         <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
           {kpiTransactions.map((kpi) => (
-            <Card key={kpi.label}>
-              <CardContent className="p-4">
-                <kpi.icon className={`h-5 w-5 mb-2 ${kpi.tone ?? 'text-secondary'}`} />
-                <p className="text-xl font-bold">{kpi.value}</p>
-                <p className="text-xs text-muted-foreground">{kpi.label}</p>
-              </CardContent>
-            </Card>
+            <StatCard key={kpi.label} icon={kpi.icon} label={kpi.label} value={kpi.value} tone={kpi.tone} />
           ))}
         </div>
       </div>
 
       {/* Inventory KPIs */}
       <div>
-        <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Inventory</h2>
+        <SectionLabel tone="gold">Inventory</SectionLabel>
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
           {kpiInventory.map((kpi) => (
-            <Card key={kpi.label}>
-              <CardContent className="p-4">
-                <kpi.icon className={`h-5 w-5 mb-2 ${kpi.tone ?? 'text-secondary'}`} />
-                <p className="text-xl font-bold">{kpi.value}</p>
-                <p className="text-xs text-muted-foreground">{kpi.label}</p>
-              </CardContent>
-            </Card>
+            <StatCard key={kpi.label} icon={kpi.icon} label={kpi.label} value={kpi.value} tone={kpi.tone} />
           ))}
         </div>
       </div>
+
+      <SectionLabel tone="violet">Trends</SectionLabel>
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Revenue Chart */}
@@ -447,6 +449,8 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <SectionLabel tone="violet">Client &amp; Catalog Insights</SectionLabel>
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Stock Alerts */}
