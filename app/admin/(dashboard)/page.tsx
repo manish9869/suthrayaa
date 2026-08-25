@@ -355,10 +355,10 @@ export default function AdminDashboardPage() {
                 <LineChart data={customersSeries.map((d) => ({ ...d, label: formatShortDate(d.date) }))} margin={{ top: 12, right: 8, left: 0, bottom: 0 }}>
                   <CartesianGrid vertical={false} stroke="var(--border)" opacity={0.6} />
                   <XAxis dataKey="label" tick={{ fontSize: 12 }} stroke="var(--muted-foreground)" tickLine={false} axisLine={{ stroke: 'var(--border)' }} />
-                  <YAxis tick={{ fontSize: 12 }} stroke="var(--muted-foreground)" allowDecimals={false} tickLine={false} axisLine={false} width={32} />
-                  <Tooltip {...tooltipStyle} />
+                  <YAxis tick={{ fontSize: 12 }} stroke="var(--muted-foreground)" allowDecimals={false} tickLine={false} axisLine={false} width={32} domain={[0, 'auto']} />
+                  <Tooltip {...tooltipStyle} labelFormatter={(label: string) => label} formatter={(value: number) => [value, 'New registrations']} />
                   <Line
-                    type="natural"
+                    type="monotone"
                     dataKey="count"
                     name="Registrations"
                     stroke="var(--mint)"

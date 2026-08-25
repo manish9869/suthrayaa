@@ -164,7 +164,7 @@ export function ProductCustomizer({ customizations, onChange }: ProductCustomize
                         title={value.label}
                         aria-label={value.label}
                         className={cn(
-                          'relative h-10 w-10 rounded-full border-2 bg-muted p-1.5 transition-all',
+                          'relative h-10 w-10 rounded-full border-2 transition-all',
                           active ? 'border-primary ring-2 ring-primary ring-offset-2' : 'border-border hover:border-muted-foreground'
                         )}
                       >

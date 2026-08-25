@@ -547,7 +547,7 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
                         selected ? 'border-primary bg-primary/5' : 'border-border hover:border-muted-foreground'
                       }`}
                     >
-                      <span className="w-3.5 h-3.5 rounded-full border bg-muted p-0.5">
+                      <span className="w-3.5 h-3.5 rounded-full border">
                         <ColorYarnSwatch color={c.hex} />
                       </span>
                       {c.name}
@@ -692,7 +692,7 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
                                 selected ? 'border-primary bg-primary/5' : 'border-border hover:border-muted-foreground'
                               }`}
                             >
-                              <span className="w-3.5 h-3.5 rounded-full border bg-muted p-0.5">
+                              <span className="w-3.5 h-3.5 rounded-full border">
                         <ColorYarnSwatch color={c.hex} />
                       </span>
                               {c.name}

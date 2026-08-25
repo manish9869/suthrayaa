@@ -295,7 +295,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                           onClick={() => !disabledForCustomization && setSelectedColor(color)}
                           disabled={disabledForCustomization}
                           className={cn(
-                            'tap-bounce w-10 h-10 rounded-full border-2 bg-muted p-1.5 transition-all relative',
+                            'tap-bounce w-10 h-10 rounded-full border-2 transition-all relative',
                             effectiveColor === color
                               ? 'border-primary ring-2 ring-primary ring-offset-2 scale-110'
                               : 'border-border hover:border-muted-foreground hover:scale-105',

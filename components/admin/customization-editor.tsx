@@ -320,7 +320,7 @@ export function CustomizationEditor({ productId, customizations, colors, onChang
                     <div key={v.id} className="flex items-center justify-between text-sm px-2 py-1.5 rounded hover:bg-muted">
                       <div className="flex items-center gap-2">
                         {g.type === 'color' && (
-                          <span className="w-3.5 h-3.5 rounded-full border bg-muted p-0.5">
+                          <span className="w-3.5 h-3.5 rounded-full border">
                             <ColorYarnSwatch color={v.value} />
                           </span>
                         )}
@@ -410,7 +410,7 @@ export function CustomizationEditor({ productId, customizations, colors, onChang
                           type="button"
                           onClick={() => setValueForm((f) => ({ ...f, label: f.label || c.name, value: c.hex }))}
                           title={c.name}
-                          className={`w-8 h-8 rounded-full border-2 bg-muted p-1 transition-transform ${
+                          className={`w-8 h-8 rounded-full border-2 transition-transform ${
                             selected ? 'border-primary scale-110' : 'border-border hover:scale-105'
                           }`}
                         >

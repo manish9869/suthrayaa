@@ -315,6 +315,8 @@ export interface AdminColor {
 export const getAdminColors = () => adminFetch<AdminColor[]>('/admin/colors')
 export const createColor = (input: { name: string; hex: string; sortOrder?: number }) =>
   adminFetch<AdminColor>('/admin/colors', { method: 'POST', body: JSON.stringify(input) })
+export const updateColor = (id: string, input: Partial<{ name: string; hex: string; sortOrder: number; isActive: boolean }>) =>
+  adminFetch<AdminColor>(`/admin/colors/${id}`, { method: 'PATCH', body: JSON.stringify(input) })
 export const deleteColor = (id: string) => adminFetch<void>(`/admin/colors/${id}`, { method: 'DELETE' })
 
 export interface AdminTestimonial {
