@@ -23,21 +23,77 @@ export interface AdminMe {
 export const getAdminMe = () => adminFetch<AdminMe>('/admin/me')
 
 // ---- Analytics ----
+export interface DateRangeParams {
+  days?: number
+  from?: string
+  to?: string
+}
+function rangeQuery(params: DateRangeParams = {}): string {
+  const q = new URLSearchParams()
+  if (params.from && params.to) {
+    q.set('from', params.from)
+    q.set('to', params.to)
+  } else if (params.days) {
+    q.set('days', String(params.days))
+  } else {
+    q.set('days', '30')
+  }
+  return q.toString()
+}
+
 export interface AnalyticsSummary {
   revenue: number
   revenueChangePct: number | null
   orderCount: number
+  orderCountChangePct: number | null
   avgOrderValue: number
   newCustomers: number
+  newCustomersChangePct: number | null
+  totalCustomers: number
   pendingOrders: number
+  totalTransactions: number
+  successfulTransactions: number
+  failedTransactions: number
+  refundedTransactions: number
+  pendingTransactions: number
+  successRatePct: number
+  totalProducts: number
+  activeProducts: number
+  lowStockCount: number
+  outOfStockCount: number
+  inventoryValue: number
 }
-export const getAnalyticsSummary = (days = 30) => adminFetch<AnalyticsSummary>(`/admin/analytics/summary?days=${days}`)
-export const getRevenueSeries = () =>
-  adminFetch<{ date: string; orders: number; revenue: number }[]>('/admin/analytics/revenue')
-export const getTopProducts = (limit = 10) =>
-  adminFetch<{ productId: string | null; name: string; unitsSold: number; revenue: number }[]>(
-    `/admin/analytics/top-products?limit=${limit}`
+export const getAnalyticsSummary = (params: DateRangeParams = {}) =>
+  adminFetch<AnalyticsSummary>(`/admin/analytics/summary?${rangeQuery(params)}`)
+export const getRevenueSeries = (params: DateRangeParams = {}) =>
+  adminFetch<{ date: string; orders: number; revenue: number }[]>(`/admin/analytics/revenue?${rangeQuery(params)}`)
+export const getOrdersSeries = (params: DateRangeParams = {}) =>
+  adminFetch<{ date: string; count: number }[]>(`/admin/analytics/orders-series?${rangeQuery(params)}`)
+export const getCustomersSeries = (params: DateRangeParams = {}) =>
+  adminFetch<{ date: string; count: number }[]>(`/admin/analytics/customers-series?${rangeQuery(params)}`)
+export const getTransactionsBreakdown = (params: DateRangeParams = {}) =>
+  adminFetch<{ status: string; count: number; amount: number }[]>(`/admin/analytics/transactions-breakdown?${rangeQuery(params)}`)
+export const getOrderStatusBreakdown = (params: DateRangeParams = {}) =>
+  adminFetch<{ status: string; count: number }[]>(`/admin/analytics/order-status-breakdown?${rangeQuery(params)}`)
+export interface InventorySummary {
+  totalProducts: number
+  activeProducts: number
+  draftProducts: number
+  hiddenProducts: number
+  archivedProducts: number
+  outOfStockCount: number
+  lowStockCount: number
+  totalStockUnits: number
+  inventoryValue: number
+}
+export const getInventorySummary = () => adminFetch<InventorySummary>('/admin/analytics/inventory-summary')
+export const getTopProducts = (limit = 10, params: DateRangeParams = {}) => {
+  const q = new URLSearchParams(rangeQuery(params))
+  q.set('limit', String(limit))
+  return adminFetch<{ productId: string | null; name: string; unitsSold: number; revenue: number }[]>(
+    `/admin/analytics/top-products?${q.toString()}`
   )
+}
 export const getCustomizationPopularity = () =>
   adminFetch<{ total: number; customized: number; percentage: number }>('/admin/analytics/customization-popularity')
 export const getStockAlerts = () =>
@@ -312,12 +368,15 @@ export interface AdminOrderSummary {
   placedAt: string | null
   createdAt: string
 }
-export const getAdminOrders = (params: { status?: string; paymentStatus?: string; custom?: boolean; page?: number } = {}) => {
+export const getAdminOrders = (
+  params: { status?: string; paymentStatus?: string; custom?: boolean; page?: number; limit?: number } = {}
+) => {
   const q = new URLSearchParams()
   if (params.status) q.set('status', params.status)
   if (params.paymentStatus) q.set('paymentStatus', params.paymentStatus)
   if (params.custom !== undefined) q.set('custom', String(params.custom))
   if (params.page) q.set('page', String(params.page))
+  if (params.limit) q.set('limit', String(params.limit))
   return adminFetch<{ items: AdminOrderSummary[]; total: number; page: number; limit: number }>(
     `/admin/orders?${q.toString()}`
   )
@@ -408,11 +467,12 @@ export interface AdminEmailLog {
   errorMessage: string | null
   sentAt: string
 }
-export const getEmailLogs = (params: { status?: string; type?: string; page?: number } = {}) => {
+export const getEmailLogs = (params: { status?: string; type?: string; page?: number; limit?: number } = {}) => {
   const q = new URLSearchParams()
   if (params.status) q.set('status', params.status)
   if (params.type) q.set('type', params.type)
   if (params.page) q.set('page', String(params.page))
+  q.set('limit', String(params.limit ?? 300))
   return adminFetch<{ items: AdminEmailLog[]; total: number; page: number; limit: number }>(`/admin/emails/logs?${q.toString()}`)
 }
 export const retryEmailLog = (id: string) => adminFetch<{ ok: boolean }>(`/admin/emails/logs/${id}/retry`, { method: 'POST' })
@@ -469,8 +529,60 @@ export interface AdminCustomer {
   orderCount: number
   totalSpent: number
 }
-export const getAdminCustomers = (page = 1) =>
-  adminFetch<{ items: AdminCustomer[]; total: number; page: number; limit: number }>(`/admin/customers?page=${page}`)
+export const getAdminCustomers = (params: { page?: number; limit?: number } = {}) => {
+  const q = new URLSearchParams()
+  q.set('page', String(params.page ?? 1))
+  q.set('limit', String(params.limit ?? 300))
+  return adminFetch<{ items: AdminCustomer[]; total: number; page: number; limit: number }>(`/admin/customers?${q.toString()}`)
+}
+
+export interface AdminCustomerOrder {
+  id: string
+  orderNumber: string
+  status: string
+  paymentStatus: string
+  paymentMethod: string
+  total: number
+  itemCount: number
+  trackingNumber: string | null
+  placedAt: string | null
+  createdAt: string
+}
+export interface AdminCustomerAddress {
+  id: string
+  label: string | null
+  first_name: string
+  last_name: string
+  phone: string
+  address_line1: string
+  address_line2: string | null
+  city: string
+  state: string
+  pincode: string
+  is_default: boolean
+}
+export interface AdminCustomerDetail {
+  id: string
+  email: string | null
+  phone: string | null
+  firstName: string | null
+  lastName: string | null
+  marketingOptIn: boolean
+  createdAt: string
+  stats: {
+    orderCount: number
+    paidOrderCount: number
+    failedOrderCount: number
+    refundedOrderCount: number
+    totalSpent: number
+    avgOrderValue: number
+    lastOrderAt: string | null
+  }
+  orders: AdminCustomerOrder[]
+  addresses: AdminCustomerAddress[]
+}
+export const getAdminCustomer = (id: string) => adminFetch<AdminCustomerDetail>(`/admin/customers/${id}`)
+export const getCustomerEmails = (id: string) => adminFetch<AdminEmailLog[]>(`/admin/customers/${id}/emails`)
 
 // ---- Reviews ----
 export const getAdminReviews = (status: 'pending' | 'published' = 'pending') =>

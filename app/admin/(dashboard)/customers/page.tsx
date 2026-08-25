@@ -1,28 +1,193 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { DualRangeSlider } from '@/components/ui/dual-range-slider'
+import { Search, SlidersHorizontal, Mail, Phone, Sparkles } from 'lucide-react'
 import { getAdminCustomers, type AdminCustomer } from '@/lib/api/admin'
 import { formatPrice } from '@/lib/data'
+import { DateRangeFilter, type DateRangeValue } from '@/components/admin/date-range-filter'
+
+const ALL_TIME: DateRangeValue = { days: 3650, label: 'Any time joined' }
+
+type SortKey = 'newest' | 'oldest' | 'spent_desc' | 'orders_desc' | 'name_asc'
+const SORT_LABELS: Record<SortKey, string> = {
+  newest: 'Newest First',
+  oldest: 'Oldest First',
+  spent_desc: 'Highest Spent',
+  orders_desc: 'Most Orders',
+  name_asc: 'Name (A–Z)',
+}
 
 export default function AdminCustomersPage() {
   const [customers, setCustomers] = useState<AdminCustomer[]>([])
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [showFilters, setShowFilters] = useState(false)
 
+  const [joinedRange, setJoinedRange] = useState<DateRangeValue>(ALL_TIME)
+  const [minOrders, setMinOrders] = useState<string>('all')
+  const [sortKey, setSortKey] = useState<SortKey>('newest')
+
+  const maxSpent = useMemo(() => Math.max(1000, ...customers.map((c) => Math.ceil(c.totalSpent / 100) * 100)), [customers])
+  const [spentRange, setSpentRange] = useState<[number, number]>([0, 100000])
+  const [sliderRange, setSliderRange] = useState<[number, number]>([0, 100000])
+  useEffect(() => setSliderRange(spentRange), [spentRange])
   useEffect(() => {
-    getAdminCustomers()
+    setSpentRange([0, maxSpent])
+    setSliderRange([0, maxSpent])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customers.length])
+
+  const load = () => {
+    setLoading(true)
+    getAdminCustomers({ limit: 300 })
       .then((res) => setCustomers(res.items))
       .finally(() => setLoading(false))
-  }, [])
+  }
+  useEffect(load, [])
+
+  const sinceCutoff = useMemo(() => {
+    if (joinedRange.from) return new Date(joinedRange.from).getTime()
+    if (joinedRange.days && joinedRange.days < 3650) {
+      const d = new Date()
+      d.setDate(d.getDate() - joinedRange.days)
+      return d.getTime()
+    }
+    return null
+  }, [joinedRange])
+  const untilCutoff = useMemo(() => (joinedRange.to ? new Date(`${joinedRange.to}T23:59:59`).getTime() : null), [joinedRange])
+
+  const filtered = useMemo(() => {
+    let result = [...customers]
+    const q = search.trim().toLowerCase()
+    if (q) {
+      result = result.filter((c) => {
+        const name = `${c.firstName ?? ''} ${c.lastName ?? ''}`.toLowerCase()
+        return name.includes(q) || (c.email ?? '').toLowerCase().includes(q) || (c.phone ?? '').includes(q)
+      })
+    }
+    if (sinceCutoff != null) result = result.filter((c) => new Date(c.createdAt).getTime() >= sinceCutoff)
+    if (untilCutoff != null) result = result.filter((c) => new Date(c.createdAt).getTime() <= untilCutoff)
+    if (minOrders !== 'all') {
+      const n = Number(minOrders)
+      result = result.filter((c) => c.orderCount >= n)
+    }
+    result = result.filter((c) => c.totalSpent >= spentRange[0] && c.totalSpent <= spentRange[1])
+
+    result.sort((a, b) => {
+      switch (sortKey) {
+        case 'oldest':
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        case 'spent_desc':
+          return b.totalSpent - a.totalSpent
+        case 'orders_desc':
+          return b.orderCount - a.orderCount
+        case 'name_asc':
+          return `${a.firstName ?? ''}${a.lastName ?? ''}`.localeCompare(`${b.firstName ?? ''}${b.lastName ?? ''}`)
+        case 'newest':
+        default:
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      }
+    })
+    return result
+  }, [customers, search, sinceCutoff, untilCutoff, minOrders, spentRange, sortKey])
+
+  const activeFilterCount =
+    (joinedRange.label !== ALL_TIME.label ? 1 : 0) +
+    (minOrders !== 'all' ? 1 : 0) +
+    (spentRange[0] > 0 || spentRange[1] < maxSpent ? 1 : 0)
+
+  const clearFilters = () => {
+    setJoinedRange(ALL_TIME)
+    setMinOrders('all')
+    setSpentRange([0, maxSpent])
+  }
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-serif font-bold">Customers</h1>
-        <p className="text-muted-foreground text-sm">{customers.length} registered</p>
+        <p className="text-muted-foreground text-sm">
+          {filtered.length} of {customers.length} registered
+        </p>
       </div>
 
-      <div className="border rounded-xl bg-background overflow-hidden">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative max-w-sm flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Search name, email, or phone..." className="pl-10" value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
+          <SelectTrigger className="w-44">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {(Object.keys(SORT_LABELS) as SortKey[]).map((k) => (
+              <SelectItem key={k} value={k}>
+                {SORT_LABELS[k]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Sheet open={showFilters} onOpenChange={setShowFilters}>
+          <SheetTrigger asChild>
+            <Button variant="outline">
+              <SlidersHorizontal className="h-4 w-4 mr-2" />
+              Filters
+              {activeFilterCount > 0 && <Badge className="ml-2 h-5 w-5 p-0 flex items-center justify-center">{activeFilterCount}</Badge>}
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="w-80 overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>Filters</SheetTitle>
+            </SheetHeader>
+            <div className="mt-6 space-y-5">
+              <div className="space-y-2">
+                <Label className="text-sm">Joined</Label>
+                <DateRangeFilter value={joinedRange} onChange={setJoinedRange} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">Minimum Orders</Label>
+                <Select value={minOrders} onValueChange={setMinOrders}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Any</SelectItem>
+                    <SelectItem value="1">1+ orders</SelectItem>
+                    <SelectItem value="3">3+ orders</SelectItem>
+                    <SelectItem value="5">5+ orders</SelectItem>
+                    <SelectItem value="10">10+ orders</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-3">
+                <Label className="text-sm">Total Spent</Label>
+                <DualRangeSlider value={sliderRange} onValueChange={setSliderRange} onValueCommit={setSpentRange} min={0} max={maxSpent} step={100} />
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <span>{formatPrice(sliderRange[0])}</span>
+                  <span>{formatPrice(sliderRange[1])}</span>
+                </div>
+              </div>
+              {activeFilterCount > 0 && (
+                <Button variant="outline" className="w-full" onClick={clearFilters}>
+                  Clear Filters
+                </Button>
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
+
+      <div className="border rounded-xl bg-background overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -40,21 +205,44 @@ export default function AdminCustomersPage() {
                   Loading...
                 </TableCell>
               </TableRow>
-            ) : customers.length === 0 ? (
+            ) : filtered.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                  No customers yet
+                  No customers match these filters
                 </TableCell>
               </TableRow>
             ) : (
-              customers.map((c) => (
-                <TableRow key={c.id}>
+              filtered.map((c) => (
+                <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50">
                   <TableCell className="font-medium">
-                    {c.firstName || c.lastName ? `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() : 'Unnamed'}
+                    <Link href={`/admin/customers/${c.id}`} className="text-primary hover:underline flex items-center gap-1.5">
+                      {c.firstName || c.lastName ? `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() : 'Unnamed'}
+                      {c.orderCount >= 5 && (
+                        <span title="Loyal customer">
+                          <Sparkles className="h-3.5 w-3.5 text-secondary" />
+                        </span>
+                      )}
+                    </Link>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{c.email || c.phone || '—'}</TableCell>
-                  <TableCell>{c.orderCount}</TableCell>
-                  <TableCell>{formatPrice(c.totalSpent)}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    <div className="flex flex-col gap-0.5">
+                      {c.email && (
+                        <span className="flex items-center gap-1.5">
+                          <Mail className="h-3 w-3" /> {c.email}
+                        </span>
+                      )}
+                      {c.phone && (
+                        <span className="flex items-center gap-1.5">
+                          <Phone className="h-3 w-3" /> {c.phone}
+                        </span>
+                      )}
+                      {!c.email && !c.phone && '—'}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{c.orderCount}</Badge>
+                  </TableCell>
+                  <TableCell className="font-medium">{formatPrice(c.totalSpent)}</TableCell>
                   <TableCell className="text-muted-foreground text-sm">
                     {new Date(c.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </TableCell>
