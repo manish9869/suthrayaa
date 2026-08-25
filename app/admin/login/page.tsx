@@ -31,7 +31,7 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
+    <main className="dark min-h-screen flex items-center justify-center bg-background px-4">
       <Card className="w-full max-w-sm shadow-soft">
         <CardContent className="p-8">
           <div className="flex justify-center mb-4">

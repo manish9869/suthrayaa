@@ -59,12 +59,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [user, authLoading, pathname, router])
 
   if (authLoading || checking) {
-    return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading...</div>
+    return (
+      <div className="dark min-h-screen flex items-center justify-center bg-background text-muted-foreground">
+        Loading...
+      </div>
+    )
   }
 
   if (denied || !admin) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 text-center px-4">
+      <div className="dark min-h-screen flex flex-col items-center justify-center gap-4 text-center px-4 bg-background text-foreground">
         <h1 className="text-2xl font-serif font-bold">Access Denied</h1>
         <p className="text-muted-foreground max-w-sm">
           This account doesn&apos;t have admin access. Contact the store owner if you believe this is a mistake.
@@ -77,10 +81,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="min-h-screen flex bg-muted/20">
-      <aside className="w-64 border-r bg-background flex flex-col">
-        <div className="p-6 border-b">
-          <Link href="/admin" className="font-serif text-xl font-bold">
+    <div className="dark min-h-screen flex bg-background text-foreground">
+      <aside className="w-64 border-r border-sidebar-border bg-sidebar flex flex-col">
+        <div className="p-6 border-b border-sidebar-border">
+          <Link href="/admin" className="font-serif text-xl font-bold text-sidebar-foreground">
             Suthrayaa Admin
           </Link>
           <p className="text-xs text-muted-foreground mt-1">{admin.displayName ?? admin.role}</p>
@@ -93,8 +97,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                  active ? 'bg-primary text-primary-foreground' : 'text-foreground hover:bg-muted'
+                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all',
+                  active
+                    ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-sm'
+                    : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
                 )}
               >
                 <item.icon className="h-4 w-4" />
@@ -103,22 +109,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             )
           })}
         </nav>
-        <div className="p-3 border-t space-y-1">
+        <div className="p-3 border-t border-sidebar-border space-y-1">
           <Link
             href="/"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-muted"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
           >
             View Store
           </Link>
           <button
             onClick={() => signOut()}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-muted"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
           >
             <LogOut className="h-4 w-4" /> Sign Out
           </button>
         </div>
       </aside>
-      <main className="flex-1 overflow-x-hidden">
+      <main className="flex-1 overflow-x-hidden bg-background">
         <div className="p-6 lg:p-8 max-w-7xl mx-auto">{children}</div>
       </main>
     </div>

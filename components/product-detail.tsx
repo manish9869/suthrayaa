@@ -71,6 +71,13 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
   // choice while customizing collapses to the first admin-allowed color.
   const effectiveColor = isCustomizing && customText && !allowColorChoice ? allowedColors[0] : selectedColor
 
+  // The new customization engine can define its own "color" type group (with its own swatch
+  // list). Only fall back to the product's base color list when no such group exists —
+  // otherwise a product with e.g. a "Size" group only would silently lose color selection
+  // entirely, since the two color pickers would fight over which one is authoritative.
+  const hasCustomColorGroup = usesNewCustomizer && product.customizations.some((c) => c.enabled && c.type === 'color')
+  const showBaseColorPicker = product.colors.length > 0 && !hasCustomColorGroup
+
   const displayUnitPrice = usesNewCustomizer ? product.price + customizationPriceAdjustment : product.price
 
   const handleAddToCart = () => {
@@ -81,7 +88,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
       }
       addItem(
         product,
-        '',
+        showBaseColorPicker ? selectedColor : '',
         undefined,
         resolvedCustomizations.map((c) => ({
           customizationId: c.customizationId,
@@ -269,7 +276,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
               )}
 
               {/* Color Selection — locked while customizing if the admin disabled color choice */}
-              {!usesNewCustomizer && product.colors.length > 0 && (
+              {showBaseColorPicker && (
                 <div>
                   <Label className="text-sm font-medium mb-3 block">
                     Select Color: <span className="text-muted-foreground capitalize">{effectiveColor}</span>
@@ -287,10 +294,10 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                           onClick={() => !disabledForCustomization && setSelectedColor(color)}
                           disabled={disabledForCustomization}
                           className={cn(
-                            'w-10 h-10 rounded-full border-2 transition-all relative',
+                            'tap-bounce w-10 h-10 rounded-full border-2 transition-all relative',
                             effectiveColor === color
-                              ? 'border-primary ring-2 ring-primary ring-offset-2'
-                              : 'border-border hover:border-muted-foreground',
+                              ? 'border-primary ring-2 ring-primary ring-offset-2 scale-110'
+                              : 'border-border hover:border-muted-foreground hover:scale-105',
                             disabledForCustomization && 'opacity-30 cursor-not-allowed'
                           )}
                           style={{ backgroundColor: color }}
@@ -299,7 +306,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                           {effectiveColor === color && (
                             <Check
                               className={cn(
-                                'absolute inset-0 m-auto h-5 w-5',
+                                'absolute inset-0 m-auto h-5 w-5 animate-pop-in',
                                 LIGHT_HEXES.includes(color.toUpperCase()) ? 'text-foreground' : 'text-white'
                               )}
                             />
@@ -341,7 +348,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                         className="text-2xl font-serif font-bold py-2 px-4 rounded inline-block"
                         style={{
                           backgroundColor: effectiveColor,
-                          color: LIGHT_HEXES.includes(effectiveColor.toUpperCase()) ? '#1a365d' : '#FFFFFF',
+                          color: LIGHT_HEXES.includes(effectiveColor.toUpperCase()) ? '#3a2a1f' : '#FFFFFF',
                         }}
                       >
                         {customText}

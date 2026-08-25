@@ -108,15 +108,19 @@ export default function AdminDashboardPage() {
                 <AreaChart data={revenue}>
                   <defs>
                     <linearGradient id="revenueFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#c9a15a" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#c9a15a" stopOpacity={0} />
+                      <stop offset="5%" stopColor="var(--chart-2)" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="var(--chart-2)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                   <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="var(--muted-foreground)" />
                   <YAxis tick={{ fontSize: 12 }} stroke="var(--muted-foreground)" />
-                  <Tooltip formatter={(value: number) => formatPrice(value)} />
-                  <Area type="monotone" dataKey="revenue" stroke="#c9a15a" fill="url(#revenueFill)" strokeWidth={2} />
+                  <Tooltip
+                    formatter={(value: number) => formatPrice(value)}
+                    contentStyle={{ background: 'var(--popover)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--popover-foreground)' }}
+                    labelStyle={{ color: 'var(--popover-foreground)' }}
+                  />
+                  <Area type="monotone" dataKey="revenue" stroke="var(--chart-2)" fill="url(#revenueFill)" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
             )}
@@ -160,8 +164,12 @@ export default function AdminDashboardPage() {
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" />
                   <XAxis type="number" tick={{ fontSize: 12 }} stroke="var(--muted-foreground)" />
                   <YAxis type="category" dataKey="name" width={140} tick={{ fontSize: 12 }} stroke="var(--muted-foreground)" />
-                  <Tooltip formatter={(value: number) => formatPrice(value)} />
-                  <Bar dataKey="revenue" fill="#e6def0" radius={[0, 4, 4, 0]} />
+                  <Tooltip
+                    formatter={(value: number) => formatPrice(value)}
+                    contentStyle={{ background: 'var(--popover)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--popover-foreground)' }}
+                    labelStyle={{ color: 'var(--popover-foreground)' }}
+                  />
+                  <Bar dataKey="revenue" fill="var(--chart-1)" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}

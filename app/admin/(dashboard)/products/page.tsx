@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
-import { Slider } from '@/components/ui/slider'
+import { DualRangeSlider } from '@/components/ui/dual-range-slider'
 import { Label } from '@/components/ui/label'
 import { Plus, Search, Pencil, Trash2, Copy, EyeOff, Archive, Eye, SlidersHorizontal } from 'lucide-react'
 import {
@@ -59,7 +59,11 @@ export default function AdminProductsPage() {
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [stockFilter, setStockFilter] = useState<string>('all')
   const [featuredOnly, setFeaturedOnly] = useState(false)
-  const [priceRange, setPriceRange] = useState([0, 5000])
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000])
+  // Live drag position, decoupled from priceRange (which drives the filtered table) so
+  // dragging doesn't force a full re-filter on every tick — only on release.
+  const [sliderRange, setSliderRange] = useState<[number, number]>([0, 5000])
+  useEffect(() => setSliderRange(priceRange), [priceRange])
 
   const load = () => {
     setLoading(true)
@@ -213,10 +217,17 @@ export default function AdminProductsPage() {
       </label>
       <div className="space-y-3">
         <Label className="text-sm">Price Range</Label>
-        <Slider value={priceRange} onValueChange={setPriceRange} min={0} max={5000} step={50} />
+        <DualRangeSlider
+          value={sliderRange}
+          onValueChange={setSliderRange}
+          onValueCommit={setPriceRange}
+          min={0}
+          max={5000}
+          step={1}
+        />
         <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>{formatPrice(priceRange[0])}</span>
-          <span>{formatPrice(priceRange[1])}</span>
+          <span>{formatPrice(sliderRange[0])}</span>
+          <span>{formatPrice(sliderRange[1])}</span>
         </div>
       </div>
       {activeFilterCount > 0 && (
@@ -261,7 +272,7 @@ export default function AdminProductsPage() {
               <SheetTitle>Filters</SheetTitle>
             </SheetHeader>
             <div className="mt-6">
-              <FilterContent />
+              {FilterContent()}
             </div>
           </SheetContent>
         </Sheet>

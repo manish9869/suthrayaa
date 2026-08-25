@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -82,41 +83,55 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
 
   return (
     <section
-      className="relative h-[calc(100vh-7rem)] min-h-[600px] overflow-hidden"
+      className="relative h-[70vh] min-h-[460px] max-h-[640px] overflow-hidden"
       onMouseEnter={() => setIsAutoPlaying(false)}
       onMouseLeave={() => setIsAutoPlaying(true)}
     >
+      {/*
+        Layering is split into explicit stacking bands under <section>, each its own
+        z-indexed sibling — NOT nested per-slide — because a per-slide wrapper with its own
+        z-index creates its own stacking context, and everything inside it (image AND text)
+        paints together as one atomic unit relative to siblings. Nesting the doodles inside
+        that same z-10 slide wrapper (as a plain sibling div) put them entirely behind the
+        opaque photo, invisible. Splitting into bg (z-0) / doodles (z-[2]) / content (z-10)
+        top-level layers is what actually lets the doodles paint on top of the photo and
+        underneath the text.
+      */}
+
+      {/* Background images */}
+      {slides.map((slide, index) => (
+        <div
+          key={slide.id}
+          className={cn('absolute inset-0 z-0 transition-opacity duration-700', index === currentSlide ? 'opacity-100' : 'opacity-0')}
+        >
+          <Image src={slide.image} alt={slide.title} fill className="object-cover" priority={index === 0} />
+        </div>
+      ))}
+      {/* A light overall dim, plus a black radial vignette concentrated behind the centered
+          text — keeps the photo visible at the edges (where the doodles float) while
+          guaranteeing contrast right where the text sits, regardless of what's in the photo.
+          Text below switches to light/cream tones to read against this dark spotlight. */}
+      <div className="absolute inset-0 z-[1] bg-black/15" />
+      <div className="absolute inset-0 z-[1] bg-[radial-gradient(ellipse_58%_68%_at_50%_50%,_rgba(0,0,0,0.62)_0%,_rgba(0,0,0,0.25)_55%,_transparent_80%)]" />
+
       <HeroDoodles />
-      <div className="hero-floating-motifs pointer-events-none absolute inset-0 z-[1] overflow-hidden" aria-hidden="true">
+      <div className="hero-floating-motifs pointer-events-none absolute inset-0 z-[3] overflow-hidden" aria-hidden="true">
         <span className="motif motif-a">✦</span><span className="motif motif-b">○</span><span className="motif motif-c">✧</span>
         <span className="motif motif-d">+</span><span className="motif motif-e">✦</span><span className="motif motif-f">○</span>
         <span className="motif motif-g">✿</span><span className="motif motif-h">✧</span><span className="motif motif-i">•</span>
         <span className="motif motif-j">✦</span><span className="motif motif-k">○</span><span className="motif motif-l">+</span>
       </div>
-      {/* Slides */}
-      {slides.map((slide, index) => (
-        <div
-          key={slide.id}
-          className={cn(
-            'absolute inset-0 transition-opacity duration-700',
-            index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'
-          )}
-        >
-          {/* Background Image */}
-          <div className="absolute inset-0">
-            <Image
-              src={slide.image}
-              alt={slide.title}
-              fill
-              className="object-cover"
-              priority={index === 0}
-            />
-            <div className="absolute inset-0 bg-background/75 md:bg-background/55" />
-          </div>
 
-          {/* Content */}
-          <div className="relative h-full container mx-auto px-4 flex items-center">
-            <div className="max-w-xl">
+      {/* Content */}
+      {slides.map((slide, index) => (
+        <div key={slide.id} className={cn('absolute inset-0 z-10 transition-opacity duration-700', index === currentSlide ? 'opacity-100' : 'opacity-0 pointer-events-none')}>
+          {/* Centered for a punchier, more focused banner */}
+          <div className="relative h-full container mx-auto px-4 flex items-center justify-center">
+            <motion.div
+              className="max-w-2xl flex flex-col items-center text-center"
+              animate={index === currentSlide ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
+              transition={{ type: 'spring', stiffness: 120, damping: 18 }}
+            >
               <div
                 className={cn(
                   'inline-block px-4 py-1.5 rounded-full text-sm font-medium mb-4',
@@ -126,37 +141,41 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
               >
                 {slide.subtitle}
               </div>
-              <h1 className="text-5xl md:text-7xl lg:text-8xl font-serif font-semibold tracking-tight text-foreground mb-2 text-balance">
+              <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif font-bold tracking-tight text-white mb-2 text-balance">
                 {slide.title}
               </h1>
-              <p className="font-script text-5xl md:text-7xl text-peach-foreground leading-none mb-5">
+              <p className="font-script text-4xl md:text-6xl text-secondary leading-none mb-4">
                 Crochet Magic
               </p>
-              <p className="text-lg text-muted-foreground mb-8 text-pretty">
+              <p className="text-lg font-medium text-white/90 mb-6 text-pretty max-w-lg">
                 {slide.description}
               </p>
-              <div className="flex flex-wrap gap-4">
-                <Button size="lg" asChild className="group">
-                  <Link href={slide.href}>
-                    {slide.cta}
-                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                  </Link>
-                </Button>
-                <Button size="lg" variant="outline" asChild>
-                  <Link href="/about">Our Story</Link>
-                </Button>
+              <div className="flex flex-wrap justify-center gap-4">
+                <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
+                  <Button size="lg" asChild className="group">
+                    <Link href={slide.href}>
+                      {slide.cta}
+                      <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    </Link>
+                  </Button>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
+                  <Button size="lg" variant="outline" asChild>
+                    <Link href="/about">Our Story</Link>
+                  </Button>
+                </motion.div>
               </div>
 
               {/* Interactive "check our collection" widget — live bestseller/featured picks */}
               {showcaseProducts.length > 0 ? (
-                <div className="mt-10">
-                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-3">This week&apos;s favorites</p>
-                  <div className="flex flex-wrap gap-3">
+                <div className="mt-8">
+                  <p className="text-xs uppercase tracking-[0.2em] text-primary-foreground/60 mb-3">This week&apos;s favorites</p>
+                  <div className="flex flex-wrap justify-center gap-3">
                     {showcaseProducts.map((product, i) => (
                       <Link
                         key={product.id}
                         href={`/product/${product.slug}`}
-                        className="hero-widget group flex items-center gap-3 rounded-2xl border border-border/70 bg-background/80 py-2 pl-2 pr-4 shadow-soft backdrop-blur-sm transition-colors hover:border-secondary"
+                        className="hero-widget group flex items-center gap-3 rounded-2xl border border-border/70 bg-background/80 py-2 pl-2 pr-4 shadow-soft backdrop-blur-sm transition-colors hover:border-secondary hover:-translate-y-0.5"
                         style={{ animationDelay: `${i * 110}ms` }}
                       >
                         <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl bg-muted">
@@ -167,7 +186,7 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
                             className="object-cover transition-transform duration-300 group-hover:scale-110"
                           />
                         </div>
-                        <div>
+                        <div className="text-left">
                           <p className="line-clamp-1 max-w-[9rem] text-sm font-medium leading-tight">{product.name}</p>
                           <p className="text-xs font-semibold text-secondary">{formatPrice(product.price)}</p>
                         </div>
@@ -176,7 +195,7 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
                   </div>
                 </div>
               ) : (
-                <div className="mt-10 flex flex-wrap gap-3">
+                <div className="mt-8 flex flex-wrap justify-center gap-3">
                   <div className="hero-widget rounded-2xl border border-border/70 bg-background/80 px-4 py-3 shadow-soft backdrop-blur-sm">
                     <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Made slowly</p>
                     <p className="font-serif text-lg font-semibold">One stitch at a time</p>
@@ -187,7 +206,7 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
                   </div>
                 </div>
               )}
-            </div>
+            </motion.div>
           </div>
         </div>
       ))}
@@ -197,7 +216,7 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
         <Button
           variant="outline"
           size="icon"
-          className="h-10 w-10 rounded-full bg-background/80 backdrop-blur-sm"
+          className="h-10 w-10 rounded-full bg-background/80 backdrop-blur-sm tap-bounce"
           onClick={prevSlide}
           aria-label="Previous slide"
         >
@@ -206,7 +225,7 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
         <Button
           variant="outline"
           size="icon"
-          className="h-10 w-10 rounded-full bg-background/80 backdrop-blur-sm"
+          className="h-10 w-10 rounded-full bg-background/80 backdrop-blur-sm tap-bounce"
           onClick={nextSlide}
           aria-label="Next slide"
         >
@@ -216,19 +235,22 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
 
       {/* Slide Indicators */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
-        {slides.map((_, index) => (
-          <button
-            key={index}
-            onClick={() => setCurrentSlide(index)}
-            className={cn(
-              'h-2 rounded-full transition-all duration-300',
-              index === currentSlide
-                ? 'w-8 bg-secondary'
-                : 'w-2 bg-foreground/30 hover:bg-foreground/50'
-            )}
-            aria-label={`Go to slide ${index + 1}`}
-          />
-        ))}
+        <AnimatePresence initial={false}>
+          {slides.map((_, index) => (
+            <motion.button
+              key={index}
+              layout
+              onClick={() => setCurrentSlide(index)}
+              animate={{ width: index === currentSlide ? 32 : 8 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              className={cn(
+                'h-2 rounded-full',
+                index === currentSlide ? 'bg-secondary' : 'bg-foreground/30 hover:bg-foreground/50'
+              )}
+              aria-label={`Go to slide ${index + 1}`}
+            />
+          ))}
+        </AnimatePresence>
       </div>
     </section>
   )

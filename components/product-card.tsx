@@ -1,8 +1,10 @@
 'use client'
 
+import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Heart, ShoppingBag, Star, Eye } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Heart, ShoppingBag, Star, Eye, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
@@ -21,11 +23,14 @@ export function ProductCard({ product, className }: ProductCardProps) {
   const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlistStore()
   const hydrated = useHydrated()
   const inWishlist = hydrated && isInWishlist(product.id)
+  const [justAdded, setJustAdded] = useState(false)
 
   const handleAddToCart = () => {
     addItem(product, product.colors[0])
     openCart()
     toast.success(`${product.name} added to cart`)
+    setJustAdded(true)
+    setTimeout(() => setJustAdded(false), 1200)
   }
 
   const handleWishlistToggle = () => {
@@ -41,6 +46,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
   const discount = product.comparePrice
     ? Math.round(((product.comparePrice - product.price) / product.comparePrice) * 100)
     : 0
+  const isClearance = product.tags.some((t) => t.toLowerCase() === 'clearance')
   const href = `/product/${product.slug}`
 
   return (
@@ -61,6 +67,11 @@ export function ProductCard({ product, className }: ProductCardProps) {
 
         {/* Badges */}
         <div className="pointer-events-none absolute top-3 left-3 flex flex-col gap-2">
+          {isClearance && (
+            <Badge className="bg-destructive text-destructive-foreground text-xs">
+              Clearance
+            </Badge>
+          )}
           {product.bestseller && (
             <Badge className="bg-secondary text-secondary-foreground text-xs">
               Bestseller
@@ -71,7 +82,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
               New
             </Badge>
           )}
-          {discount > 0 && (
+          {!isClearance && discount > 0 && (
             <Badge className="bg-destructive text-destructive-foreground text-xs">
               -{discount}%
             </Badge>
@@ -88,7 +99,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
           variant="ghost"
           size="icon"
           className={cn(
-            'absolute top-3 right-3 z-10 h-9 w-9 rounded-full bg-background/80 backdrop-blur-sm transition-all',
+            'tap-bounce absolute top-3 right-3 z-10 h-9 w-9 rounded-full bg-background/80 backdrop-blur-sm transition-all',
             inWishlist
               ? 'text-destructive'
               : 'text-foreground opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto'
@@ -96,20 +107,46 @@ export function ProductCard({ product, className }: ProductCardProps) {
           onClick={handleWishlistToggle}
           aria-label={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
         >
-          <Heart className={cn('h-4 w-4', inWishlist && 'fill-current')} />
+          <Heart className={cn('h-4 w-4', inWishlist && 'fill-current animate-pop-in')} />
         </Button>
 
         {/* Quick Actions */}
         <div className="absolute inset-x-3 bottom-3 z-10 flex gap-2 opacity-0 translate-y-4 pointer-events-none transition-all duration-300 group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto">
           <Button
             size="sm"
-            className="flex-1 bg-primary/90 backdrop-blur-sm hover:bg-primary"
+            className="flex-1 bg-primary/90 backdrop-blur-sm hover:bg-primary overflow-hidden"
             onClick={handleAddToCart}
+            disabled={justAdded}
           >
-            <ShoppingBag className="h-4 w-4 mr-2" />
-            Add to Cart
+            <AnimatePresence mode="wait" initial={false}>
+              {justAdded ? (
+                <motion.span
+                  key="added"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.15 }}
+                  className="flex items-center"
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  Added
+                </motion.span>
+              ) : (
+                <motion.span
+                  key="add"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.15 }}
+                  className="flex items-center"
+                >
+                  <ShoppingBag className="h-4 w-4 mr-2" />
+                  Add to Cart
+                </motion.span>
+              )}
+            </AnimatePresence>
           </Button>
-          <Button size="icon" variant="secondary" className="h-9 w-9 bg-background/90 backdrop-blur-sm" asChild>
+          <Button size="icon" variant="secondary" className="h-9 w-9 bg-background/90 backdrop-blur-sm tap-bounce" asChild>
             <Link href={href} aria-label={`View ${product.name}`}>
               <Eye className="h-4 w-4" />
             </Link>

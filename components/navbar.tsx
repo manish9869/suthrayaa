@@ -3,8 +3,9 @@
 import { useState, useEffect, useMemo, Fragment } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { usePathname } from 'next/navigation'
-import { Menu, X, ShoppingBag, Heart, Search, User } from 'lucide-react'
+import { useRouter, usePathname } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Menu, X, ShoppingBag, Heart, Search, User, Sparkles, Scissors, Tag } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -13,7 +14,7 @@ import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { useCartStore } from '@/lib/store'
 import { useAuth } from '@/lib/hooks/use-auth'
-import type { Category } from '@/lib/data'
+import { formatPrice, searchProducts, type Category, type Product } from '@/lib/data'
 import { buildCategoryTree, type CategoryNode } from '@/lib/utils/category-tree'
 import { CartDrawer } from './cart-drawer'
 
@@ -24,6 +25,12 @@ const navLinks = [
   { href: '/contact', label: 'Contact' },
 ]
 
+const announcements = [
+  { icon: Sparkles, text: 'Free shipping on orders above Rs. 999' },
+  { icon: Scissors, text: 'Handmade with love, one stitch at a time' },
+  { icon: Tag, text: 'Made to order, just for you' },
+]
+
 export function Navbar({ categories = [] }: { categories?: Category[] }) {
   const categoryTree = useMemo(
     () => buildCategoryTree(categories.filter((c) => c.showInNavigation)),
@@ -32,6 +39,10 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<Product[]>([])
+  const [searchLoading, setSearchLoading] = useState(false)
+  const router = useRouter()
   const pathname = usePathname()
   const { getTotalItems, openCart } = useCartStore()
   const totalItems = getTotalItems()
@@ -50,6 +61,55 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
+  // Slowly rotate the announcement bar through a few brand-flavored messages.
+  const [announcementIndex, setAnnouncementIndex] = useState(0)
+  useEffect(() => {
+    const interval = setInterval(() => setAnnouncementIndex((i) => (i + 1) % announcements.length), 4500)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Debounced live search — queries the same /products search endpoint as the shop page,
+  // just trimmed to a handful of quick suggestions.
+  useEffect(() => {
+    const query = searchQuery.trim()
+    if (query.length < 2) {
+      setSearchResults([])
+      setSearchLoading(false)
+      return
+    }
+    setSearchLoading(true)
+    const t = setTimeout(() => {
+      searchProducts(query, 5)
+        .then(setSearchResults)
+        .catch(() => setSearchResults([]))
+        .finally(() => setSearchLoading(false))
+    }, 300)
+    return () => clearTimeout(t)
+  }, [searchQuery])
+
+  // Next.js's <Link> is a no-op when its href matches the current route — clicking "Home" or
+  // the logo while already on "/" (but scrolled down) would otherwise do nothing. Scroll to
+  // top ourselves in that one case; every other route still navigates normally.
+  const handleHomeClick = (e: React.MouseEvent) => {
+    if (pathname === '/') {
+      e.preventDefault()
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
+
+  const closeSearch = () => {
+    setIsSearchOpen(false)
+    setSearchQuery('')
+    setSearchResults([])
+  }
+
+  const submitSearch = () => {
+    const query = searchQuery.trim()
+    if (!query) return
+    router.push(`/shop?search=${encodeURIComponent(query)}`)
+    closeSearch()
+  }
+
   return (
     <>
       <header
@@ -61,8 +121,23 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
         )}
       >
         {/* Announcement Bar */}
-        <div className="bg-primary text-primary-foreground text-center py-2 text-sm">
-          <p>Free shipping on orders above Rs. 999 | Handmade with love</p>
+        <div className="bg-primary text-primary-foreground text-center py-2 text-sm overflow-hidden">
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={announcementIndex}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.35 }}
+              className="flex items-center justify-center gap-1.5"
+            >
+              {(() => {
+                const Icon = announcements[announcementIndex].icon
+                return <Icon className="h-3.5 w-3.5" />
+              })()}
+              {announcements[announcementIndex].text}
+            </motion.p>
+          </AnimatePresence>
         </div>
 
         <nav className="container mx-auto px-4">
@@ -70,7 +145,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
             {/* Mobile Menu Button */}
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild className="lg:hidden">
-                <Button variant="ghost" size="icon" aria-label="Open menu">
+                <Button variant="ghost" size="icon" className="tap-bounce" aria-label="Open menu">
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
@@ -78,7 +153,13 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
                 <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
                 <div className="flex flex-col h-full">
                   <div className="p-4 border-b">
-                    <Link href="/" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Link
+                      href="/"
+                      onClick={(e) => {
+                        handleHomeClick(e)
+                        setIsMobileMenuOpen(false)
+                      }}
+                    >
                       <Image
                         src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Suthraya%20Logo%20-%20Trans-HgT4V8esTeOZ2PwWy5B7QcPjLLrahf.png"
                         alt="Suthrayaa"
@@ -94,7 +175,10 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
                         <Link
                           key={link.href}
                           href={link.href}
-                          onClick={() => setIsMobileMenuOpen(false)}
+                          onClick={(e) => {
+                            if (link.href === '/') handleHomeClick(e)
+                            setIsMobileMenuOpen(false)
+                          }}
                           className={cn(
                             'block px-4 py-3 rounded-lg text-lg transition-colors',
                             pathname === link.href
@@ -151,7 +235,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
             </Sheet>
 
             {/* Logo */}
-            <Link href="/" className="flex-shrink-0">
+            <Link href="/" className="flex-shrink-0" onClick={handleHomeClick}>
               <Image
                 src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Suthraya%20Logo%20-%20Trans-HgT4V8esTeOZ2PwWy5B7QcPjLLrahf.png"
                 alt="Suthrayaa"
@@ -168,6 +252,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
                 <Link
                   key={link.href}
                   href={link.href}
+                  onClick={link.href === '/' ? handleHomeClick : undefined}
                   className={cn(
                     'text-sm font-medium transition-colors relative py-2',
                     pathname === link.href ? 'text-primary' : 'text-foreground/80 hover:text-primary',
@@ -227,26 +312,77 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
               {/* Search */}
               <div className="relative">
                 {isSearchOpen ? (
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-2 bg-background border rounded-full px-3 py-1 shadow-lg animate-in slide-in-from-right-5">
-                    <Input
-                      type="search"
-                      placeholder="Search products..."
-                      className="w-48 lg:w-64 border-0 focus-visible:ring-0 h-8"
-                      autoFocus
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => setIsSearchOpen(false)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-72 lg:w-80">
+                    <div className="flex items-center gap-2 bg-background border rounded-full px-3 py-1 shadow-lg animate-in slide-in-from-right-5">
+                      <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <Input
+                        type="search"
+                        placeholder="Search for keychains, amigurumi..."
+                        className="border-0 focus-visible:ring-0 h-8 px-0"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') submitSearch()
+                          if (e.key === 'Escape') closeSearch()
+                        }}
+                        autoFocus
+                      />
+                      <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={closeSearch}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    {/* Autosuggest */}
+                    <AnimatePresence>
+                      {searchQuery.trim().length >= 2 && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -6 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute top-full mt-2 w-full bg-popover border rounded-xl shadow-lg overflow-hidden"
+                        >
+                          {searchLoading ? (
+                            <p className="px-4 py-3 text-sm text-muted-foreground">Searching...</p>
+                          ) : searchResults.length > 0 ? (
+                            <>
+                              <div className="max-h-80 overflow-y-auto py-1">
+                                {searchResults.map((product) => (
+                                  <Link
+                                    key={product.id}
+                                    href={`/product/${product.slug}`}
+                                    onClick={closeSearch}
+                                    className="flex items-center gap-3 px-3 py-2 hover:bg-muted transition-colors"
+                                  >
+                                    <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
+                                      <Image src={product.images[0] ?? '/placeholder.svg'} alt={product.name} fill className="object-cover" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-sm font-medium truncate">{product.name}</p>
+                                      <p className="text-xs text-secondary font-semibold">{formatPrice(product.price)}</p>
+                                    </div>
+                                  </Link>
+                                ))}
+                              </div>
+                              <button
+                                onClick={submitSearch}
+                                className="w-full text-center text-sm font-medium text-primary py-2.5 border-t hover:bg-muted transition-colors"
+                              >
+                                See all results for &quot;{searchQuery.trim()}&quot;
+                              </button>
+                            </>
+                          ) : (
+                            <p className="px-4 py-3 text-sm text-muted-foreground">No products found for &quot;{searchQuery.trim()}&quot;</p>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 ) : (
                   <Button
                     variant="ghost"
                     size="icon"
+                    className="tap-bounce"
                     onClick={() => setIsSearchOpen(true)}
                     aria-label="Search"
                   >
@@ -256,7 +392,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
               </div>
 
               {/* Wishlist */}
-              <Button variant="ghost" size="icon" asChild className="hidden sm:flex">
+              <Button variant="ghost" size="icon" asChild className="hidden sm:flex tap-bounce">
                 <Link href="/wishlist" aria-label="Wishlist">
                   <Heart className="h-5 w-5" />
                 </Link>
@@ -266,7 +402,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
               {user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="hidden sm:flex" aria-label="Account">
+                    <Button variant="ghost" size="icon" className="hidden sm:flex tap-bounce" aria-label="Account">
                       <User className="h-5 w-5" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -279,7 +415,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <Button variant="ghost" size="icon" asChild className="hidden sm:flex">
+                <Button variant="ghost" size="icon" asChild className="hidden sm:flex tap-bounce">
                   <Link href="/login" aria-label="Sign in">
                     <User className="h-5 w-5" />
                   </Link>
@@ -290,18 +426,27 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="relative"
+                className="relative tap-bounce"
                 onClick={openCart}
                 aria-label="Cart"
               >
                 <ShoppingBag className="h-5 w-5" />
-                {mounted && totalItems > 0 && (
-                  <Badge
-                    className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-secondary text-secondary-foreground"
-                  >
-                    {totalItems}
-                  </Badge>
-                )}
+                <AnimatePresence>
+                  {mounted && totalItems > 0 && (
+                    <motion.div
+                      key={totalItems}
+                      initial={{ scale: 0.4, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.4, opacity: 0 }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 20 }}
+                      className="absolute -top-1 -right-1"
+                    >
+                      <Badge className="h-5 w-5 flex items-center justify-center p-0 text-xs bg-secondary text-secondary-foreground">
+                        {totalItems}
+                      </Badge>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </Button>
             </div>
           </div>

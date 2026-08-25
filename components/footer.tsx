@@ -1,9 +1,13 @@
+'use client'
+
+import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { Instagram, Facebook, Mail, Phone, MapPin } from 'lucide-react'
+import { Instagram, Facebook, Mail, Phone, MapPin, Check } from 'lucide-react'
+import { toast } from 'sonner'
 
 const footerLinks = {
   shop: [
@@ -35,6 +39,20 @@ const footerLinks = {
 }
 
 export function Footer() {
+  const [email, setEmail] = useState('')
+  const [subscribed, setSubscribed] = useState(false)
+
+  const handleSubscribe = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      toast.error('Please enter a valid email address')
+      return
+    }
+    setSubscribed(true)
+    toast.success("You're on the list! Welcome to the yarn family.")
+    setEmail('')
+  }
+
   return (
     <footer className="bg-primary text-primary-foreground">
       {/* Newsletter Section */}
@@ -47,14 +65,22 @@ export function Footer() {
             <p className="text-muted-foreground mb-6">
               Subscribe for exclusive offers, new arrivals, and behind-the-scenes peeks at our creative process.
             </p>
-            <form className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+            <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
               <Input
                 type="email"
                 placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="flex-1 bg-background"
               />
-              <Button type="submit" className="bg-primary hover:bg-primary/90">
-                Subscribe
+              <Button type="submit" className="bg-primary hover:bg-primary/90 tap-bounce">
+                {subscribed ? (
+                  <span className="flex items-center gap-1.5 animate-pop-in">
+                    <Check className="h-4 w-4" /> Subscribed
+                  </span>
+                ) : (
+                  'Subscribe'
+                )}
               </Button>
             </form>
           </div>
@@ -115,7 +141,7 @@ export function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm text-primary-foreground/80 hover:text-secondary transition-colors"
+                    className="text-sm text-primary-foreground/80 hover:text-secondary hover:translate-x-0.5 inline-block transition-all"
                   >
                     {link.label}
                   </Link>
@@ -132,7 +158,7 @@ export function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm text-primary-foreground/80 hover:text-secondary transition-colors"
+                    className="text-sm text-primary-foreground/80 hover:text-secondary hover:translate-x-0.5 inline-block transition-all"
                   >
                     {link.label}
                   </Link>
@@ -149,7 +175,7 @@ export function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm text-primary-foreground/80 hover:text-secondary transition-colors"
+                    className="text-sm text-primary-foreground/80 hover:text-secondary hover:translate-x-0.5 inline-block transition-all"
                   >
                     {link.label}
                   </Link>

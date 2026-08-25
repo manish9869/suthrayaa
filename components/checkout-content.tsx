@@ -184,7 +184,7 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
           email: formData.email,
           contact: formData.phone,
         },
-        theme: { color: '#c9a15a' },
+        theme: { color: '#c1502e' },
         handler: async (response) => {
           try {
             await verifyPayment({

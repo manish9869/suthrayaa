@@ -38,7 +38,7 @@ function Slider({
     >
       <SliderPrimitive.Track
         data-slot="slider-track"
-        className="bg-muted relative grow overflow-hidden rounded-full data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5"
+        className="bg-muted relative grow overflow-hidden rounded-full data-[orientation=horizontal]:h-2 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-2"
       >
         <SliderPrimitive.Range
           data-slot="slider-range"
@@ -49,7 +49,10 @@ function Slider({
         <SliderPrimitive.Thumb
           data-slot="slider-thumb"
           key={index}
-          className="border-primary ring-ring/50 block size-4 shrink-0 rounded-full border bg-white shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
+          // A bigger visible handle plus an invisible padded hit-area (the `before` pseudo
+          // element, ~44px square — the standard minimum comfortable pointer/touch target)
+          // so you don't have to land a click precisely on the small circle to grab it.
+          className="border-primary ring-ring/50 relative block size-5 shrink-0 cursor-grab rounded-full border-2 bg-white shadow-md transition-[color,box-shadow,transform] hover:scale-110 hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden active:cursor-grabbing active:scale-110 disabled:pointer-events-none disabled:opacity-50 before:absolute before:inset-1/2 before:size-11 before:-translate-x-1/2 before:-translate-y-1/2"
         />
       ))}
     </SliderPrimitive.Root>

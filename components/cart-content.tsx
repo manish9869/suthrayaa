@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Navbar } from '@/components/navbar'
 import { Footer } from '@/components/footer'
 import { Button } from '@/components/ui/button'
@@ -155,11 +156,20 @@ export function CartContent({ categories }: { categories: Category[] }) {
               {/* Cart Items List */}
               <Card>
                 <CardContent className="divide-y">
+                  <AnimatePresence initial={false}>
                   {items.map((item) => {
                     const itemKey = `${item.product.id}-${item.selectedColor}-${item.customText || ''}-${(item.customizations ?? []).map((c) => c.valueId ?? c.textValue).join(',')}`
                     const unitPrice = getItemUnitPrice(item)
                     return (
-                      <div key={itemKey} className="py-6 first:pt-6">
+                      <motion.div
+                        key={itemKey}
+                        layout
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0, height: 0, paddingTop: 0, paddingBottom: 0 }}
+                        transition={{ duration: 0.25 }}
+                        className="py-6 first:pt-6"
+                      >
                         <div className="flex gap-4">
                           <Link
                             href={`/product/${item.product.slug}`}
@@ -197,7 +207,7 @@ export function CartContent({ categories }: { categories: Category[] }) {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-8 w-8"
+                                  className="h-8 w-8 tap-bounce"
                                   onClick={() =>
                                     updateQuantity(item.product.id, item.selectedColor, item.quantity - 1, item.customText, item.customizations)
                                   }
@@ -208,7 +218,7 @@ export function CartContent({ categories }: { categories: Category[] }) {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-8 w-8"
+                                  className="h-8 w-8 tap-bounce"
                                   onClick={() =>
                                     updateQuantity(item.product.id, item.selectedColor, item.quantity + 1, item.customText, item.customizations)
                                   }
@@ -222,7 +232,7 @@ export function CartContent({ categories }: { categories: Category[] }) {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                  className="h-8 w-8 text-muted-foreground hover:text-destructive tap-bounce"
                                   onClick={() => {
                                     removeItem(item.product.id, item.selectedColor, item.customText, item.customizations)
                                     toast.info(`${item.product.name} removed from cart`)
@@ -234,9 +244,10 @@ export function CartContent({ categories }: { categories: Category[] }) {
                             </div>
                           </div>
                         </div>
-                      </div>
+                      </motion.div>
                     )
                   })}
+                  </AnimatePresence>
                 </CardContent>
                 <CardFooter className="justify-between border-t py-4">
                   <Button

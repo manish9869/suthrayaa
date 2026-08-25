@@ -4,131 +4,135 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Suthrayaa Brand Colors — vibrant pastel-kawaii palette (Gen-Z friendly), same
-     structure as before but meaningfully more saturated across the accent hues. */
-  --background: oklch(0.99 0.006 85);
-  --foreground: oklch(0.24 0.03 320);
+  /* Suthrayaa Brand Colors — warm, handmade-craft palette: terracotta + sage + cream,
+     built for a cozy, artisan-market feel with a friendlier (larger) corner radius. */
+  --background: #fbf6ee;
+  --foreground: #3a2a1f;
 
-  /* Berry/plum — bold, youthful primary (was navy) */
-  --primary: oklch(0.38 0.16 335);
-  --primary-foreground: oklch(0.99 0.005 85);
+  /* Terracotta — warm, earthy primary */
+  --primary: #c1502e;
+  --primary-foreground: #fff8f0;
 
-  /* Cream/Off-white cards */
-  --card: oklch(0.985 0.008 85);
-  --card-foreground: oklch(0.24 0.03 320);
+  /* Warm off-white cards, lifted off the cream page background */
+  --card: #fffdf9;
+  --card-foreground: #3a2a1f;
 
-  --popover: oklch(0.99 0.005 85);
-  --popover-foreground: oklch(0.24 0.03 320);
+  --popover: #fffdf9;
+  --popover-foreground: #3a2a1f;
 
-  /* Vivid coral — energetic secondary accent (was muted gold) */
-  --secondary: oklch(0.74 0.19 40);
-  --secondary-foreground: oklch(0.2 0.02 40);
+  /* Mustard gold — energetic secondary accent */
+  --secondary: #d8a13b;
+  --secondary-foreground: #3a2410;
 
-  /* Soft peach for muted backgrounds */
-  --muted: oklch(0.95 0.03 55);
-  --muted-foreground: oklch(0.48 0.03 320);
+  /* Soft warm sand for muted backgrounds */
+  --muted: #f1e9d8;
+  --muted-foreground: #8a7a63;
 
-  /* Lavender accent */
-  --accent: oklch(0.89 0.08 300);
-  --accent-foreground: oklch(0.24 0.03 320);
+  /* Sage green accent */
+  --accent: #7c9473;
+  --accent-foreground: #ffffff;
 
   /* Mint for success/special */
-  --mint: oklch(0.87 0.11 165);
-  --mint-foreground: oklch(0.22 0.05 165);
+  --mint: #a9c9a0;
+  --mint-foreground: #22391f;
 
   /* Gold for highlights */
-  --gold: oklch(0.80 0.15 85);
-  --gold-foreground: oklch(0.22 0.03 85);
+  --gold: #d8a13b;
+  --gold-foreground: #3a2410;
 
   /* Peach for warmth */
-  --peach: oklch(0.89 0.10 45);
-  --peach-foreground: oklch(0.24 0.03 320);
+  --peach: #f3c9a0;
+  --peach-foreground: #5c3a1e;
 
-  /* Lavender */
-  --lavender: oklch(0.85 0.11 300);
-  --lavender-foreground: oklch(0.24 0.03 320);
+  /* Dusty clay — a warm rose-terracotta accent (kept as "lavender" token for compatibility) */
+  --lavender: #e8b4a0;
+  --lavender-foreground: #5c2e1e;
 
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.98 0.005 85);
+  --destructive: #d64545;
+  --destructive-foreground: #fff8f0;
 
-  --border: oklch(0.90 0.02 85);
-  --input: oklch(0.93 0.015 85);
-  --ring: oklch(0.74 0.19 40);
+  --border: #e8dcc4;
+  --input: #f0e6d2;
+  --ring: #d8a13b;
 
   /* Chart colors using brand palette */
-  --chart-1: oklch(0.38 0.16 335);
-  --chart-2: oklch(0.74 0.19 40);
-  --chart-3: oklch(0.87 0.11 165);
-  --chart-4: oklch(0.85 0.11 300);
-  --chart-5: oklch(0.80 0.15 85);
+  --chart-1: #c1502e;
+  --chart-2: #d8a13b;
+  --chart-3: #7c9473;
+  --chart-4: #e8b4a0;
+  --chart-5: #a9c9a0;
 
-  --radius: 0.9rem;
+  --radius: 1.1rem;
 
-  --sidebar: oklch(0.985 0.008 85);
-  --sidebar-foreground: oklch(0.24 0.03 320);
-  --sidebar-primary: oklch(0.38 0.16 335);
-  --sidebar-primary-foreground: oklch(0.99 0.005 85);
-  --sidebar-accent: oklch(0.95 0.03 55);
-  --sidebar-accent-foreground: oklch(0.24 0.03 320);
-  --sidebar-border: oklch(0.90 0.02 85);
-  --sidebar-ring: oklch(0.74 0.19 40);
+  --sidebar: #fffdf9;
+  --sidebar-foreground: #3a2a1f;
+  --sidebar-primary: #c1502e;
+  --sidebar-primary-foreground: #fff8f0;
+  --sidebar-accent: #f1e9d8;
+  --sidebar-accent-foreground: #3a2a1f;
+  --sidebar-border: #e8dcc4;
+  --sidebar-ring: #d8a13b;
 }
 
+/* Admin console theme — a cool slate/charcoal dark UI, deliberately distinct from the
+   warm customer storefront above, with terracotta/gold/sage brand accents carried through.
+   Scoped via a `dark` class on the admin layout wrapper only (see app/admin), so it never
+   affects the customer-facing pages, which have no theme toggle. */
 .dark {
-  --background: oklch(0.19 0.03 320);
-  --foreground: oklch(0.95 0.01 85);
+  --background: #14171c;
+  --foreground: #e9e7e2;
 
-  --primary: oklch(0.78 0.15 340);
-  --primary-foreground: oklch(0.19 0.03 320);
+  --primary: #e2895e;
+  --primary-foreground: #1a1006;
 
-  --card: oklch(0.24 0.035 320);
-  --card-foreground: oklch(0.95 0.01 85);
+  --card: #1b1f26;
+  --card-foreground: #e9e7e2;
 
-  --popover: oklch(0.24 0.035 320);
-  --popover-foreground: oklch(0.95 0.01 85);
+  --popover: #1b1f26;
+  --popover-foreground: #e9e7e2;
 
-  --secondary: oklch(0.72 0.18 40);
-  --secondary-foreground: oklch(0.19 0.02 40);
+  --secondary: #e3b45c;
+  --secondary-foreground: #241a08;
 
-  --muted: oklch(0.29 0.025 320);
-  --muted-foreground: oklch(0.68 0.03 85);
+  --muted: #232830;
+  --muted-foreground: #98a0ac;
 
-  --accent: oklch(0.38 0.07 300);
-  --accent-foreground: oklch(0.95 0.01 85);
+  --accent: #8fae86;
+  --accent-foreground: #0f160d;
 
-  --mint: oklch(0.55 0.10 165);
-  --mint-foreground: oklch(0.95 0.01 85);
+  --mint: #7fbe87;
+  --mint-foreground: #0d1f0e;
 
-  --gold: oklch(0.78 0.14 85);
-  --gold-foreground: oklch(0.19 0.03 85);
+  --gold: #e3b45c;
+  --gold-foreground: #241a08;
 
-  --peach: oklch(0.50 0.09 45);
-  --peach-foreground: oklch(0.95 0.01 85);
+  --peach: #c98f5e;
+  --peach-foreground: #2a1808;
 
-  --lavender: oklch(0.50 0.09 300);
-  --lavender-foreground: oklch(0.95 0.01 85);
+  --lavender: #c97a5e;
+  --lavender-foreground: #2a1408;
 
-  --destructive: oklch(0.5 0.2 27);
-  --destructive-foreground: oklch(0.95 0.01 85);
+  --destructive: #e5484d;
+  --destructive-foreground: #fff5f5;
 
-  --border: oklch(0.34 0.03 320);
-  --input: oklch(0.29 0.03 320);
-  --ring: oklch(0.72 0.18 40);
+  --border: #2b313a;
+  --input: #232830;
+  --ring: #e2895e;
 
-  --chart-1: oklch(0.78 0.15 340);
-  --chart-2: oklch(0.72 0.18 40);
-  --chart-3: oklch(0.55 0.10 165);
-  --chart-4: oklch(0.55 0.09 300);
-  --chart-5: oklch(0.55 0.09 55);
+  --chart-1: #e2895e;
+  --chart-2: #e3b45c;
+  --chart-3: #8fae86;
+  --chart-4: #c97a5e;
+  --chart-5: #7fbe87;
 
-  --sidebar: oklch(0.24 0.035 320);
-  --sidebar-foreground: oklch(0.95 0.01 85);
-  --sidebar-primary: oklch(0.78 0.15 340);
-  --sidebar-primary-foreground: oklch(0.19 0.03 320);
-  --sidebar-accent: oklch(0.29 0.025 320);
-  --sidebar-accent-foreground: oklch(0.95 0.01 85);
-  --sidebar-border: oklch(0.34 0.03 320);
-  --sidebar-ring: oklch(0.72 0.18 40);
+  --sidebar: #171b21;
+  --sidebar-foreground: #e9e7e2;
+  --sidebar-primary: #e2895e;
+  --sidebar-primary-foreground: #1a1006;
+  --sidebar-accent: #232830;
+  --sidebar-accent-foreground: #e9e7e2;
+  --sidebar-border: #2b313a;
+  --sidebar-ring: #e2895e;
 }
 
 @theme inline {
@@ -231,29 +235,59 @@
     transition: transform 180ms ease-out;
   }
   .hero-doodle svg { width: 2.5rem; height: 2.5rem; stroke-width: 1.2; }
-  .hero-doodle-one { top: 18%; left: 8%; }
-  .hero-doodle-two { top: 25%; right: 12%; color: var(--peach-foreground); }
-  .hero-doodle-three { bottom: 22%; right: 22%; color: var(--primary); }
-  .hero-doodle-four { bottom: 18%; left: 14%; color: var(--peach-foreground); }
-  .hero-doodle-five { top: 13%; right: 31%; color: var(--gold); }
-  .hero-doodle-six { top: 52%; left: 24%; color: var(--lavender-foreground); }
-  .hero-doodle-seven { top: 70%; right: 10%; color: var(--mint-foreground); }
-  .hero-doodle-eight { top: 10%; left: 48%; color: var(--peach-foreground); }
-  .hero-doodle-nine { bottom: 12%; left: 42%; color: var(--gold); }
+  /* Positions deliberately hug the left/right edges (roughly outside 15%-85% horizontally) —
+     the hero text is centered and full-height, so anything closer to the middle would sit
+     behind (not over, thanks to the z-index below) but still visually clash with the letters. */
+  .hero-doodle-one { top: 18%; left: 6%; }
+  .hero-doodle-two { top: 22%; right: 7%; color: var(--peach-foreground); }
+  .hero-doodle-three { bottom: 30%; right: 5%; color: var(--primary); }
+  .hero-doodle-four { bottom: 16%; left: 9%; color: var(--peach-foreground); }
+  .hero-doodle-five { top: 10%; right: 9%; color: var(--gold); }
+  .hero-doodle-six { top: 55%; left: 5%; color: var(--lavender-foreground); }
+  .hero-doodle-seven { top: 68%; right: 6%; color: var(--mint-foreground); }
+  .hero-doodle-eight { top: 6%; left: 10%; color: var(--peach-foreground); }
+  .hero-doodle-nine { bottom: 10%; right: 12%; color: var(--gold); }
   .hero-doodle:nth-child(odd) { animation: doodle-bob 7s ease-in-out infinite; }
-  .hero-doodle:nth-child(even) { animation: doodle-bob 9s ease-in-out -3s infinite reverse; }
+  .hero-doodle:nth-child(even) { animation: doodle-bob 8s ease-in-out -3s infinite reverse; }
   .hero-thread { position: absolute; top: 24%; right: 16%; width: 10rem; height: 8rem; border: 1px solid var(--gold); border-left-color: transparent; border-bottom-color: transparent; border-radius: 50%; opacity: 0.25; transform: rotate(22deg); }
+
+  /* Ambient hero doodle layer — slow, purely decorative drift (no mouse interaction),
+     colored per-icon via inline style so the mix reads as genuinely colorful. */
+  .hero-doodle-ambient {
+    position: absolute;
+    opacity: 0.6;
+    animation-name: doodle-drift;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+    transition: opacity 200ms ease, transform 200ms ease;
+    transform: rotate(var(--doodle-rotate, 0deg));
+  }
+  .hero-doodle-ambient:hover { opacity: 1; transform: rotate(var(--doodle-rotate, 0deg)) scale(1.15); }
+  /* A slow, multi-point wander scaled by each icon's --dx/--dy — reads as drifting through
+     space rather than a tight local bob. Durations are long (20-30s) so the motion stays calm. */
+  @keyframes doodle-drift {
+    0%, 100% { translate: 0 0; }
+    20% { translate: calc(var(--dx, 40px) * 1) calc(var(--dy, 40px) * -0.7); }
+    40% { translate: calc(var(--dx, 40px) * 0.15) calc(var(--dy, 40px) * -1); }
+    60% { translate: calc(var(--dx, 40px) * -0.9) calc(var(--dy, 40px) * -0.2); }
+    80% { translate: calc(var(--dx, 40px) * -0.35) calc(var(--dy, 40px) * 0.85); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero-doodle-ambient { animation: none; }
+  }
   .motif { position: absolute; color: var(--primary); opacity: 0.12; font-family: var(--font-serif); animation: motif-float 9s ease-in-out infinite; }
-  .motif-a { top: 15%; left: 28%; font-size: 2rem; }
+  /* Same edge-hugging rule as the hero-doodle-* positions above — kept out of the centered
+     text band. */
+  .motif-a { top: 15%; left: 7%; font-size: 2rem; }
   .motif-b { top: 38%; left: 5%; font-size: 3rem; animation-delay: -2s; }
-  .motif-c { top: 68%; left: 34%; font-size: 2.5rem; animation-delay: -4s; }
+  .motif-c { top: 68%; right: 8%; font-size: 2.5rem; animation-delay: -4s; }
   .motif-d { top: 16%; right: 6%; font-size: 2rem; animation-delay: -6s; }
-  .motif-e { bottom: 16%; right: 38%; font-size: 2.5rem; animation-delay: -3s; }
+  .motif-e { bottom: 16%; right: 6%; font-size: 2.5rem; animation-delay: -3s; }
   .motif-f { bottom: 10%; right: 7%; font-size: 3rem; animation-delay: -7s; }
-  .motif-g { top: 28%; right: 39%; font-size: 2.25rem; color: var(--peach-foreground); animation-duration: 12s; animation-delay: -8s; }
+  .motif-g { top: 30%; right: 9%; font-size: 2.25rem; color: var(--peach-foreground); animation-duration: 12s; animation-delay: -8s; }
   .motif-h { bottom: 32%; left: 8%; font-size: 2rem; color: var(--lavender-foreground); animation-duration: 10s; animation-delay: -5s; }
   .motif-i { top: 58%; right: 5%; font-size: 3rem; color: var(--mint-foreground); animation-duration: 14s; animation-delay: -10s; }
-  .motif-j { top: 78%; left: 52%; font-size: 1.75rem; color: var(--gold); animation-duration: 11s; animation-delay: -1s; }
+  .motif-j { top: 80%; left: 9%; font-size: 1.75rem; color: var(--gold); animation-duration: 11s; animation-delay: -1s; }
   .motif-k { top: 7%; left: 12%; font-size: 2rem; color: var(--peach-foreground); animation-duration: 13s; animation-delay: -6s; }
   .motif-l { bottom: 8%; left: 4%; font-size: 2.5rem; color: var(--lavender-foreground); animation-duration: 9s; animation-delay: -4s; }
   .hero-widget { animation: widget-rise 700ms ease-out both; }
@@ -262,8 +296,19 @@
   @keyframes motif-float { 0%, 100% { transform: translate(0, 0) rotate(0deg); } 35% { transform: translate(16px, -10px) rotate(8deg); } 70% { transform: translate(-10px, 12px) rotate(-5deg); } }
   @keyframes doodle-bob { 0%, 100% { margin-top: 0; } 50% { margin-top: -10px; } }
   @keyframes widget-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Tactile press feedback for buttons/chips/icon-buttons across the storefront. */
+  .tap-bounce { transition: transform 150ms ease; }
+  .tap-bounce:active { transform: scale(0.94); }
+
+  /* One-shot pop for things that just changed (cart count, wishlist heart, applied filter). */
+  .animate-pop-in { animation: pop-in 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+  @keyframes pop-in { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
   @media (prefers-reduced-motion: reduce) {
     .motif, .hero-widget, .hero-doodle { animation: none; }
     .hero-doodle { transition: none; }
+    .tap-bounce { transition: none; }
+    .animate-pop-in { animation: none; }
   }
 }

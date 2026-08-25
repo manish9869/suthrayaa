@@ -31,6 +31,7 @@ const TYPE_LABELS: Record<CustomizationGroupInput['type'], string> = {
   number: 'Number input',
 }
 const TYPES_WITH_VALUES: CustomizationGroupInput['type'][] = ['choice', 'color', 'checkbox']
+const SIZE_PRESETS = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'Free Size']
 
 interface Props {
   productId?: string
@@ -57,6 +58,7 @@ export function CustomizationEditor({ productId, customizations, colors, onChang
   })
   const [valueForm, setValueForm] = useState({ label: '', value: '', priceAdjustment: 0, sku: '', enabled: true })
   const [saving, setSaving] = useState(false)
+  const [quickAddingLabel, setQuickAddingLabel] = useState<string | null>(null)
 
   if (!productId) {
     return <p className="text-sm text-muted-foreground">Save the product first, then configure customization options.</p>
@@ -161,6 +163,24 @@ export function CustomizationEditor({ productId, customizations, colors, onChang
       toast.error(err instanceof Error ? err.message : 'Failed to save option value')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const quickAddValue = async (groupId: string, label: string) => {
+    setQuickAddingLabel(label)
+    try {
+      await createCustomizationValue(productId, groupId, {
+        label,
+        value: label.toLowerCase().replace(/\s+/g, '-'),
+        priceAdjustment: 0,
+        sku: null,
+        enabled: true,
+      })
+      onChange()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : `Failed to add "${label}"`)
+    } finally {
+      setQuickAddingLabel(null)
     }
   }
 
@@ -321,6 +341,32 @@ export function CustomizationEditor({ productId, customizations, colors, onChang
                   <Button variant="ghost" size="sm" className="text-xs" onClick={() => openCreateValue(g.id)}>
                     <Plus className="h-3.5 w-3.5 mr-1" /> Add Value
                   </Button>
+
+                  {g.type === 'choice' && (() => {
+                    const existingLabels = new Set(g.values.map((v) => v.label.toLowerCase()))
+                    const remaining = SIZE_PRESETS.filter((p) => !existingLabels.has(p.toLowerCase()))
+                    if (remaining.length === 0) return null
+                    return (
+                      <div className="pt-1">
+                        <p className="text-xs text-muted-foreground mb-1.5">
+                          Looks like a size option — quick add common sizes:
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {remaining.map((preset) => (
+                            <button
+                              key={preset}
+                              type="button"
+                              disabled={quickAddingLabel !== null}
+                              onClick={() => quickAddValue(g.id, preset)}
+                              className="tap-bounce rounded-full border border-dashed border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:opacity-50"
+                            >
+                              {quickAddingLabel === preset ? 'Adding…' : `+ ${preset}`}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })()}
                 </div>
               </>
             )}

@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
+import { motion, AnimatePresence } from 'framer-motion'
 import { X, Plus, Minus, ShoppingBag, Trash2 } from 'lucide-react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
@@ -72,11 +73,20 @@ export function CartDrawer() {
             {/* Cart Items */}
             <ScrollArea className="flex-1">
               <div className="px-4 py-4 space-y-4">
-                {items.map((item) => {
-                  const itemKey = `${item.product.id}-${item.selectedColor}-${item.customText || ''}-${(item.customizations ?? []).map((c) => c.valueId ?? c.textValue).join(',')}`
-                  const unitPrice = getItemUnitPrice(item)
-                  return (
-                    <div key={itemKey} className="flex gap-4">
+                <AnimatePresence initial={false}>
+                  {items.map((item) => {
+                    const itemKey = `${item.product.id}-${item.selectedColor}-${item.customText || ''}-${(item.customizations ?? []).map((c) => c.valueId ?? c.textValue).join(',')}`
+                    const unitPrice = getItemUnitPrice(item)
+                    return (
+                      <motion.div
+                        key={itemKey}
+                        layout
+                        initial={{ opacity: 0, x: 24 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -24, height: 0, marginBottom: 0 }}
+                        transition={{ duration: 0.25 }}
+                        className="flex gap-4"
+                      >
                       <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                         <Image
                           src={item.product.images[0]}
@@ -113,7 +123,7 @@ export function CartDrawer() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7"
+                              className="h-7 w-7 tap-bounce"
                               onClick={() =>
                                 updateQuantity(
                                   item.product.id,
@@ -130,7 +140,7 @@ export function CartDrawer() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7"
+                              className="h-7 w-7 tap-bounce"
                               onClick={() =>
                                 updateQuantity(
                                   item.product.id,
@@ -152,16 +162,17 @@ export function CartDrawer() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive flex-shrink-0"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive flex-shrink-0 tap-bounce"
                         onClick={() =>
                           removeItem(item.product.id, item.selectedColor, item.customText, item.customizations)
                         }
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
-                    </div>
-                  )
-                })}
+                      </motion.div>
+                    )
+                  })}
+                </AnimatePresence>
               </div>
             </ScrollArea>
 
