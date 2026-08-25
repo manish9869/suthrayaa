@@ -118,6 +118,7 @@ export interface AdminProductListItem extends Product {
   costPrice?: number
   isTaxable: boolean
   taxClass?: string
+  taxCategoryId?: string
   salePrice?: number
   saleStartDate?: string
   saleEndDate?: string
@@ -177,6 +178,7 @@ export interface ProductFormInput {
   costPrice?: number | null
   isTaxable?: boolean
   taxClass?: string | null
+  taxCategoryId?: string | null
   salePrice?: number | null
   saleStartDate?: string | null
   saleEndDate?: string | null
@@ -535,6 +537,15 @@ export interface AdminInvoiceSettings {
   showSku: boolean
   showTax: boolean
   showCustomizationPricing: boolean
+  // GST identity fields — only present in the response for a caller with settings.tax;
+  // absent (not just empty) for anyone else, so treat all of these as optional.
+  isGstRegistered?: boolean
+  gstin?: string
+  gstLegalName?: string
+  gstState?: string
+  gstStateCode?: string
+  pan?: string
+  customerGstinOptional?: boolean
 }
 export const getInvoiceSettings = () => adminFetch<AdminInvoiceSettings>('/admin/settings/invoice')
 export const updateInvoiceSettings = (input: Partial<AdminInvoiceSettings>) =>

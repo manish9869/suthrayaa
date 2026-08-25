@@ -34,6 +34,7 @@ import {
 import { CustomizationEditor } from '@/components/admin/customization-editor'
 import { ColorYarnSwatch } from '@/components/color-yarn-swatch'
 import { Can } from '@/components/admin/can'
+import { getTaxCategories, type TaxCategory } from '@/lib/api/settings'
 
 interface ProductFormProps {
   product?: AdminProductListItem & { id: string }
@@ -152,6 +153,7 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
 
   const [categories, setCategories] = useState<AdminCategory[]>([])
   const [colors, setColors] = useState<AdminColor[]>([])
+  const [taxCategories, setTaxCategories] = useState<TaxCategory[]>([])
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
 
@@ -183,6 +185,7 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
     costPrice: product?.costPrice ?? undefined,
     isTaxable: product?.isTaxable ?? true,
     taxClass: product?.taxClass ?? '',
+    taxCategoryId: product?.taxCategoryId ?? '',
     salePrice: product?.salePrice ?? undefined,
     saleStartDate: product?.saleStartDate?.slice(0, 10) ?? '',
     saleEndDate: product?.saleEndDate?.slice(0, 10) ?? '',
@@ -220,6 +223,7 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
 
   useEffect(() => {
     getAdminCategories().then(setCategories)
+    getTaxCategories().then(setTaxCategories)
     getAdminColors().then((cs) => {
       setColors(cs)
       if (product) {
@@ -280,6 +284,7 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
         costPrice: form.costPrice != null ? Number(form.costPrice) : null,
         isTaxable: form.isTaxable,
         taxClass: form.taxClass || null,
+        taxCategoryId: form.taxCategoryId || null,
         salePrice: form.salePrice != null ? Number(form.salePrice) : null,
         saleStartDate: form.saleStartDate || null,
         saleEndDate: form.saleEndDate || null,
@@ -605,8 +610,19 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
             </label>
             {form.isTaxable && (
               <div className="flex items-center gap-2">
-                <Label className="text-xs">Tax Class</Label>
-                <Input className="w-40 h-8" value={form.taxClass} onChange={(e) => setForm((f) => ({ ...f, taxClass: e.target.value }))} />
+                <Label className="text-xs">GST Rate</Label>
+                <Select value={form.taxCategoryId} onValueChange={(v) => setForm((f) => ({ ...f, taxCategoryId: v }))}>
+                  <SelectTrigger className="w-40 h-8">
+                    <SelectValue placeholder="Store default" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {taxCategories.map((tc) => (
+                      <SelectItem key={tc.id} value={tc.id}>
+                        {tc.name} {tc.is_default ? '(default)' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
           </div>

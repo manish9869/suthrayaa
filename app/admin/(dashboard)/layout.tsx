@@ -23,6 +23,7 @@ import {
   Store,
   ShieldCheck,
   ScrollText,
+  Settings2,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Spinner } from '@/components/ui/spinner'
@@ -81,6 +82,7 @@ const navGroups: NavGroup[] = [
     items: [
       { href: '/admin/users', label: 'Users & Roles', icon: ShieldCheck, permission: 'users.view' },
       { href: '/admin/audit-logs', label: 'Audit Logs', icon: ScrollText, permission: 'audit_logs.view' },
+      { href: '/admin/settings', label: 'Site Settings', icon: Settings2, permission: 'settings.view' },
       { href: '/admin/settings/invoice', label: 'Invoice Settings', icon: Receipt, permission: 'settings.view' },
     ],
   },

@@ -76,7 +76,9 @@ export interface ShippingAddressInput {
   email?: string
   addressLine1: string
   addressLine2?: string
+  landmark?: string
   city: string
+  district?: string
   state: string
   pincode: string
 }

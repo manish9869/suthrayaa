@@ -1,4 +1,5 @@
 import { apiFetch } from "@/lib/api/http"
+import { getCachedStoreSettings } from "@/lib/store-settings-cache"
 
 // Types stay identical to what every component already expects — only the data source
 // (a live Express API instead of hardcoded arrays) changed. customizationOptions gained
@@ -212,10 +213,11 @@ export async function getHeroSlides(): Promise<HeroSlide[]> {
 }
 
 export function formatPrice(price: number): string {
-  return new Intl.NumberFormat("en-IN", {
+  const { currency, locale, decimalPlaces } = getCachedStoreSettings()
+  return new Intl.NumberFormat(locale, {
     style: "currency",
-    currency: "INR",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    currency,
+    minimumFractionDigits: decimalPlaces,
+    maximumFractionDigits: decimalPlaces,
   }).format(price)
 }

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, ShoppingBag, Heart, Search, User, Sparkles, Scissors, Tag } from 'lucide-react'
+import { Menu, X, ShoppingBag, Heart, Search, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -17,19 +17,29 @@ import { useAuth } from '@/lib/hooks/use-auth'
 import { formatPrice, searchProducts, type Category, type Product } from '@/lib/data'
 import { buildCategoryTree, type CategoryNode } from '@/lib/utils/category-tree'
 import { CartDrawer } from './cart-drawer'
+import { getPublicNavItems, getPublicSiteSettings } from '@/lib/api/settings'
 
-const navLinks = [
+interface NavLinkItem {
+  href: string
+  label: string
+  openInNewTab?: boolean
+}
+
+const FALLBACK_NAV_LINKS: NavLinkItem[] = [
   { href: '/', label: 'Home' },
   { href: '/shop', label: 'Shop' },
   { href: '/about', label: 'About' },
   { href: '/contact', label: 'Contact' },
 ]
 
-const announcements = [
-  { icon: Sparkles, text: 'Free shipping on orders above Rs. 999' },
-  { icon: Scissors, text: 'Handmade with love, one stitch at a time' },
-  { icon: Tag, text: 'Made to order, just for you' },
-]
+const FALLBACK_LOGO_URL =
+  'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Suthraya%20Logo%20-%20Trans-HgT4V8esTeOZ2PwWy5B7QcPjLLrahf.png'
+
+interface AnnouncementState {
+  text: string
+  link?: string
+  sticky: boolean
+}
 
 export function Navbar({ categories = [] }: { categories?: Category[] }) {
   const categoryTree = useMemo(
@@ -61,12 +71,62 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Slowly rotate the announcement bar through a few brand-flavored messages.
-  const [announcementIndex, setAnnouncementIndex] = useState(0)
+  // Nav links, logo and announcement bar are admin-configurable via Site Settings. Fetched
+  // client-side (public, unauthenticated endpoints) with hardcoded fallbacks so the header is
+  // never empty/broken if the settings API hiccups or hasn't been configured yet.
+  const [navLinks, setNavLinks] = useState<NavLinkItem[]>(FALLBACK_NAV_LINKS)
+  const [logoUrl, setLogoUrl] = useState(FALLBACK_LOGO_URL)
+  const [announcement, setAnnouncement] = useState<AnnouncementState | null>(null)
+
   useEffect(() => {
-    const interval = setInterval(() => setAnnouncementIndex((i) => (i + 1) % announcements.length), 4500)
-    return () => clearInterval(interval)
+    getPublicNavItems()
+      .then((items) => {
+        const topLevel = items.filter((item) => !item.parentId)
+        if (topLevel.length === 0) return
+        const sorted = [...topLevel].sort((a, b) => a.sortOrder - b.sortOrder)
+        setNavLinks(sorted.map((item) => ({ href: item.url, label: item.label, openInNewTab: item.openInNewTab })))
+      })
+      .catch(() => {
+        // Keep the hardcoded fallback nav so the header is never empty.
+      })
   }, [])
+
+  useEffect(() => {
+    getPublicSiteSettings()
+      .then((settings) => {
+        const branding = settings.branding ?? {}
+        const logo = branding['branding.logo_url']
+        if (typeof logo === 'string' && logo.trim()) setLogoUrl(logo)
+
+        const header = settings.header ?? {}
+        const enabled = Boolean(header['header.announcement_enabled'])
+        const text = header['header.announcement_text']
+        const startDate = header['header.announcement_start_date']
+        const endDate = header['header.announcement_end_date']
+        const now = new Date()
+        const afterStart = !startDate || now >= new Date(String(startDate))
+        const beforeEnd = !endDate || now <= new Date(String(endDate))
+
+        if (enabled && typeof text === 'string' && text.trim() && afterStart && beforeEnd) {
+          const link = header['header.announcement_link']
+          setAnnouncement({
+            text,
+            link: typeof link === 'string' && link.trim() ? link : undefined,
+            sticky: Boolean(header['header.announcement_sticky']),
+          })
+        }
+      })
+      .catch(() => {
+        // No settings loaded — logo falls back to the hardcoded default and the announcement
+        // bar simply stays hidden (it's opt-in/admin-controlled, unlike the nav/logo).
+      })
+  }, [])
+
+  // Sticky announcements stay pinned inside the fixed header while scrolling (today's
+  // behavior); non-sticky ones only show at the top of the page and collapse once scrolled —
+  // reusing the existing isScrolled tracking above instead of introducing new scroll logic.
+  const showAnnouncement = Boolean(announcement) && (announcement!.sticky || !isScrolled)
+  const navMidpoint = Math.ceil(navLinks.length / 2)
 
   // Debounced live search — queries the same /products search endpoint as the shop page,
   // just trimmed to a handful of quick suggestions.
@@ -121,24 +181,28 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
         )}
       >
         {/* Announcement Bar */}
-        <div className="bg-primary text-primary-foreground text-center py-2 text-sm overflow-hidden">
-          <AnimatePresence mode="wait">
-            <motion.p
-              key={announcementIndex}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.35 }}
-              className="flex items-center justify-center gap-1.5"
-            >
-              {(() => {
-                const Icon = announcements[announcementIndex].icon
-                return <Icon className="h-3.5 w-3.5" />
-              })()}
-              {announcements[announcementIndex].text}
-            </motion.p>
-          </AnimatePresence>
-        </div>
+        {showAnnouncement && announcement && (
+          <div className="bg-primary text-primary-foreground text-center py-2 text-sm overflow-hidden">
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={announcement.text}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.35 }}
+                className="flex items-center justify-center gap-1.5"
+              >
+                {announcement.link ? (
+                  <Link href={announcement.link} className="hover:underline">
+                    {announcement.text}
+                  </Link>
+                ) : (
+                  announcement.text
+                )}
+              </motion.p>
+            </AnimatePresence>
+          </div>
+        )}
 
         <nav className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16 lg:h-20">
@@ -161,7 +225,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
                       }}
                     >
                       <Image
-                        src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Suthraya%20Logo%20-%20Trans-HgT4V8esTeOZ2PwWy5B7QcPjLLrahf.png"
+                        src={logoUrl}
                         alt="Suthrayaa"
                         width={120}
                         height={60}
@@ -175,6 +239,8 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
                         <Link
                           key={link.href}
                           href={link.href}
+                          target={link.openInNewTab ? '_blank' : undefined}
+                          rel={link.openInNewTab ? 'noopener noreferrer' : undefined}
                           onClick={(e) => {
                             if (link.href === '/') handleHomeClick(e)
                             setIsMobileMenuOpen(false)
@@ -237,7 +303,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
             {/* Logo */}
             <Link href="/" className="flex-shrink-0" onClick={handleHomeClick}>
               <Image
-                src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Suthraya%20Logo%20-%20Trans-HgT4V8esTeOZ2PwWy5B7QcPjLLrahf.png"
+                src={logoUrl}
                 alt="Suthrayaa"
                 width={140}
                 height={70}
@@ -248,10 +314,12 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
 
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center gap-8">
-              {navLinks.slice(0, 2).map((link) => (
+              {navLinks.slice(0, navMidpoint).map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
+                  target={link.openInNewTab ? '_blank' : undefined}
+                  rel={link.openInNewTab ? 'noopener noreferrer' : undefined}
                   onClick={link.href === '/' ? handleHomeClick : undefined}
                   className={cn(
                     'text-sm font-medium transition-colors relative py-2',
@@ -291,10 +359,13 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
-              {navLinks.slice(2).map((link) => (
+              {navLinks.slice(navMidpoint).map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
+                  target={link.openInNewTab ? '_blank' : undefined}
+                  rel={link.openInNewTab ? 'noopener noreferrer' : undefined}
+                  onClick={link.href === '/' ? handleHomeClick : undefined}
                   className={cn(
                     'text-sm font-medium transition-colors relative py-2',
                     pathname === link.href ? 'text-primary' : 'text-foreground/80 hover:text-primary',
@@ -457,7 +528,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
       <CartDrawer />
 
       {/* Spacer for fixed header */}
-      <div className="h-[calc(2.5rem+4rem)] lg:h-[calc(2.5rem+5rem)]" />
+      <div className={showAnnouncement ? 'h-[calc(2.5rem+4rem)] lg:h-[calc(2.5rem+5rem)]' : 'h-16 lg:h-20'} />
     </>
   )
 }

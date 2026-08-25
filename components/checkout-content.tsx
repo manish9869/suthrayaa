@@ -9,6 +9,7 @@ import { Footer } from '@/components/footer'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
@@ -33,6 +34,7 @@ import { placeOrder, verifyPayment } from '@/lib/api/checkout'
 import { loadRazorpayScript } from '@/lib/razorpay'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { INDIA_STATE_NAMES, isValidIndianMobile, isValidIndianPincode } from '@/lib/india'
 
 type CheckoutStep = 'information' | 'shipping' | 'payment'
 
@@ -63,6 +65,7 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
     lastName: '',
     address: '',
     apartment: '',
+    landmark: '',
     city: '',
     state: '',
     pincode: '',
@@ -88,6 +91,10 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
     setFormData((prev) => ({ ...prev, [name]: checked }))
   }
 
+  const handleStateChange = (value: string) => {
+    setFormData((prev) => ({ ...prev, state: value }))
+  }
+
   const validateStep = (step: CheckoutStep): boolean => {
     switch (step) {
       case 'information':
@@ -95,12 +102,16 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
           toast.error('Please fill in all contact information')
           return false
         }
+        if (!isValidIndianMobile(formData.phone)) {
+          toast.error('Please enter a valid 10-digit Indian mobile number')
+          return false
+        }
         if (!formData.address || !formData.city || !formData.state || !formData.pincode) {
           toast.error('Please fill in your complete address')
           return false
         }
-        if (!/^\d{6}$/.test(formData.pincode)) {
-          toast.error('Please enter a valid 6-digit pincode')
+        if (!isValidIndianPincode(formData.pincode)) {
+          toast.error('Please enter a valid 6-digit PIN code')
           return false
         }
         return true
@@ -143,6 +154,7 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
         email: formData.email,
         addressLine1: formData.address,
         addressLine2: formData.apartment || undefined,
+        landmark: formData.landmark || undefined,
         city: formData.city,
         state: formData.state,
         pincode: formData.pincode,
@@ -372,6 +384,10 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
                             <Label htmlFor="apartment">Apartment, Suite, etc. (optional)</Label>
                             <Input id="apartment" name="apartment" placeholder="Apartment, suite, etc." value={formData.apartment} onChange={handleInputChange} />
                           </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="landmark">Landmark (optional)</Label>
+                            <Input id="landmark" name="landmark" placeholder="Nearby landmark" value={formData.landmark} onChange={handleInputChange} />
+                          </div>
                           <div className="grid sm:grid-cols-3 gap-4">
                             <div className="space-y-2">
                               <Label htmlFor="city">City</Label>
@@ -379,11 +395,22 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
                             </div>
                             <div className="space-y-2">
                               <Label htmlFor="state">State</Label>
-                              <Input id="state" name="state" placeholder="State" value={formData.state} onChange={handleInputChange} />
+                              <Select value={formData.state} onValueChange={handleStateChange}>
+                                <SelectTrigger id="state">
+                                  <SelectValue placeholder="Select state" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {INDIA_STATE_NAMES.map((s) => (
+                                    <SelectItem key={s} value={s}>
+                                      {s}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </div>
                             <div className="space-y-2">
-                              <Label htmlFor="pincode">Pincode</Label>
-                              <Input id="pincode" name="pincode" placeholder="6-digit pincode" maxLength={6} value={formData.pincode} onChange={handleInputChange} />
+                              <Label htmlFor="pincode">PIN Code</Label>
+                              <Input id="pincode" name="pincode" placeholder="6-digit PIN code" maxLength={6} value={formData.pincode} onChange={handleInputChange} />
                             </div>
                           </div>
                         </div>
