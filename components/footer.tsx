@@ -248,8 +248,9 @@ export function Footer() {
         <div className="container relative mx-auto px-4 pt-16 pb-8">
           <div className="grid gap-12 lg:grid-cols-[1.3fr_2fr_1.2fr]">
             <div>
-              <Link href="/" className="inline-flex items-center rounded-2xl bg-cream px-3 py-2">
-                <Image src={logoUrl} alt="Suthrayaa" width={120} height={63} className="h-12 w-auto" />
+              {/* Logo art is dark line-work on transparent — inverted to light so it reads on the ink footer */}
+              <Link href="/" className="-ml-2 inline-flex items-center">
+                <Image src={logoUrl} alt="Suthrayaa" width={200} height={106} className="h-24 w-auto brightness-0 invert" />
               </Link>
               <p className="mt-5 max-w-xs text-sm leading-relaxed text-primary-foreground/70">{description}</p>
               <div className="mt-6 flex items-center gap-2">

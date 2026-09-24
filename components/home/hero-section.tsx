@@ -13,6 +13,7 @@ import { toast } from 'sonner'
 import { EASE_OUT } from '@/components/motion/reveal'
 import { STOREFRONT_IMAGES } from '@/lib/storefront-images'
 import { HeroBackdrop } from './hero-backdrop'
+import { HandmadeSeal } from './handmade-seal'
 
 /** Real Suthrayaa pieces, cut out so they sit on the brand stage. */
 const SHOWCASE = {
@@ -35,8 +36,6 @@ type Slide = {
   image: string
   cta: string
   href: string
-  /** Transparent product cut-out shown floating on the stage instead of a full photo. */
-  cutout?: string
   /** Smaller cut-outs that drift around the arch. */
   satellites?: string[]
 }
@@ -48,7 +47,6 @@ const fallbackSlides: Slide[] = [
     subtitle: 'Pooja & devghar collection',
     description: 'Marigold and hibiscus garlands, flower rings and chowki covers — handmade in crochet so they stay fresh for every puja.',
     image: STOREFRONT_IMAGES.heroGarland,
-    cutout: SHOWCASE.marigold,
     satellites: [SHOWCASE.hibiscusGarland, SHOWCASE.ring],
     cta: 'Shop Devghar Collection',
     href: '/shop?category=devghar-collection-v2',
@@ -59,7 +57,6 @@ const fallbackSlides: Slide[] = [
     subtitle: 'Crochet flowers & bouquets',
     description: 'Hibiscus in a glass vase, sunflower stems and potted blooms — every petal hooked by hand, bright all year.',
     image: STOREFRONT_IMAGES.heroFlowers,
-    cutout: SHOWCASE.hibiscusVase,
     satellites: [SHOWCASE.sunflowers, SHOWCASE.sunflowerPot],
     cta: 'Shop Flowers',
     href: '/shop?category=flowers-floral',
@@ -68,21 +65,19 @@ const fallbackSlides: Slide[] = [
     id: 'f2',
     title: 'Doorways & walls, made festive.',
     subtitle: 'Torans & home décor',
-    description: 'Peacock-feather torans, star hangings and flower rings that bring colour to every doorway and corner.',
-    image: STOREFRONT_IMAGES.heroFlowers,
-    cutout: SHOWCASE.star,
-    satellites: [SHOWCASE.toran, SHOWCASE.ring],
+    description: 'Rose-and-bell torans, peacock doilies, star hangings and coasters that bring colour to every doorway and corner.',
+    image: STOREFRONT_IMAGES.heroDecor,
+    satellites: [SHOWCASE.toran, SHOWCASE.star],
     cta: 'Shop Home Décor',
     href: '/shop?category=home-and-decor',
   },
   {
     id: 'f3',
-    title: 'Hair accessories, softly made.',
-    subtitle: 'Hair ties · scrunchies · clips',
-    description: 'Flower hair ties, scrunchies and bow clips in soft cotton yarn — gentle on hair, lovely on everyone.',
+    title: 'Jasmine that never fades.',
+    subtitle: 'Gajra · hair ties · clips',
+    description: 'Crochet mogra gajra, flower hair ties and rose clips — soft on hair, lovely for every occasion.',
     image: STOREFRONT_IMAGES.heroHair,
-    cutout: SHOWCASE.hairTie,
-    satellites: [SHOWCASE.sunflowers],
+    satellites: [SHOWCASE.hairTie],
     cta: 'Shop Hair Accessories',
     href: '/shop?search=hair',
   },
@@ -90,27 +85,21 @@ const fallbackSlides: Slide[] = [
     id: 'f4',
     title: 'Tiny keychains. Big personality.',
     subtitle: 'Handmade crochet keychains',
-    description: 'Bunnies, strawberries, daisies and name keychains — stitched by hand to carry a little joy everywhere.',
+    description: 'Cherries, sun hats, tulips, hearts and evil-eye charms — stitched by hand to carry a little joy everywhere.',
     image: STOREFRONT_IMAGES.heroKeychains,
     cta: 'Shop Keychains',
     href: '/shop?search=keychain',
   },
+  {
+    id: 'f5',
+    title: 'Carry it softly. Made by hand.',
+    subtitle: 'Crochet phone slings',
+    description: 'Phone sling bags with long cord straps — solid, striped and tasselled, hooked stitch by stitch.',
+    image: STOREFRONT_IMAGES.heroBags,
+    cta: 'Shop Bags',
+    href: '/shop?search=bag',
+  },
 ]
-
-/** Lavender-to-peach stage with a slowly breathing product cut-out — a soft, looping "product film". */
-function ProductStage({ src, alt, reduce }: { src: string; alt: string; reduce: boolean }) {
-  return (
-    <div className="absolute inset-0 bg-[linear-gradient(180deg,#e3d9ff_0%,#efe8ff_45%,#ffe3d6_100%)]">
-      {/* light sweep */}
-      {!reduce && <div className="stage-sheen absolute inset-0" />}
-      {/* pedestal */}
-      <div className="absolute inset-x-[14%] bottom-[7%] h-[9%] rounded-[50%] bg-[radial-gradient(closest-side,rgb(49_32_140/0.22),transparent)]" />
-      <div className={cn('absolute inset-x-[13%] bottom-[13%] top-[11%]', !reduce && 'stage-breathe')}>
-        <Image src={src} alt={alt} fill priority sizes="(max-width: 1024px) 70vw, 380px" className="object-contain drop-shadow-[0_24px_28px_rgb(49_32_140/0.3)]" />
-      </div>
-    </div>
-  )
-}
 
 /** Splits "First part. Second part." (or a comma) so the second half can be set in italics. */
 function splitTitle(title: string): [string, string | null] {
@@ -283,11 +272,10 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.9, ease: EASE_OUT }}
                 >
-                  {slide.cutout ? (
-                    <ProductStage src={slide.cutout} alt={slide.title} reduce={!!reduce} />
-                  ) : (
+                  <div className={cn('absolute inset-0', !reduce && 'ken-burns')}>
                     <Image src={slide.image} alt={slide.title} fill priority sizes="(max-width: 1024px) 80vw, 420px" className="object-cover" />
-                  )}
+                  </div>
+                  {!reduce && <div className="stage-sheen absolute inset-0" />}
                 </motion.div>
               </AnimatePresence>
             </div>
@@ -315,19 +303,15 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
             ))}
           </AnimatePresence>
 
-          {/* Rotating badge */}
-          <div className="absolute left-0 top-[8%] hidden h-28 w-28 sm:block">
-            <svg viewBox="0 0 100 100" className={cn('h-full w-full', !reduce && 'animate-[spin_22s_linear_infinite]')} aria-hidden>
-              <defs>
-                <path id="hero-circle" d="M50,50 m-38,0 a38,38 0 1,1 76,0 a38,38 0 1,1 -76,0" />
-              </defs>
-              <circle cx="50" cy="50" r="49" fill="var(--card)" />
-              <text fontSize="10.5" letterSpacing="3" fill="var(--forest)" fontWeight="600">
-                <textPath href="#hero-circle">HANDMADE · WITH · LOVE · IN INDIA ·</textPath>
-              </text>
-            </svg>
-            <span className="absolute inset-0 m-auto flex h-10 w-10 items-center justify-center rounded-full bg-rose text-lg text-white">✿</span>
-          </div>
+          {/* Handmade seal */}
+          <motion.div
+            className="absolute left-[-6%] top-[5%] z-[2] hidden sm:block"
+            initial={reduce ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.96, filter: 'blur(6px)' }}
+            animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+            transition={{ delay: 0.3, duration: 0.7, ease: EASE_OUT }}
+          >
+            <HandmadeSeal />
+          </motion.div>
 
           {/* Floating product card */}
           {activePick && (

@@ -5,7 +5,7 @@ import { Stagger, StaggerItem } from '@/components/motion/reveal'
 import { STOREFRONT_IMAGES } from '@/lib/storefront-images'
 import { SectionHeading } from './section-heading'
 
-const alts = ['Crochet amigurumi collection', 'Personalized keychains', 'Home decor items', 'Baby collection', 'Crafting process', 'Festive collection']
+const alts = ['Crochet marigold garland', 'Crochet keychains', 'Peacock crochet doily', 'Star and moon mobile', 'Crochet phone sling bags', 'Peacock feather toran']
 const INSTAGRAM_URL = 'https://instagram.com/suthrayaa'
 
 export function InstagramSection() {

@@ -1,19 +1,31 @@
 /** Every editorial (non-product) image the storefront uses, in one place — swap a path here
- * to restyle a section without touching components. Product/category photos come from the API,
- * and Admin → Hero Slides images take priority over the hero fallbacks on the homepage. */
+ * to restyle a section without touching components. All scenes are styled shots of real
+ * Suthrayaa pieces. Product/category photos come from the API, and Admin → Hero Slides images
+ * take priority over the hero fallbacks on the homepage. */
 export const STOREFRONT_IMAGES = {
   logo: '/logo.png',
-  heroGarland: '/editorial/hero-garland.webp',
-  heroFlowers: '/editorial/hero-potted.webp',
-  heroHair: '/editorial/hero-hair.webp',
-  heroKeychains: '/editorial/hero-keychains.webp',
-  megaMenu: '/editorial/hero-flowers.webp',
-  promoBanner: '/editorial/promo-lilac.webp',
-  dealOfDay: '/editorial/hair-gajra.webp',
+  // hero slides
+  heroGarland: '/editorial/scene-garland.webp',
+  heroFlowers: '/editorial/scene-hibiscus.webp',
+  heroDecor: '/editorial/scene-rosetoran.webp',
+  heroHair: '/editorial/scene-gajra.webp',
+  heroKeychains: '/editorial/scene-keychains.webp',
+  heroBags: '/editorial/scene-bags.webp',
+  // sections
+  megaMenu: '/editorial/scene-sunflowers.webp',
+  promoBanner: '/editorial/scene-flatlay.webp',
+  dealOfDay: '/editorial/scene-star.webp',
   story: '/editorial/story-hands.webp',
-  storySecondary: '/editorial/hair-gajra.webp',
-  authSide: '/editorial/hero-flowers.webp',
-  shopBanner: '/editorial/studio-lilac.webp',
+  storySecondary: '/editorial/scene-hair.webp',
+  authSide: '/editorial/scene-devghar.webp',
+  shopBanner: '/editorial/scene-flatlay.webp',
   aboutHero: '/editorial/story-hands.webp',
-  instagram: ['/instagram/insta-1.jpg', '/instagram/insta-2.jpg', '/instagram/insta-3.jpg', '/instagram/insta-4.jpg', '/instagram/insta-5.jpg', '/instagram/insta-6.jpg'],
+  instagram: [
+    '/editorial/scene-garland.webp',
+    '/editorial/scene-keychains.webp',
+    '/editorial/scene-doily.webp',
+    '/editorial/scene-mobile.webp',
+    '/editorial/scene-bags.webp',
+    '/editorial/scene-toran.webp',
+  ],
 } as const
