@@ -14,11 +14,13 @@ import { DateRangeFilter, type DateRangeValue } from '@/components/admin/date-ra
 import { TableLoadingRow } from '@/components/admin/loading-state'
 import { ProtectedRoute } from '@/components/admin/protected-route'
 import { Can } from '@/components/admin/can'
+import { PageHeader } from '@/components/admin/page-header'
+import { StatusDot, type DotTone } from '@/components/admin/status-dot'
 
-const STATUS_VARIANT: Record<string, 'secondary' | 'destructive' | 'outline'> = {
-  sent: 'secondary',
+const STATUS_TONE: Record<string, DotTone> = {
+  sent: 'mint',
   failed: 'destructive',
-  pending: 'outline',
+  pending: 'gold',
 }
 const ALL_TIME: DateRangeValue = { days: 3650, label: 'Any time' }
 
@@ -79,20 +81,15 @@ export default function EmailLogsPage() {
   return (
     <ProtectedRoute permission="emails.view">
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Email Logs</h1>
-        <p className="text-muted-foreground text-sm">
-          {filtered.length} of {logs.length} emails
-        </p>
-      </div>
+      <PageHeader title="Email Logs" description={`${filtered.length} of ${logs.length} emails`} />
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative max-w-sm flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search recipient or subject..." className="pl-10" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input placeholder="Search recipient or subject..." className="pl-10 h-10 rounded-xl" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <Select value={type} onValueChange={setType}>
-          <SelectTrigger className="w-44">
+          <SelectTrigger className="h-10 rounded-xl w-44">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -105,7 +102,7 @@ export default function EmailLogsPage() {
           </SelectContent>
         </Select>
         <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="h-10 rounded-xl w-40">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -143,7 +140,7 @@ export default function EmailLogsPage() {
             ) : (
               filtered.map((l) => (
                 <TableRow key={l.id}>
-                  <TableCell className="text-xs">{l.type.replace(/_/g, ' ')}</TableCell>
+                  <TableCell className="text-[13px] font-medium capitalize">{l.type.replace(/_/g, ' ')}</TableCell>
                   <TableCell className="text-sm">{l.recipient}</TableCell>
                   <TableCell className="text-sm truncate max-w-[220px]">{l.subject}</TableCell>
                   <TableCell>
@@ -156,7 +153,7 @@ export default function EmailLogsPage() {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={STATUS_VARIANT[l.status] ?? 'outline'}>{l.status}</Badge>
+                    <StatusDot label={l.status} tone={STATUS_TONE[l.status] ?? 'muted'} />
                   </TableCell>
                   <TableCell className="text-muted-foreground text-xs">{new Date(l.sentAt).toLocaleString('en-IN')}</TableCell>
                   <TableCell className="text-right">

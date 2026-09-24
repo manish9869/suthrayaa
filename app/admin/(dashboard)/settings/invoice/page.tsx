@@ -12,6 +12,7 @@ import { getInvoiceSettings, updateInvoiceSettings, type AdminInvoiceSettings } 
 import { PageLoader } from '@/components/admin/loading-state'
 import { ProtectedRoute } from '@/components/admin/protected-route'
 import { Can } from '@/components/admin/can'
+import { PageHeader } from '@/components/admin/page-header'
 
 export default function InvoiceSettingsPage() {
   const [settings, setSettings] = useState<AdminInvoiceSettings | null>(null)
@@ -47,12 +48,7 @@ export default function InvoiceSettingsPage() {
   return (
     <ProtectedRoute permission="settings.view">
     <div className="space-y-6 max-w-2xl">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Invoice Settings</h1>
-        <p className="text-muted-foreground text-sm">
-          Controls what appears on every invoice. Changing these only affects invoices generated from now on — already-issued invoices stay exactly as they were.
-        </p>
-      </div>
+      <PageHeader title="Invoice Settings" description="Controls what appears on every invoice. Changes only affect invoices generated from now on — already-issued invoices stay exactly as they were." />
 
       <Card>
         <CardHeader>

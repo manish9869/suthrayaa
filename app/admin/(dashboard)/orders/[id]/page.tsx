@@ -26,6 +26,7 @@ import {
   Truck,
   History,
   Send,
+  Sparkles,
 } from 'lucide-react'
 import {
   getAdminOrder,
@@ -208,9 +209,9 @@ export default function AdminOrderDetailPage() {
           <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
             {order.orderNumber}
             {order.isCustomOrder && (
-              <Badge variant="secondary" className="text-xs">
-                Custom Order
-              </Badge>
+              <span className="inline-flex items-center gap-1 rounded-full bg-violet/10 px-2.5 py-0.5 text-xs font-semibold text-violet">
+                <Sparkles className="h-3 w-3" /> Custom Order
+              </span>
             )}
           </h1>
           <p className="text-muted-foreground text-sm">Placed {order.placedAt ? new Date(order.placedAt).toLocaleString('en-IN') : '—'}</p>
@@ -339,7 +340,7 @@ export default function AdminOrderDetailPage() {
             <CardContent className="space-y-3">
               {order.statusHistory?.map((h, i) => (
                 <div key={i} className="flex items-start gap-3 text-sm">
-                  <div className="w-2 h-2 rounded-full bg-secondary mt-1.5 flex-shrink-0" />
+                  <div className="w-2 h-2 rounded-full bg-primary mt-1.5 flex-shrink-0" />
                   <div>
                     <p className="font-medium capitalize">{STATUS_LABELS[h.status] ?? h.status.replace(/_/g, ' ')}</p>
                     {h.note && <p className="text-muted-foreground text-xs">{h.note}</p>}

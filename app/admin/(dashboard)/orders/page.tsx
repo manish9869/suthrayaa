@@ -25,6 +25,7 @@ import { ProtectedRoute } from '@/components/admin/protected-route'
 import { Can } from '@/components/admin/can'
 import { OrderPreviewSheet } from '@/components/admin/order-preview-sheet'
 import { cn } from '@/lib/utils'
+import { PageHeader } from '@/components/admin/page-header'
 
 const STATUS_DOT: Record<string, DotTone> = {
   pending_payment: 'muted',
@@ -201,22 +202,20 @@ export default function AdminOrdersPage() {
   return (
     <ProtectedRoute permission="orders.view">
     <div className="space-y-6">
-      <div className="flex items-start justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Orders</h1>
-          <p className="text-muted-foreground text-sm">
-            {filtered.length} of {orders.length} orders · click a row for a quick look
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeader
+        title="Orders"
+        description={`${filtered.length} of ${orders.length} orders · click a row for a quick look`}
+        actions={
+          <>
           <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-            <RefreshCw className={`h-3.5 w-3.5 mr-2 ${loading ? 'animate-spin' : ''}`} /> Refresh
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
           </Button>
           <Button variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0}>
-            <FileDown className="h-3.5 w-3.5 mr-2" /> Export
+            <FileDown className="h-3.5 w-3.5" /> Export
           </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={ShoppingCart} label={`Shown of ${orders.length}`} value={filtered.length} tone="primary" />
@@ -228,11 +227,11 @@ export default function AdminOrdersPage() {
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative max-w-sm flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search order #, customer, tracking..." className="pl-10 rounded-full" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input placeholder="Search order #, customer, tracking..." className="pl-10 h-10 rounded-xl" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
 
         <Select value={custom} onValueChange={setCustom}>
-          <SelectTrigger className="rounded-full w-36">
+          <SelectTrigger className="h-10 rounded-xl w-36">
             <span className={`h-2 w-2 rounded-full flex-shrink-0 ${custom === 'all' ? DOT_CLASSES.muted : DOT_CLASSES.primary}`} />
             <SelectValue />
           </SelectTrigger>
@@ -244,7 +243,7 @@ export default function AdminOrdersPage() {
         </Select>
 
         <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger className="rounded-full w-40">
+          <SelectTrigger className="h-10 rounded-xl w-40">
             <span className={`h-2 w-2 rounded-full flex-shrink-0 ${status === 'all' ? DOT_CLASSES.muted : DOT_CLASSES[STATUS_DOT[status] ?? 'muted']}`} />
             <SelectValue />
           </SelectTrigger>
@@ -260,7 +259,7 @@ export default function AdminOrdersPage() {
         </Select>
 
         <Select value={paymentStatus} onValueChange={setPaymentStatus}>
-          <SelectTrigger className="rounded-full w-40">
+          <SelectTrigger className="h-10 rounded-xl w-40">
             <span className={`h-2 w-2 rounded-full flex-shrink-0 ${paymentStatus === 'all' ? DOT_CLASSES.muted : DOT_CLASSES[PAYMENT_DOT[paymentStatus] ?? 'muted']}`} />
             <SelectValue />
           </SelectTrigger>
@@ -279,7 +278,7 @@ export default function AdminOrdersPage() {
 
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="rounded-full font-normal">
+            <Button variant="outline" className="h-10 rounded-xl font-normal">
               <SlidersHorizontal className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
               {totalRange[0] > 0 || totalRange[1] < maxTotal ? `${formatPrice(totalRange[0])} – ${formatPrice(totalRange[1])}` : 'Any total'}
             </Button>

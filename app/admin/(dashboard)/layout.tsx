@@ -52,6 +52,8 @@ interface NavItem {
   icon: typeof LayoutDashboard
   /** Omit for items every active admin should see regardless of permissions (just "Dashboard"). */
   permission?: string
+  /** Extra path prefixes that belong to this item (e.g. /admin/roles lives under Users & Roles). */
+  aliases?: string[]
 }
 interface NavGroup {
   title: string
@@ -96,7 +98,7 @@ const navGroups: NavGroup[] = [
   {
     title: 'Administration',
     items: [
-      { href: '/admin/users', label: 'Users & Roles', icon: ShieldCheck, permission: 'users.view' },
+      { href: '/admin/users', label: 'Users & Roles', icon: ShieldCheck, permission: 'users.view', aliases: ['/admin/roles'] },
       { href: '/admin/audit-logs', label: 'Audit Logs', icon: ScrollText, permission: 'audit_logs.view' },
       { href: '/admin/settings', label: 'Site Settings', icon: Settings2, permission: 'settings.view' },
       { href: '/admin/settings/invoice', label: 'Invoice Settings', icon: Receipt, permission: 'settings.view' },
@@ -122,7 +124,9 @@ function firstAccessibleHref(hasPermission: (slug: string) => boolean): string |
 type AdminTheme = 'light' | 'dark'
 const THEME_STORAGE_KEY = 'suthrayaa-admin-theme'
 
-function isActive(pathname: string, href: string) {
+function isActive(pathname: string, item: NavItem | string) {
+  const href = typeof item === 'string' ? item : item.href
+  if (typeof item !== 'string' && item.aliases?.some((a) => pathname === a || pathname.startsWith(a + '/'))) return true
   if (href === '/admin') return pathname === href
   // "/admin/settings" must not light up while on "/admin/settings/invoice", which has its own item
   if (href === '/admin/settings') return pathname === href
@@ -151,7 +155,7 @@ function SidebarNav({ groups, pathname, onNavigate }: { groups: NavGroup[]; path
           <p className="px-3 mb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-sidebar-foreground/35">{group.title}</p>
           <div className="space-y-0.5">
             {group.items.map((item) => {
-              const active = isActive(pathname, item.href)
+              const active = isActive(pathname, item)
               return (
                 <Link
                   key={item.href}
@@ -280,7 +284,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
 
   const groups = visibleNavGroups(hasPermission)
   const allItems = groups.flatMap((g) => g.items)
-  const current = allItems.filter((i) => isActive(pathname, i.href)).sort((a, b) => b.href.length - a.href.length)[0]
+  const current = allItems.filter((i) => isActive(pathname, i)).sort((a, b) => b.href.length - a.href.length)[0]
   const currentGroup = groups.find((g) => current && g.items.includes(current))
   const displayName = admin.displayName ?? admin.email ?? 'Admin'
   const initials = displayName

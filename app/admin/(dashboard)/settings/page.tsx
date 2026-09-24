@@ -38,6 +38,7 @@ import { PageLoader } from '@/components/admin/loading-state'
 import { ProtectedRoute } from '@/components/admin/protected-route'
 import { Can } from '@/components/admin/can'
 import { SettingsGroupForm } from '@/components/admin/settings-group-form'
+import { PageHeader } from '@/components/admin/page-header'
 import { useRbac } from '@/lib/rbac/rbac-context'
 import { INDIA_STATE_NAMES } from '@/lib/india'
 import {
@@ -119,19 +120,21 @@ function SettingsPageContent() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Site Settings</h1>
-        <p className="text-muted-foreground text-sm">Configure Suthrayaa for the Indian market — store identity, GST, shipping, payments, and storefront content.</p>
-      </div>
+      <PageHeader
+        title="Site Settings"
+        description="Configure Suthrayaa for the Indian market — store identity, GST, shipping, payments, and storefront content."
+      />
 
-      <div className="flex gap-6">
-        <nav className="w-56 shrink-0 space-y-1">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+        <nav className={`${GLASS_PANEL} flex gap-1 overflow-x-auto p-2 lg:sticky lg:top-6 lg:w-60 lg:shrink-0 lg:flex-col lg:overflow-visible`}>
           {visibleTabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setActive(t.id)}
-              className={`flex w-full items-center gap-2.5 rounded-full px-3 py-2 text-left text-sm transition-colors ${
-                activeTab.id === t.id ? 'bg-primary text-primary-foreground font-medium' : 'text-muted-foreground hover:bg-muted/50'
+              className={`flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-xl px-3 py-2 text-left text-[13.5px] transition-colors lg:w-full ${
+                activeTab.id === t.id
+                  ? 'bg-primary/10 font-semibold text-primary'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               }`}
             >
               <t.icon className="h-4 w-4 shrink-0" />
@@ -140,7 +143,16 @@ function SettingsPageContent() {
           ))}
         </nav>
 
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 space-y-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <activeTab.icon className="h-[18px] w-[18px]" />
+            </span>
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight">{activeTab.label}</h2>
+              <p className="text-xs text-muted-foreground">Changes apply to the storefront as soon as they&apos;re saved.</p>
+            </div>
+          </div>
           {activeTab.id === 'contact' ? (
             <ContactBusinessTab
               catalog={settings.catalog}

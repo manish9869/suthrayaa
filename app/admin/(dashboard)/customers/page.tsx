@@ -36,6 +36,7 @@ import { DataTablePagination } from '@/components/admin/data-table-pagination'
 import { usePaginated } from '@/lib/hooks/use-paginated'
 import { TableLoadingRow } from '@/components/admin/loading-state'
 import { ProtectedRoute } from '@/components/admin/protected-route'
+import { PageHeader } from '@/components/admin/page-header'
 
 const ALL_TIME: DateRangeValue = { days: 3650, label: 'Any time joined' }
 
@@ -170,22 +171,20 @@ export default function AdminCustomersPage() {
   return (
     <ProtectedRoute permission="customers.view">
     <div className="space-y-6">
-      <div className="flex items-start justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Customers</h1>
-          <p className="text-muted-foreground text-sm">
-            {filtered.length} of {customers.length} registered
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeader
+        title="Customers"
+        description={`${filtered.length} of ${customers.length} registered customers`}
+        actions={
+          <>
           <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-            <RefreshCw className={`h-3.5 w-3.5 mr-2 ${loading ? 'animate-spin' : ''}`} /> Refresh
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
           </Button>
           <Button variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0}>
-            <FileDown className="h-3.5 w-3.5 mr-2" /> Export
+            <FileDown className="h-3.5 w-3.5" /> Export
           </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={Users} label={`Shown of ${customers.length}`} value={filtered.length} tone="primary" />
@@ -197,11 +196,11 @@ export default function AdminCustomersPage() {
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative max-w-sm flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search name, email, or phone..." className="pl-10 rounded-full" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input placeholder="Search name, email, or phone..." className="pl-10 h-10 rounded-xl" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
 
         <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
-          <SelectTrigger className="rounded-full w-44">
+          <SelectTrigger className="h-10 rounded-xl w-44">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -216,7 +215,7 @@ export default function AdminCustomersPage() {
         <DateRangeFilter value={joinedRange} onChange={setJoinedRange} />
 
         <Select value={minOrders} onValueChange={setMinOrders}>
-          <SelectTrigger className="rounded-full w-40">
+          <SelectTrigger className="h-10 rounded-xl w-40">
             <SlidersHorizontal className="h-3.5 w-3.5 mr-1 text-muted-foreground flex-shrink-0" />
             <SelectValue />
           </SelectTrigger>
@@ -231,7 +230,7 @@ export default function AdminCustomersPage() {
 
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="rounded-full font-normal">
+            <Button variant="outline" className="h-10 rounded-xl font-normal">
               <Wallet className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
               {spentRange[0] > 0 || spentRange[1] < maxSpent ? `${formatPrice(spentRange[0])} – ${formatPrice(spentRange[1])}` : 'Any spend'}
             </Button>
@@ -282,7 +281,7 @@ export default function AdminCustomersPage() {
                       {c.firstName || c.lastName ? `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() : 'Unnamed'}
                       {c.orderCount >= 5 && (
                         <span title="Loyal customer">
-                          <Sparkles className="h-3.5 w-3.5 text-secondary" />
+                          <Sparkles className="h-3.5 w-3.5 text-violet" />
                         </span>
                       )}
                     </Link>

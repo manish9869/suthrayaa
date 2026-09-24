@@ -677,7 +677,7 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
             <CardContent className="p-4 space-y-5">
               <div>
                 <p className="text-sm font-medium flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-secondary" /> Simple Text Personalization (legacy)
+                  <Sparkles className="h-4 w-4 text-violet" /> Simple Text Personalization (legacy)
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Only used if this product has no option groups above. Prefer option groups for new products.

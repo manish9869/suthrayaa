@@ -6,6 +6,7 @@ import { ProductForm } from '@/components/admin/product-form'
 import { PageLoader } from '@/components/admin/loading-state'
 import { getAdminProduct, type AdminProductListItem } from '@/lib/api/admin'
 import { ProtectedRoute } from '@/components/admin/protected-route'
+import { PageHeader } from '@/components/admin/page-header'
 
 export default function EditProductPage() {
   const params = useParams<{ id: string }>()
@@ -24,7 +25,7 @@ export default function EditProductPage() {
   return (
     <ProtectedRoute permission="products.update">
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Edit Product</h1>
+      <PageHeader title="Edit Product" description="Update this listing. Changes go live when you save." backHref="/admin/products" backLabel="Products" />
       <ProductForm product={product} />
     </div>
     </ProtectedRoute>

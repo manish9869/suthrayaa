@@ -5,12 +5,12 @@ import { useParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Lock, ShieldCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { verifyInvite, acceptInvite, type InviteDetails } from '@/lib/api/rbac'
 import { Spinner } from '@/components/ui/spinner'
+import { AuthShell } from '@/components/admin/auth-shell'
 
 // Deliberately not linked from anywhere in the app (sidebar, login page, etc.) — reachable
 // only by the exact invite URL an existing admin generated and shared out of band. Outside
@@ -54,14 +54,7 @@ export default function AdminRegisterPage() {
   }
 
   return (
-    <main className="admin min-h-screen flex items-center justify-center bg-background px-4">
-      <Card className="w-full max-w-sm shadow-soft">
-        <CardContent className="p-8">
-          <div className="flex justify-center mb-4">
-            <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
-              <Lock className="h-5 w-5" />
-            </div>
-          </div>
+    <AuthShell>
 
           {!invite && !invalid && (
             <div className="flex justify-center py-8">
@@ -70,8 +63,8 @@ export default function AdminRegisterPage() {
           )}
 
           {invalid && (
-            <div className="text-center space-y-2">
-              <h1 className="text-xl font-semibold tracking-tight">This invite is no longer valid</h1>
+            <div className="space-y-2">
+              <h1 className="text-2xl font-semibold tracking-tight">This invite is no longer valid</h1>
               <p className="text-sm text-muted-foreground">
                 It may have expired or already been used. Ask whoever invited you to send a new one.
               </p>
@@ -80,10 +73,10 @@ export default function AdminRegisterPage() {
 
           {invite && (
             <>
-              <h1 className="text-xl font-semibold tracking-tight text-center mb-1">Welcome to Suthrayaa</h1>
-              <p className="text-sm text-muted-foreground text-center mb-1">Set a password to activate your admin account</p>
-              <p className="text-xs text-muted-foreground text-center mb-4">{invite.email}</p>
-              <div className="flex justify-center gap-1 mb-6 flex-wrap">
+              <h1 className="text-2xl font-semibold tracking-tight mb-1">Welcome to Suthrayaa</h1>
+              <p className="text-sm text-muted-foreground mb-1">Set a password to activate your admin account</p>
+              <p className="text-xs font-medium text-foreground mb-4">{invite.email}</p>
+              <div className="flex gap-1 mb-6 flex-wrap">
                 {invite.roleNames.map((name) => (
                   <Badge key={name} variant="secondary" className="gap-1">
                     <ShieldCheck className="h-3 w-3" /> {name}
@@ -107,14 +100,12 @@ export default function AdminRegisterPage() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                   />
                 </div>
-                <Button type="submit" size="lg" className="w-full" disabled={submitting}>
+                <Button type="submit" size="lg" className="h-11 w-full rounded-xl" disabled={submitting}>
                   {submitting ? 'Activating...' : 'Activate Account'}
                 </Button>
               </form>
             </>
           )}
-        </CardContent>
-      </Card>
-    </main>
+    </AuthShell>
   )
 }

@@ -96,9 +96,9 @@
   --popover: #ffffff;
   --popover-foreground: #17181c;
 
-  /* Warm amber — secondary action (e.g. the active page chip), echoing the storefront's gold */
-  --secondary: #fbd46b;
-  --secondary-foreground: #3b2800;
+  /* Neutral secondary surface (secondary buttons, the active page chip, secondary badges) */
+  --secondary: #ecebe6;
+  --secondary-foreground: #17181c;
 
   --muted: #f1f0ed;
   --muted-foreground: #6b6e76;
@@ -168,8 +168,8 @@
   --popover: #121317;
   --popover-foreground: #e9e7e2;
 
-  --secondary: #ffc136;
-  --secondary-foreground: #2b1a00;
+  --secondary: #23252b;
+  --secondary-foreground: #e9e7e2;
 
   --muted: #1a1b20;
   --muted-foreground: #98a0ac;
@@ -480,4 +480,35 @@
    header (sortable or not) reads as the same muted label. */
 .admin [data-slot='table-head'] {
   color: var(--muted-foreground);
+}
+
+/* Outline buttons and form controls sit on white cards *and* the grey canvas — give them the
+   card surface so they never read as grey wells. Hover keeps the primitive's accent. */
+.admin [data-slot='button'][data-variant='outline']:not(:hover):not(:disabled) {
+  background-color: var(--card);
+}
+.admin [data-slot='input'],
+.admin [data-slot='textarea'],
+.admin [data-slot='select-trigger'] {
+  background-color: var(--card);
+}
+/* Admin badges: soft tinted chips instead of solid blocks */
+.admin [data-slot='badge'][data-variant='default'] {
+  background-color: color-mix(in oklab, var(--primary) 12%, transparent);
+  color: var(--primary);
+}
+
+/* Breathing room at the panel edges for every admin table */
+.admin [data-slot='table-head']:first-child,
+.admin [data-slot='table-cell']:first-child {
+  padding-left: 1.25rem;
+}
+.admin [data-slot='table-head']:last-child,
+.admin [data-slot='table-cell']:last-child {
+  padding-right: 1.25rem;
+}
+.admin.dark [data-slot='input'],
+.admin.dark [data-slot='textarea'],
+.admin.dark [data-slot='select-trigger'] {
+  background-color: var(--input);
 }

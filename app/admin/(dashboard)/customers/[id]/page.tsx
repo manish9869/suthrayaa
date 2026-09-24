@@ -238,7 +238,7 @@ export default function AdminCustomerDetailPage() {
               <CardTitle className="text-base">Order History</CardTitle>
               <div className="flex items-center gap-2">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-36 h-8 text-xs">
+                  <SelectTrigger className="h-10 rounded-xl w-36 h-8 text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -254,7 +254,7 @@ export default function AdminCustomerDetailPage() {
                   </SelectContent>
                 </Select>
                 <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-                  <SelectTrigger className="w-32 h-8 text-xs">
+                  <SelectTrigger className="h-10 rounded-xl w-32 h-8 text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -357,7 +357,7 @@ export default function AdminCustomerDetailPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
-                <History className="h-4 w-4 text-secondary" /> Email History
+                <History className="h-4 w-4 text-muted-foreground" /> Email History
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
@@ -425,7 +425,7 @@ export default function AdminCustomerDetailPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-secondary" /> Addresses
+                <MapPin className="h-4 w-4 text-muted-foreground" /> Addresses
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">

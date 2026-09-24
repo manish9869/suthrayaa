@@ -33,6 +33,9 @@ import {
   type AdminUserListItem,
   type AdminRoleListItem,
 } from '@/lib/api/rbac'
+import { PageHeader } from '@/components/admin/page-header'
+import { InitialsAvatar } from '@/components/admin/admin-bits'
+import { StatusDot } from '@/components/admin/status-dot'
 
 function formatDate(iso: string | null) {
   if (!iso) return 'Never'
@@ -174,12 +177,11 @@ function UsersPageContent() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Users &amp; Roles</h1>
-          <p className="text-muted-foreground text-sm">{users ? `${users.length} admin users` : 'Loading...'}</p>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeader
+        title="Users & Roles"
+        description={users ? `${users.length} admin users · ${users.filter((u) => u.isActive).length} active` : 'Loading...'}
+        actions={
+          <>
           <Tabs defaultValue="users">
             <TabsList>
               <TabsTrigger value="users" asChild>
@@ -192,16 +194,17 @@ function UsersPageContent() {
           </Tabs>
           <Can permission="users.create">
             <Button onClick={() => setInviteOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" /> Invite Admin
+              <Plus className="h-4 w-4" /> Invite Admin
             </Button>
           </Can>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {users && users.length > 0 && (
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search by name or email..." className="pl-10" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input placeholder="Search by name or email..." className="pl-10 h-10 rounded-xl" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
       )}
 
@@ -212,8 +215,7 @@ function UsersPageContent() {
           <Table>
             <TableHeader>
               <TableRow className="border-border hover:bg-transparent">
-                <SortableTh label="Name" sortKey="name" activeKey={sortKey} direction={direction} onSort={toggleSort} />
-                <SortableTh label="Email" sortKey="email" activeKey={sortKey} direction={direction} onSort={toggleSort} />
+                <SortableTh label="Admin" sortKey="name" activeKey={sortKey} direction={direction} onSort={toggleSort} className="pl-5" />
                 <TableHead>Roles</TableHead>
                 <SortableTh label="Status" sortKey="status" activeKey={sortKey} direction={direction} onSort={toggleSort} />
                 <SortableTh label="Last Login" sortKey="lastLogin" activeKey={sortKey} direction={direction} onSort={toggleSort} />
@@ -224,29 +226,34 @@ function UsersPageContent() {
             <TableBody>
               {sorted.length === 0 ? (
                 <TableRow className="border-border">
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                     {users.length === 0 ? 'No admin users yet' : 'No users match this search'}
                   </TableCell>
                 </TableRow>
               ) : (
                 sorted.map((u) => (
                   <TableRow key={u.id} className="border-border">
-                    <TableCell className="font-medium">
-                      {u.displayName ?? '—'}
-                      {u.id === currentAdmin?.id && (
-                        <Badge variant="outline" className="ml-2 text-[10px]">
-                          You
-                        </Badge>
-                      )}
+                    <TableCell className="pl-5">
+                      <div className="flex items-center gap-3">
+                        <InitialsAvatar name={u.displayName ?? u.email} tone={u.id === currentAdmin?.id ? 'brand' : 'neutral'} />
+                        <div className="min-w-0">
+                          <p className="flex items-center gap-2 font-medium">
+                            {u.displayName ?? '—'}
+                            {u.id === currentAdmin?.id && (
+                              <span className="rounded-full bg-primary/10 px-1.5 py-px text-[10px] font-semibold text-primary">You</span>
+                            )}
+                          </p>
+                          <p className="truncate text-xs text-muted-foreground">{u.email ?? '—'}</p>
+                        </div>
+                      </div>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{u.email ?? '—'}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {u.roles.length ? (
                           u.roles.map((r) => (
-                            <Badge key={r.id} variant="secondary" className="text-[10px]">
-                              {r.name}
-                            </Badge>
+                            <span key={r.id} className="inline-flex items-center gap-1 rounded-md border bg-card px-2 py-0.5 text-[11px] font-medium">
+                              <ShieldCheck className="h-3 w-3 text-violet" /> {r.name}
+                            </span>
                           ))
                         ) : (
                           <span className="text-xs text-muted-foreground">No roles</span>
@@ -254,7 +261,7 @@ function UsersPageContent() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={u.isActive ? 'secondary' : 'outline'}>{u.isActive ? 'Active' : 'Deactivated'}</Badge>
+                      <StatusDot label={u.isActive ? 'Active' : 'Deactivated'} tone={u.isActive ? 'mint' : 'muted'} />
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">{formatDate(u.lastLoginAt)}</TableCell>
                     <TableCell className="text-muted-foreground text-sm">{formatDate(u.createdAt)}</TableCell>

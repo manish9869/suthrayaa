@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Plus, Trash2, Lock } from 'lucide-react'
+import { Plus, Trash2, Lock, ShieldCheck, Users, KeyRound } from 'lucide-react'
 import { toast } from 'sonner'
 import { GLASS_PANEL } from '@/lib/admin-ui'
 import { PageLoader } from '@/components/admin/loading-state'
@@ -16,6 +16,8 @@ import { Can } from '@/components/admin/can'
 import { SortableTh } from '@/components/admin/sortable-th'
 import { useSortableData } from '@/lib/hooks/use-sortable-data'
 import { getAdminRoles, deleteAdminRole, type AdminRoleListItem } from '@/lib/api/rbac'
+import { PageHeader } from '@/components/admin/page-header'
+import { StatusDot } from '@/components/admin/status-dot'
 
 function RolesPageContent() {
   const [roles, setRoles] = useState<AdminRoleListItem[] | null>(null)
@@ -48,12 +50,11 @@ function RolesPageContent() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Users &amp; Roles</h1>
-          <p className="text-muted-foreground text-sm">{roles ? `${roles.length} roles` : 'Loading...'}</p>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeader
+        title="Users & Roles"
+        description={roles ? `${roles.length} roles · permissions are grouped by area` : 'Loading...'}
+        actions={
+          <>
           <Tabs defaultValue="roles">
             <TabsList>
               <TabsTrigger value="users" asChild>
@@ -67,12 +68,13 @@ function RolesPageContent() {
           <Can permission="roles.create">
             <Button asChild>
               <Link href="/admin/roles/new">
-                <Plus className="h-4 w-4 mr-2" /> Create Role
+                <Plus className="h-4 w-4" /> Create Role
               </Link>
             </Button>
           </Can>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       <div className={`${GLASS_PANEL} overflow-hidden`}>
         {!roles ? (
@@ -81,8 +83,7 @@ function RolesPageContent() {
           <Table>
             <TableHeader>
               <TableRow className="border-border hover:bg-transparent">
-                <SortableTh label="Role Name" sortKey="name" activeKey={sortKey} direction={direction} onSort={toggleSort} />
-                <TableHead>Description</TableHead>
+                <SortableTh label="Role" sortKey="name" activeKey={sortKey} direction={direction} onSort={toggleSort} className="pl-5" />
                 <SortableTh label="Users" sortKey="users" activeKey={sortKey} direction={direction} onSort={toggleSort} />
                 <SortableTh label="Permissions" sortKey="permissions" activeKey={sortKey} direction={direction} onSort={toggleSort} />
                 <SortableTh label="Status" sortKey="status" activeKey={sortKey} direction={direction} onSort={toggleSort} />
@@ -92,27 +93,43 @@ function RolesPageContent() {
             <TableBody>
               {sorted.map((r) => (
                 <TableRow key={r.id} className="border-border">
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      {r.name}
-                      {r.isSystemRole && <Lock className="h-3 w-3 text-muted-foreground" />}
+                  <TableCell className="pl-5">
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                          r.isSystemRole ? 'bg-violet/10 text-violet' : 'bg-primary/10 text-primary'
+                        }`}
+                      >
+                        {r.isSystemRole ? <Lock className="h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="font-medium">{r.name}</p>
+                        <p className="max-w-md truncate text-xs text-muted-foreground">{r.description || '—'}</p>
+                      </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-sm max-w-xs truncate">{r.description}</TableCell>
-                  <TableCell>{r.userCount}</TableCell>
-                  <TableCell>{r.permissionCount}</TableCell>
                   <TableCell>
-                    <Badge variant={r.isSystemRole ? 'outline' : 'secondary'}>{r.isSystemRole ? 'System' : 'Custom'}</Badge>
+                    <span className="inline-flex items-center gap-1.5 text-sm">
+                      <Users className="h-3.5 w-3.5 text-muted-foreground" /> {r.userCount}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="inline-flex items-center gap-1.5 text-sm">
+                      <KeyRound className="h-3.5 w-3.5 text-muted-foreground" /> {r.permissionCount}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <StatusDot label={r.isSystemRole ? 'System' : 'Custom'} tone={r.isSystemRole ? 'violet' : 'primary'} />
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="sm" asChild>
+                      <Button variant="outline" size="sm" asChild>
                         <Link href={`/admin/roles/${r.id}`}>{r.isSystemRole ? 'View' : 'Edit'}</Link>
                       </Button>
                       {!r.isSystemRole && (
                         <Can permission="roles.delete">
                           <Button variant="ghost" size="icon" onClick={() => handleDelete(r)} disabled={r.userCount > 0}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
+                            <Trash2 className="h-4 w-4 text-muted-foreground" />
                           </Button>
                         </Can>
                       )}
