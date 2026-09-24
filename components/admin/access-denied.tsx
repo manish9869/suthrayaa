@@ -33,7 +33,7 @@ export function AccessDenied({
         <ShieldAlert className="h-7 w-7" />
       </div>
       {variant === 'inline' && <p className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">403</p>}
-      <h1 className="text-2xl font-serif font-bold text-foreground">{title}</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-foreground">{title}</h1>
       <p className="max-w-sm text-muted-foreground">{message}</p>
       <Button variant="outline" onClick={variant === 'full' ? () => router.push('/') : handleAction}>
         {label}
@@ -42,7 +42,7 @@ export function AccessDenied({
   )
 
   if (variant === 'full') {
-    return <div className="dark min-h-screen flex items-center justify-center bg-background text-foreground">{content}</div>
+    return <div className="admin min-h-screen flex items-center justify-center bg-background text-foreground">{content}</div>
   }
   return <div className="flex min-h-[60vh] items-center justify-center">{content}</div>
 }

@@ -30,7 +30,7 @@ export function DataTablePagination({ page, pageCount, total, pageSize, onPageCh
   }
 
   return (
-    <div className="flex items-center justify-between flex-wrap gap-3 px-4 py-3 border-t border-white/10">
+    <div className="flex items-center justify-between flex-wrap gap-3 px-4 py-3 border-t border-border">
       <p className="text-xs text-muted-foreground">
         Showing <span className="font-medium text-foreground">{start}</span>&ndash;
         <span className="font-medium text-foreground">{end}</span> of{' '}

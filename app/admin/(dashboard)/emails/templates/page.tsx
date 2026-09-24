@@ -9,7 +9,27 @@ import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Eye, Send } from 'lucide-react'
+import {
+  Eye,
+  Send,
+  Mail,
+  Braces,
+  PenLine,
+  ShoppingBag,
+  CheckCircle2,
+  Scissors,
+  PackageCheck,
+  Truck,
+  Home,
+  XCircle,
+  CreditCard,
+  AlertCircle,
+  RotateCcw,
+  Sparkles,
+  MessageCircle,
+  Receipt,
+  type LucideIcon,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { PageLoader } from '@/components/admin/loading-state'
 import {
@@ -21,6 +41,10 @@ import {
 } from '@/lib/api/admin'
 import { ProtectedRoute } from '@/components/admin/protected-route'
 import { Can } from '@/components/admin/can'
+import { PageHeader } from '@/components/admin/page-header'
+import { EmptyState } from '@/components/admin/admin-bits'
+import { StatusDot } from '@/components/admin/status-dot'
+import { cn } from '@/lib/utils'
 
 const TYPE_LABELS: Record<string, string> = {
   order_placed: 'Order Placed',
@@ -36,6 +60,22 @@ const TYPE_LABELS: Record<string, string> = {
   custom_order_confirmation: 'Custom Order Confirmation',
   contact_enquiry_ack: 'Contact Enquiry Acknowledgement',
   invoice_email: 'Invoice Email',
+}
+
+const TYPE_ICONS: Record<string, LucideIcon> = {
+  order_placed: ShoppingBag,
+  order_confirmed: CheckCircle2,
+  order_making: Scissors,
+  order_ready: PackageCheck,
+  order_shipped: Truck,
+  order_delivered: Home,
+  order_cancelled: XCircle,
+  payment_successful: CreditCard,
+  payment_failed: AlertCircle,
+  refund_processed: RotateCcw,
+  custom_order_confirmation: Sparkles,
+  contact_enquiry_ack: MessageCircle,
+  invoice_email: Receipt,
 }
 
 const AVAILABLE_VARIABLES = [
@@ -122,38 +162,77 @@ export default function EmailTemplatesPage() {
   return (
     <ProtectedRoute permission="emails.view">
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-serif font-bold">Email Templates</h1>
-        <p className="text-muted-foreground text-sm">
-          Every transactional email the store sends, editable without touching code. Use {AVAILABLE_VARIABLES.slice(0, 3).join(', ')}, etc. — they fill in automatically.
-        </p>
+      <PageHeader
+        title="Email Templates"
+        description={
+          <>
+            Every transactional email the store sends, editable without touching code.
+            {templates.length > 0 && ` ${templates.filter((t) => t.enabled).length} of ${templates.length} enabled.`}
+          </>
+        }
+      />
+
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-dashed bg-card/60 px-4 py-3 text-xs text-muted-foreground">
+        <Braces className="h-4 w-4 shrink-0" />
+        <span className="mr-1 font-medium text-foreground">Variables</span>
+        {AVAILABLE_VARIABLES.map((v) => (
+          <code key={v} className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px] text-foreground/80">
+            {v}
+          </code>
+        ))}
       </div>
 
       {loading ? (
         <PageLoader />
+      ) : templates.length === 0 ? (
+        <Card>
+          <EmptyState icon={Mail} title="No templates found" />
+        </Card>
       ) : (
-        <div className="grid sm:grid-cols-2 gap-4">
-          {templates.map((t) => (
-            <Card key={t.id} className={!t.enabled ? 'opacity-60' : undefined}>
-              <CardContent className="p-4 space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="font-semibold text-sm">{TYPE_LABELS[t.type] ?? t.type}</h3>
-                  <Can permission="emails.update">
-                    <Switch checked={t.enabled} onCheckedChange={() => handleToggleEnabled(t)} />
-                  </Can>
-                </div>
-                <p className="text-xs text-muted-foreground truncate">{t.subject}</p>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => openEdit(t)}>
-                    Edit
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => handlePreview(t)}>
-                    <Eye className="h-3.5 w-3.5 mr-1.5" /> Preview
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+          {templates.map((t) => {
+            const Icon = TYPE_ICONS[t.type] ?? Mail
+            return (
+              <Card key={t.id} className="gap-0 py-0 transition-shadow hover:shadow-md">
+                <CardContent className="flex h-full flex-col p-5">
+                  <div className="flex items-start gap-3">
+                    <span
+                      className={cn(
+                        'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
+                        t.enabled ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+                      )}
+                    >
+                      <Icon className="h-[18px] w-[18px]" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate text-sm font-semibold">{TYPE_LABELS[t.type] ?? t.type.replace(/_/g, ' ')}</h3>
+                      <div className="mt-1">
+                        <StatusDot label={t.enabled ? 'Enabled' : 'Disabled'} tone={t.enabled ? 'mint' : 'muted'} />
+                      </div>
+                    </div>
+                    <Can permission="emails.update">
+                      <Switch checked={t.enabled} onCheckedChange={() => handleToggleEnabled(t)} aria-label="Enable template" />
+                    </Can>
+                  </div>
+                  <div className="mt-4 flex-1 rounded-xl bg-muted/60 px-3 py-2.5">
+                    <p className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">Subject</p>
+                    <p className="mt-0.5 line-clamp-2 text-[13px]">{t.subject}</p>
+                  </div>
+                  <div className="mt-4 flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground">
+                      Updated {new Date(t.updatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                    </span>
+                    <Button variant="ghost" size="sm" className="ml-auto" onClick={() => handlePreview(t)}>
+                      <Eye className="h-3.5 w-3.5" /> Preview
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => openEdit(t)}>
+                      <PenLine className="h-3.5 w-3.5" /> Edit
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
       )}
 

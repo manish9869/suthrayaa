@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
-import { Plus, Trash2, Search } from 'lucide-react'
+import { Plus, Trash2, Search, Ticket } from 'lucide-react'
 import { getAdminCoupons, createCoupon, deleteCoupon, type AdminCoupon } from '@/lib/api/admin'
 import { formatPrice } from '@/lib/data'
 import { toast } from 'sonner'
@@ -19,6 +19,8 @@ import { useSortableData } from '@/lib/hooks/use-sortable-data'
 import { usePaginated } from '@/lib/hooks/use-paginated'
 import { ProtectedRoute } from '@/components/admin/protected-route'
 import { Can } from '@/components/admin/can'
+import { PageHeader } from '@/components/admin/page-header'
+import { StatusDot } from '@/components/admin/status-dot'
 
 export default function AdminCouponsPage() {
   const [coupons, setCoupons] = useState<AdminCoupon[]>([])
@@ -79,18 +81,16 @@ export default function AdminCouponsPage() {
   return (
     <ProtectedRoute permission="coupons.view">
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-serif font-bold">Coupons</h1>
-          <p className="text-muted-foreground text-sm">
-            {filtered.length} of {coupons.length} coupons
-          </p>
-        </div>
+      <PageHeader
+        title="Coupons"
+        description={`${filtered.length} of ${coupons.length} coupons · ${coupons.filter((c) => c.is_active).length} active`}
+        actions={
+          <>
         <Dialog open={open} onOpenChange={setOpen}>
           <Can permission="coupons.create">
             <DialogTrigger asChild>
               <Button>
-                <Plus className="h-4 w-4 mr-2" /> Add Coupon
+                <Plus className="h-4 w-4" /> Add Coupon
               </Button>
             </DialogTrigger>
           </Can>
@@ -133,15 +133,17 @@ export default function AdminCouponsPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
+          </>
+        }
+      />
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative max-w-sm flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search coupon code..." className="pl-10" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input placeholder="Search coupon code..." className="pl-10 h-10 rounded-xl" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-36">
+          <SelectTrigger className="h-10 rounded-xl w-36">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -155,7 +157,7 @@ export default function AdminCouponsPage() {
       <div className={`${GLASS_PANEL} overflow-hidden`}>
         <Table>
           <TableHeader>
-            <TableRow className="border-white/10 hover:bg-transparent">
+            <TableRow className="border-border hover:bg-transparent">
               <SortableTh label="Code" sortKey="code" activeKey={sortKey} direction={direction} onSort={toggleSort} />
               <SortableTh label="Discount" sortKey="discount" activeKey={sortKey} direction={direction} onSort={toggleSort} />
               <SortableTh label="Min Order" sortKey="minOrder" activeKey={sortKey} direction={direction} onSort={toggleSort} />
@@ -166,23 +168,36 @@ export default function AdminCouponsPage() {
           </TableHeader>
           <TableBody>
             {pageItems.length === 0 ? (
-              <TableRow className="border-white/10">
+              <TableRow className="border-border">
                 <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                   No coupons match these filters
                 </TableCell>
               </TableRow>
             ) : (
               pageItems.map((c) => (
-                <TableRow key={c.id} className="border-white/10">
-                  <TableCell className="font-medium">{c.code}</TableCell>
+                <TableRow key={c.id} className="border-border">
+                  <TableCell>
+                    <span className="inline-flex items-center gap-2 rounded-lg border border-dashed border-primary/40 bg-primary/5 px-2.5 py-1 font-mono text-[13px] font-semibold tracking-wide text-primary">
+                      <Ticket className="h-3.5 w-3.5" /> {c.code}
+                    </span>
+                  </TableCell>
                   <TableCell>{c.type === 'percent' ? `${c.value}%` : formatPrice(c.value)}</TableCell>
                   <TableCell>{formatPrice(c.min_subtotal)}</TableCell>
                   <TableCell>
-                    {c.uses_count}
-                    {c.max_uses ? ` / ${c.max_uses}` : ''}
+                    <div className="min-w-[110px]">
+                      <span className="text-sm tabular-nums">
+                        {c.uses_count}
+                        {c.max_uses ? <span className="text-muted-foreground"> / {c.max_uses}</span> : <span className="text-muted-foreground"> · unlimited</span>}
+                      </span>
+                      {c.max_uses ? (
+                        <div className="mt-1 h-1.5 w-28 overflow-hidden rounded-full bg-muted">
+                          <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, (c.uses_count / c.max_uses) * 100)}%` }} />
+                        </div>
+                      ) : null}
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={c.is_active ? 'secondary' : 'outline'}>{c.is_active ? 'Active' : 'Inactive'}</Badge>
+                    <StatusDot label={c.is_active ? 'Active' : 'Inactive'} tone={c.is_active ? 'mint' : 'muted'} />
                   </TableCell>
                   <TableCell className="text-right">
                     <Can permission="coupons.delete">

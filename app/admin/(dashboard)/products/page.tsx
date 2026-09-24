@@ -52,6 +52,7 @@ import { StatCard } from '@/components/admin/stat-card'
 import { StatusDot, DOT_CLASSES, type DotTone } from '@/components/admin/status-dot'
 import { ProtectedRoute } from '@/components/admin/protected-route'
 import { Can } from '@/components/admin/can'
+import { PageHeader } from '@/components/admin/page-header'
 
 const STATUS_LABELS: Record<ProductStatus, string> = {
   draft: 'Draft',
@@ -206,29 +207,27 @@ export default function AdminProductsPage() {
   return (
     <ProtectedRoute permission="products.view">
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-serif font-bold">Products</h1>
-          <p className="text-muted-foreground text-sm">
-            {filtered.length} of {products.length} products
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeader
+        title="Products"
+        description={`${filtered.length} of ${products.length} products`}
+        actions={
+          <>
           <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-            <RefreshCw className={`h-3.5 w-3.5 mr-2 ${loading ? 'animate-spin' : ''}`} /> Refresh
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
           </Button>
           <Button variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0}>
-            <FileDown className="h-3.5 w-3.5 mr-2" /> Export
+            <FileDown className="h-3.5 w-3.5" /> Export
           </Button>
           <Can permission="products.create">
             <Button asChild>
               <Link href="/admin/products/new">
-                <Plus className="h-4 w-4 mr-2" /> Add Product
+                <Plus className="h-4 w-4" /> Add Product
               </Link>
             </Button>
           </Can>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={PackageCheck} label="Active" value={stats.active} tone="mint" />
@@ -240,11 +239,11 @@ export default function AdminProductsPage() {
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative max-w-sm flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search products..." className="pl-10 rounded-full" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input placeholder="Search products..." className="pl-10 h-10 rounded-xl" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
 
         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="rounded-full w-40">
+          <SelectTrigger className="h-10 rounded-xl w-40">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -258,7 +257,7 @@ export default function AdminProductsPage() {
         </Select>
 
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="rounded-full w-36">
+          <SelectTrigger className="h-10 rounded-xl w-36">
             <span className={`h-2 w-2 rounded-full flex-shrink-0 ${statusFilter === 'all' ? DOT_CLASSES.muted : DOT_CLASSES[STATUS_DOT[statusFilter as ProductStatus]]}`} />
             <SelectValue />
           </SelectTrigger>
@@ -274,7 +273,7 @@ export default function AdminProductsPage() {
         </Select>
 
         <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="rounded-full w-40">
+          <SelectTrigger className="h-10 rounded-xl w-40">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -288,7 +287,7 @@ export default function AdminProductsPage() {
         </Select>
 
         <Select value={stockFilter} onValueChange={setStockFilter}>
-          <SelectTrigger className="rounded-full w-36">
+          <SelectTrigger className="h-10 rounded-xl w-36">
             <span
               className={`h-2 w-2 rounded-full flex-shrink-0 ${
                 stockFilter === 'all' ? DOT_CLASSES.muted : DOT_CLASSES[STOCK_DOT[stockFilter as keyof typeof STOCK_DOT]]
@@ -312,7 +311,7 @@ export default function AdminProductsPage() {
 
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="rounded-full font-normal">
+            <Button variant="outline" className="h-10 rounded-xl font-normal">
               <SlidersHorizontal className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
               {priceRange[0] > 0 || priceRange[1] < 5000 ? `${formatPrice(priceRange[0])} – ${formatPrice(priceRange[1])}` : 'Any price'}
             </Button>
@@ -328,9 +327,8 @@ export default function AdminProductsPage() {
         </Popover>
 
         <Button
-          variant={featuredOnly ? 'secondary' : 'outline'}
-          size="sm"
-          className="h-9 rounded-full"
+          variant="outline"
+          className={`h-10 rounded-xl font-normal ${featuredOnly ? 'border-primary/40 !bg-primary/10 text-primary' : ''}`}
           onClick={() => setFeaturedOnly((v) => !v)}
         >
           Featured only

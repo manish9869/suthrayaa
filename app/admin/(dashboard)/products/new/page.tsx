@@ -1,5 +1,6 @@
 import { ProductForm } from '@/components/admin/product-form'
 import { ProtectedRoute } from '@/components/admin/protected-route'
+import { PageHeader } from '@/components/admin/page-header'
 
 export default async function NewProductPage({
   searchParams,
@@ -10,7 +11,7 @@ export default async function NewProductPage({
   return (
     <ProtectedRoute permission="products.create">
     <div className="space-y-6">
-      <h1 className="text-2xl font-serif font-bold">Add Product</h1>
+      <PageHeader title="Add Product" description="Create a new listing — fill in the basics, then pricing, media and inventory." backHref="/admin/products" backLabel="Products" />
       <ProductForm defaultCategoryId={categoryId} />
     </div>
     </ProtectedRoute>

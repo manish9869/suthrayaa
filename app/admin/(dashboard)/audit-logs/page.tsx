@@ -11,8 +11,11 @@ import { ProtectedRoute } from '@/components/admin/protected-route'
 import { DataTablePagination } from '@/components/admin/data-table-pagination'
 import { DateRangeFilter, DEFAULT_DATE_RANGE, type DateRangeValue } from '@/components/admin/date-range-filter'
 import { getAuditLogs, type AuditLogEntry } from '@/lib/api/rbac'
+import { PageHeader } from '@/components/admin/page-header'
+import { StatusDot, type DotTone } from '@/components/admin/status-dot'
+import { InitialsAvatar } from '@/components/admin/admin-bits'
 
-const ACTION_TONE: Record<string, 'destructive' | 'secondary' | 'outline'> = {
+const ACTION_TONE: Record<string, DotTone> = {
   USER_DELETED: 'destructive',
   ROLE_DELETED: 'destructive',
   PRODUCT_DELETED: 'destructive',
@@ -59,14 +62,11 @@ function AuditLogsContent() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-serif font-bold">Audit Logs</h1>
-        <p className="text-muted-foreground text-sm">A record of sensitive admin actions — who did what, and when.</p>
-      </div>
+      <PageHeader title="Audit Logs" description="A record of sensitive admin actions — who did what, and when." />
 
       <div className="flex flex-wrap items-center gap-3">
         <Select value={action} onValueChange={(v) => { setAction(v); setPage(1) }}>
-          <SelectTrigger className="w-56">
+          <SelectTrigger className="h-10 rounded-xl w-56">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -93,7 +93,7 @@ function AuditLogsContent() {
           <>
             <Table>
               <TableHeader>
-                <TableRow className="border-white/10 hover:bg-transparent">
+                <TableRow className="border-border hover:bg-transparent">
                   <TableHead>When</TableHead>
                   <TableHead>Admin</TableHead>
                   <TableHead>Action</TableHead>
@@ -104,20 +104,25 @@ function AuditLogsContent() {
               </TableHeader>
               <TableBody>
                 {logs.length === 0 ? (
-                  <TableRow className="border-white/10">
+                  <TableRow className="border-border">
                     <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                       No audit events in this range
                     </TableCell>
                   </TableRow>
                 ) : (
                   logs.map((log) => (
-                    <TableRow key={log.id} className="border-white/10">
+                    <TableRow key={log.id} className="border-border">
                       <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                         {new Date(log.createdAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                       </TableCell>
-                      <TableCell className="font-medium">{log.userName}</TableCell>
                       <TableCell>
-                        <Badge variant={ACTION_TONE[log.action] ?? 'secondary'}>{actionLabel(log.action)}</Badge>
+                        <div className="flex items-center gap-2.5">
+                          <InitialsAvatar name={log.userName} size="sm" />
+                          <span className="font-medium">{log.userName}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <StatusDot className="normal-case" label={actionLabel(log.action)} tone={ACTION_TONE[log.action] ?? (log.action.endsWith('_CREATED') ? 'mint' : 'violet')} />
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm">
                         {log.resource}
