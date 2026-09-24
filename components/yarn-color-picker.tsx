@@ -2,7 +2,6 @@
 
 import { useId } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
-import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { EASE_OUT } from '@/components/motion/reveal'
 
@@ -134,6 +133,7 @@ export function YarnColorPicker({
   size?: 'sm' | 'md'
 }) {
   const reduce = useReducedMotion()
+  const groupId = useId().replace(/:/g, '')
   const active = options.find((o) => o.value === value)
   const activeName = active ? (active.label ?? yarnName(active.color)) : undefined
   const ball = size === 'sm' ? 'h-11 w-11' : 'h-14 w-14'
@@ -179,39 +179,43 @@ export function YarnColorPicker({
                 disabled={o.disabled}
                 onClick={() => !o.disabled && onChange(o.value)}
                 className={cn(
-                  'group relative flex flex-col items-center rounded-2xl p-1 outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                  'group relative flex flex-col items-center rounded-2xl p-2 outline-none focus-visible:ring-2 focus-visible:ring-primary',
                   o.disabled && 'cursor-not-allowed opacity-30 grayscale',
                 )}
               >
-                <motion.span
-                  className={cn('relative block', ball)}
-                  initial={false}
-                  animate={reduce ? {} : { y: selected ? -7 : 0, rotate: selected ? 360 : 0, scale: selected ? 1.08 : 1 }}
-                  whileHover={reduce || o.disabled || selected ? undefined : { rotate: [0, -12, 10, 0], transition: { duration: 0.5 } }}
-                  whileTap={reduce || o.disabled ? undefined : { scale: 0.94 }}
-                  transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-                >
-                  <YarnBall color={o.color} selected={selected} className="h-full w-full" />
-                  <AnimatePresence>
-                    {selected && (
-                      <motion.span
-                        initial={{ scale: 0, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0, opacity: 0 }}
-                        transition={{ duration: 0.25, ease: EASE_OUT }}
-                        className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground ring-2 ring-background"
-                      >
-                        <Check className="h-3 w-3" strokeWidth={3} />
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
-                </motion.span>
+                <span className={cn('relative block', ball)}>
+                  {/* stitched ring: one per picker, glides between balls via shared layout */}
+                  {selected && (
+                    <motion.span
+                      layoutId={`yarn-ring-${groupId}`}
+                      aria-hidden
+                      className="absolute -inset-[7px]"
+                      transition={reduce ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 34 }}
+                    >
+                      <svg viewBox="0 0 100 100" className={cn('h-full w-full', !reduce && 'animate-[spin_14s_linear_infinite]')}>
+                        <circle cx="50" cy="50" r="46" fill="none" stroke="var(--primary)" strokeOpacity="0.14" strokeWidth="7" />
+                        <circle cx="50" cy="50" r="46" fill="none" stroke="var(--primary)" strokeWidth="2.6" strokeDasharray="7 5.5" strokeLinecap="round" />
+                      </svg>
+                    </motion.span>
+                  )}
+                  <motion.span
+                    key={selected ? 'on' : 'off'}
+                    className="relative block h-full w-full"
+                    initial={false}
+                    animate={selected && !reduce ? { scale: [1, 0.88, 1.06, 1] } : { scale: 1 }}
+                    whileHover={reduce || o.disabled || selected ? undefined : { y: -3 }}
+                    whileTap={reduce || o.disabled ? undefined : { scale: 0.94 }}
+                    transition={selected ? { duration: 0.5, times: [0, 0.25, 0.65, 1], ease: EASE_OUT } : { duration: 0.2, ease: EASE_OUT }}
+                  >
+                    <YarnBall color={o.color} selected={selected} className="h-full w-full" />
+                  </motion.span>
+                </span>
                 {/* contact shadow — shrinks as the ball lifts */}
                 <motion.span
                   aria-hidden
                   className="mt-0.5 block h-1.5 w-8 rounded-[50%] bg-[rgb(49_32_140/0.22)] blur-[2px]"
                   initial={false}
-                  animate={{ scaleX: selected && !reduce ? 0.6 : 1, opacity: selected ? 0.5 : 1 }}
+                  animate={{ opacity: selected ? 0.9 : 0.6 }}
                   transition={{ duration: 0.3, ease: EASE_OUT }}
                 />
               </button>

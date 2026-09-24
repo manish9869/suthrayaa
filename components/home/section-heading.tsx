@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Reveal } from '@/components/motion/reveal'
+import { StitchUnderline } from '@/components/motion/yarn-thread'
 
 /** Shared storefront section header: rose eyebrow, editorial serif title (with an optional
  * italic accent phrase), supporting copy and an optional "view all" link on the right. */
@@ -35,7 +36,13 @@ export function SectionHeading({
       <div className={cn(align === 'center' && 'flex flex-col items-center')}>
         {eyebrow && <p className="eyebrow mb-3">{eyebrow}</p>}
         <h2 className="display text-[2.1rem] sm:text-5xl">
-          {title} {accent && <em className="font-normal italic text-primary">{accent}</em>}
+          {title}{' '}
+          {accent && (
+            <em className="relative inline-block font-normal italic text-primary">
+              {accent}
+              <StitchUnderline />
+            </em>
+          )}
         </h2>
         {description && <p className={cn('mt-3 max-w-xl text-[15px] text-muted-foreground', align === 'center' && 'mx-auto')}>{description}</p>}
       </div>
