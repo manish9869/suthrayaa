@@ -249,7 +249,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
           className={cn(
             'relative border-b transition-[background-color,border-color,box-shadow] duration-300',
             isScrolled || megaOpen || isSearchOpen
-              ? 'border-border/70 bg-background/85 shadow-[0_8px_30px_-18px_rgb(30_42_35/0.35)] backdrop-blur-xl'
+              ? 'border-border/70 bg-background/85 shadow-[0_8px_30px_-18px_rgb(49_32_140/0.35)] backdrop-blur-xl'
               : 'border-transparent bg-background'
           )}
         >
@@ -488,7 +488,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
                 transition={panelTransition}
                 onMouseEnter={openMega}
                 onMouseLeave={closeMegaSoon}
-                className="absolute inset-x-0 top-full hidden border-b bg-background/95 shadow-[0_24px_50px_-30px_rgb(30_42_35/0.45)] backdrop-blur-xl lg:block"
+                className="absolute inset-x-0 top-full hidden border-b bg-background/95 shadow-[0_24px_50px_-30px_rgb(49_32_140/0.45)] backdrop-blur-xl lg:block"
               >
                 <div className="container mx-auto grid grid-cols-[1fr_320px] gap-10 px-4 py-8">
                   <div>
@@ -547,7 +547,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
                 transition={panelTransition}
-                className="absolute inset-x-0 top-full border-b bg-background/95 shadow-[0_24px_50px_-30px_rgb(30_42_35/0.45)] backdrop-blur-xl"
+                className="absolute inset-x-0 top-full border-b bg-background/95 shadow-[0_24px_50px_-30px_rgb(49_32_140/0.45)] backdrop-blur-xl"
               >
                 <div className="container mx-auto max-w-3xl px-4 py-6">
                   <div className="flex items-center gap-3 rounded-full border bg-card px-5 py-1 shadow-sm focus-within:ring-2 focus-within:ring-ring/30">

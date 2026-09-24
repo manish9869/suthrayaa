@@ -16,31 +16,40 @@ import { HeroBackdrop } from './hero-backdrop'
 
 const fallbackSlides = [
   {
+    id: 'f0',
+    title: 'Garlands for your devghar. Stitched with devotion.',
+    subtitle: 'Pooja & devghar collection',
+    description: 'Marigold and hibiscus toran, garlands and chowki covers — handmade in crochet so they stay fresh for every puja.',
+    image: STOREFRONT_IMAGES.heroGarland,
+    cta: 'Shop Devghar Collection',
+    href: '/shop?category=devghar-collection-v2',
+  },
+  {
     id: 'f1',
-    title: 'Handmade with love. Stitched just for you.',
-    subtitle: 'New season collection',
-    description: 'Crochet keepsakes, décor and gifts — personalised, made to order and crafted slowly in our studio.',
-    image: STOREFRONT_IMAGES.heroMain,
-    cta: 'Shop Collection',
-    href: '/shop',
+    title: 'Tiny keychains. Big personality.',
+    subtitle: 'Handmade crochet keychains',
+    description: 'Bunnies, strawberries, daisies and name keychains — stitched by hand to carry a little joy everywhere.',
+    image: STOREFRONT_IMAGES.heroKeychains,
+    cta: 'Shop Keychains',
+    href: '/shop?search=keychain',
   },
   {
     id: 'f2',
-    title: 'Personalised keychains. Made to be yours.',
-    subtitle: 'Make it personal',
-    description: 'Pick the colours, add a name — we stitch the rest. The little gift that says a lot.',
-    image: '/products/personalized-keychain.jpg',
-    cta: 'Customise Now',
-    href: '/shop?category=keychains',
+    title: 'Hair accessories, softly made.',
+    subtitle: 'Scrunchies · clips · headbands',
+    description: 'Flower hair ties, scrunchies and bow clips in soft cotton yarn — gentle on hair, lovely on everyone.',
+    image: STOREFRONT_IMAGES.heroHair,
+    cta: 'Shop Hair Accessories',
+    href: '/shop?search=hair',
   },
   {
     id: 'f3',
-    title: 'Amigurumi friends. Soft, cuddly, forever.',
-    subtitle: 'Cuddly friends await',
-    description: 'Hand-crocheted toys that bring joy to little ones and collectors alike.',
-    image: '/products/amigurumi-bunny.jpg',
-    cta: 'Meet the Friends',
-    href: '/shop?category=amigurumi',
+    title: 'Forever flowers. Cozy corners.',
+    subtitle: 'Potted flowers & home décor',
+    description: 'Sunflowers, lilies and smiley blooms in little pots, bottle covers and hangings that never wilt.',
+    image: STOREFRONT_IMAGES.heroFlowers,
+    cta: 'Shop Flowers & Décor',
+    href: '/shop?category=flowers-floral',
   },
 ]
 
@@ -206,7 +215,7 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
         <div className="relative mx-auto w-full max-w-[360px] sm:max-w-[520px]">
           <div className="absolute inset-x-[6%] bottom-[4%] top-[10%] rounded-full bg-blush" />
           <motion.div style={{ y: imageY }} className="relative">
-            <div className="arch relative mx-auto aspect-[4/5] w-[78%] overflow-hidden bg-sand shadow-[0_40px_80px_-40px_rgb(30_42_35/0.55)]">
+            <div className="arch relative mx-auto aspect-[4/5] w-[78%] overflow-hidden bg-sand shadow-[0_40px_80px_-40px_rgb(49_32_140/0.55)]">
               <AnimatePresence initial={false}>
                 <motion.div
                   key={slide.image}
@@ -242,7 +251,7 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
               initial={reduce ? { opacity: 0 } : { opacity: 0, y: 24, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ delay: 0.45, duration: 0.6, ease: EASE_OUT }}
-              className="absolute -right-2 bottom-[6%] hidden w-[210px] rounded-3xl sm:block bg-card/95 p-3 shadow-[0_24px_60px_-28px_rgb(30_42_35/0.55)] ring-1 ring-border backdrop-blur sm:right-0 sm:w-[230px]"
+              className="absolute -right-2 bottom-[6%] hidden w-[210px] rounded-3xl sm:block bg-card/95 p-3 shadow-[0_24px_60px_-28px_rgb(49_32_140/0.55)] ring-1 ring-border backdrop-blur sm:right-0 sm:w-[230px]"
             >
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div

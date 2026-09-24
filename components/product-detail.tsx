@@ -376,7 +376,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                             className="inline-block rounded-full px-5 py-2 font-serif text-2xl"
                             style={{
                               backgroundColor: effectiveColor,
-                              color: LIGHT_HEXES.includes(effectiveColor.toUpperCase()) ? '#1e2a23' : '#FFFFFF',
+                              color: LIGHT_HEXES.includes(effectiveColor.toUpperCase()) ? '#1f1a33' : '#FFFFFF',
                             }}
                           >
                             {customText}

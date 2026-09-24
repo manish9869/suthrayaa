@@ -242,8 +242,10 @@ export function Footer() {
       </div>
 
       {/* Main footer */}
-      <div className="bg-primary text-primary-foreground">
-        <div className="container mx-auto px-4 pt-16 pb-8">
+      <div className="relative overflow-hidden bg-ink text-primary-foreground">
+        <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-primary/40 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-32 left-10 h-72 w-72 rounded-full bg-secondary/25 blur-3xl" />
+        <div className="container relative mx-auto px-4 pt-16 pb-8">
           <div className="grid gap-12 lg:grid-cols-[1.3fr_2fr_1.2fr]">
             <div>
               <Link href="/" className="inline-flex items-center rounded-2xl bg-cream px-3 py-2">

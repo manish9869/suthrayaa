@@ -3,69 +3,71 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Suthrayaa storefront — "Lumora" editorial palette: warm cream canvas, deep forest green as
-   the single action color, blush/rose accents and soft sage surfaces. Calm, handmade, premium. */
+/* Suthrayaa storefront — lavender & peach: a bright, playful palette with violet as the single
+   action colour, peach/coral highlights, soft lilac surfaces and a deep ink-violet for the footer. */
 :root {
-  --background: #faf6ef;
-  --foreground: #1e2a23;
+  --background: #fcfbff;
+  --foreground: #1f1a33;
 
-  /* Forest green — primary actions, links, active states */
-  --primary: #24503d;
-  --primary-foreground: #f8f4ec;
+  /* Violet — primary actions, links, active states */
+  --primary: #6d4aff;
+  --primary-foreground: #ffffff;
 
   --card: #ffffff;
-  --card-foreground: #1e2a23;
+  --card-foreground: #1f1a33;
 
   --popover: #ffffff;
-  --popover-foreground: #1e2a23;
+  --popover-foreground: #1f1a33;
 
-  /* Rose clay — secondary accent (badges, highlights, sale tags) */
-  --secondary: #c2766a;
-  --secondary-foreground: #ffffff;
+  /* Peach — secondary accent (badges, highlights, sale tags) */
+  --secondary: #ff9e7a;
+  --secondary-foreground: #3a1e14;
 
-  --muted: #f1ebe0;
-  --muted-foreground: #6c6a61;
+  --muted: #f4f1fb;
+  --muted-foreground: #6b6680;
 
-  /* Soft sage wash — hover surfaces */
-  --accent: #e8eee5;
-  --accent-foreground: #24503d;
+  /* Lilac wash — hover surfaces */
+  --accent: #efeaff;
+  --accent-foreground: #4b2fd6;
 
-  --mint: #dfe9dc;
-  --mint-foreground: #2c5a44;
+  --mint: #ddf5e7;
+  --mint-foreground: #1e7a48;
 
-  --gold: #c69a3f;
+  --gold: #f5b544;
   --gold-foreground: #3a2a0c;
 
-  --peach: #f5e6dc;
-  --peach-foreground: #7a4636;
+  --peach: #ffe6dc;
+  --peach-foreground: #a2442a;
 
-  /* Blush — soft pink surfaces (kept as "lavender" token for compatibility) */
-  --lavender: #f1dcd6;
-  --lavender-foreground: #7a3f33;
+  --lavender: #efeaff;
+  --lavender-foreground: #4b2fd6;
 
-  --violet: #8b7fd6;
-  --violet-foreground: #211a4a;
+  --violet: #6d4aff;
+  --violet-foreground: #ffffff;
 
-  /* Named storefront hues */
-  --blush: #efd9d2;
-  --rose: #c2766a;
-  --sage: #9db39a;
-  --forest: #24503d;
-  --cream: #faf6ef;
-  --sand: #f1ebe0;
+  /* Named storefront hues (token names kept stable across themes):
+     blush = soft peach surface, rose = coral text/badge accent, sage = soft lilac decoration,
+     forest = brand ink, cream = page, sand = image placeholder, ink = deep footer violet */
+  --blush: #ffe6dc;
+  --rose: #e2603f;
+  --sage: #b9a8ff;
+  --forest: #4b2fd6;
+  --cream: #fcfbff;
+  --sand: #f3efff;
+  --ink: #1c1642;
 
-  --destructive: #c8453b;
-  --destructive-foreground: #fff8f0;
+  --destructive: #e5484d;
+  --destructive-foreground: #ffffff;
 
-  --border: #e7dfd1;
-  --input: #e7dfd1;
-  --ring: #24503d;
+  --border: #e8e3f5;
+  --input: #e8e3f5;
+  --ring: #6d4aff;
 
-  --chart-1: #24503d;
-  --chart-2: #c2766a;
-  --chart-3: #9db39a;
-  --chart-4: #c69a3f;
-  --chart-5: #efd9d2;
+  --chart-1: #6d4aff;
+  --chart-2: #ff9e7a;
+  --chart-3: #b9a8ff;
+  --chart-4: #f5b544;
+  --chart-5: #ffe6dc;
 
   --radius: 1rem;
 
@@ -76,13 +78,13 @@
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 
   --sidebar: #ffffff;
-  --sidebar-foreground: #1e2a23;
-  --sidebar-primary: #24503d;
-  --sidebar-primary-foreground: #f8f4ec;
-  --sidebar-accent: #f1ebe0;
-  --sidebar-accent-foreground: #1e2a23;
-  --sidebar-border: #e7dfd1;
-  --sidebar-ring: #24503d;
+  --sidebar-foreground: #1f1a33;
+  --sidebar-primary: #6d4aff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f4f1fb;
+  --sidebar-accent-foreground: #1f1a33;
+  --sidebar-border: #e8e3f5;
+  --sidebar-ring: #6d4aff;
 }
 
 /* Admin console theme — a cool slate/charcoal dark UI, deliberately distinct from the
@@ -201,6 +203,7 @@
   --color-forest: var(--forest);
   --color-cream: var(--cream);
   --color-sand: var(--sand);
+  --color-ink: var(--ink);
   --ease-out-quint: var(--ease-out);
   
   --radius-sm: calc(var(--radius) - 4px);
@@ -384,7 +387,7 @@
 [data-slot='card']:not(.dark *):not(.admin *) {
   border-radius: 1.4rem;
   border-color: var(--border);
-  box-shadow: 0 1px 2px rgb(30 42 35 / 0.04);
+  box-shadow: 0 1px 2px rgb(31 26 51 / 0.04);
 }
 
 @layer utilities {
@@ -409,7 +412,7 @@
   @media (hover: hover) and (pointer: fine) {
     .group:hover .zoom-img { transform: scale(1.045); }
     .lift { transition: transform 300ms var(--ease-out), box-shadow 300ms var(--ease-out); }
-    .lift:hover { transform: translateY(-4px); box-shadow: 0 18px 40px -22px rgb(30 42 35 / 0.35); }
+    .lift:hover { transform: translateY(-4px); box-shadow: 0 18px 40px -22px rgb(76 47 214 / 0.35); }
   }
   /* Underline that draws in from the left */
   .link-underline { background: linear-gradient(currentColor, currentColor) no-repeat 0 100% / 0% 1px; transition: background-size 300ms var(--ease-out); }
