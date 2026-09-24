@@ -30,6 +30,14 @@ import {
   Sun,
   ChevronDown,
   ExternalLink,
+  Boxes,
+  ShoppingBag,
+  LayoutTemplate,
+  Megaphone,
+  Building2,
+  ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react'
 import { Spinner } from '@/components/ui/spinner'
 import { Button } from '@/components/ui/button'
@@ -57,16 +65,20 @@ interface NavItem {
 }
 interface NavGroup {
   title: string
+  /** Icon for the collapsible parent entry (and the collapsed rail). Single-item groups link directly. */
+  icon: typeof LayoutDashboard
   items: NavItem[]
 }
 
 const navGroups: NavGroup[] = [
   {
     title: 'Overview',
+    icon: LayoutDashboard,
     items: [{ href: '/admin', label: 'Dashboard', icon: LayoutDashboard, permission: 'analytics.view' }],
   },
   {
     title: 'Catalog',
+    icon: Boxes,
     items: [
       { href: '/admin/products', label: 'Products', icon: Package, permission: 'products.view' },
       { href: '/admin/categories', label: 'Categories', icon: FolderTree, permission: 'categories.view' },
@@ -75,6 +87,7 @@ const navGroups: NavGroup[] = [
   },
   {
     title: 'Sales',
+    icon: ShoppingBag,
     items: [
       { href: '/admin/orders', label: 'Orders', icon: ShoppingCart, permission: 'orders.view' },
       { href: '/admin/coupons', label: 'Coupons', icon: Tags, permission: 'coupons.view' },
@@ -83,6 +96,7 @@ const navGroups: NavGroup[] = [
   },
   {
     title: 'Content',
+    icon: LayoutTemplate,
     items: [
       { href: '/admin/testimonials', label: 'Testimonials', icon: MessageSquareQuote, permission: 'content.view' },
       { href: '/admin/hero-slides', label: 'Hero Slides', icon: ImageIcon, permission: 'banners.view' },
@@ -90,6 +104,7 @@ const navGroups: NavGroup[] = [
   },
   {
     title: 'Communications',
+    icon: Megaphone,
     items: [
       { href: '/admin/emails/templates', label: 'Email Templates', icon: Mail, permission: 'emails.view' },
       { href: '/admin/emails/logs', label: 'Email Logs', icon: History, permission: 'emails.view' },
@@ -97,6 +112,7 @@ const navGroups: NavGroup[] = [
   },
   {
     title: 'Administration',
+    icon: Building2,
     items: [
       { href: '/admin/users', label: 'Users & Roles', icon: ShieldCheck, permission: 'users.view', aliases: ['/admin/roles'] },
       { href: '/admin/audit-logs', label: 'Audit Logs', icon: ScrollText, permission: 'audit_logs.view' },
@@ -123,6 +139,7 @@ function firstAccessibleHref(hasPermission: (slug: string) => boolean): string |
 
 type AdminTheme = 'light' | 'dark'
 const THEME_STORAGE_KEY = 'suthrayaa-admin-theme'
+const SIDEBAR_STORAGE_KEY = 'suthrayaa-admin-sidebar-collapsed'
 
 function isActive(pathname: string, item: NavItem | string) {
   const href = typeof item === 'string' ? item : item.href
@@ -133,51 +150,161 @@ function isActive(pathname: string, item: NavItem | string) {
   return pathname === href || pathname.startsWith(href + '/')
 }
 
-function BrandMark({ subtitle = true }: { subtitle?: boolean }) {
+function BrandMark({ collapsed = false }: { collapsed?: boolean }) {
   return (
-    <Link href="/admin" className="flex items-center gap-3">
-      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/25">
+    <Link href="/admin" className="flex items-center gap-3" title="Suthrayaa Admin">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/25">
         <span className="font-serif text-lg font-bold leading-none">S</span>
       </span>
-      <span className="leading-tight">
-        <span className="block text-[15px] font-semibold tracking-tight text-sidebar-foreground">Suthrayaa</span>
-        {subtitle && <span className="block text-[11px] font-medium text-sidebar-foreground/45">Admin Console</span>}
-      </span>
+      {!collapsed && (
+        <span className="leading-tight">
+          <span className="block text-[15px] font-semibold tracking-tight text-sidebar-foreground">Suthrayaa</span>
+          <span className="block text-[11px] font-medium text-sidebar-foreground/45">Admin Console</span>
+        </span>
+      )}
     </Link>
   )
 }
 
+const NAV_LINK =
+  'group flex items-center gap-3 rounded-xl text-[13.5px] font-medium transition-colors text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+const NAV_LINK_ACTIVE = 'bg-sidebar-primary text-sidebar-primary-foreground shadow-sm hover:bg-sidebar-primary hover:text-sidebar-primary-foreground'
+
+/** Expanded sidebar: single-page groups are plain links; every other group is a collapsible
+ * parent entry whose pages sit underneath on a thin tree line. The group holding the current
+ * page opens automatically. */
 function SidebarNav({ groups, pathname, onNavigate }: { groups: NavGroup[]; pathname: string; onNavigate?: () => void }) {
+  const activeGroup = groups.find((g) => g.items.some((i) => isActive(pathname, i)))?.title
+  const [open, setOpen] = useState<Set<string>>(() => new Set(activeGroup ? [activeGroup] : []))
+
+  // Navigating into another section (e.g. via ⌘K) reveals it without closing the others
+  useEffect(() => {
+    if (activeGroup) setOpen((prev) => (prev.has(activeGroup) ? prev : new Set(prev).add(activeGroup)))
+  }, [activeGroup])
+
+  const toggle = (title: string) =>
+    setOpen((prev) => {
+      const next = new Set(prev)
+      if (next.has(title)) next.delete(title)
+      else next.add(title)
+      return next
+    })
+
   return (
-    <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-4 space-y-6 [scrollbar-width:thin]">
-      {groups.map((group) => (
-        <div key={group.title}>
-          <p className="px-3 mb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-sidebar-foreground/35">{group.title}</p>
-          <div className="space-y-0.5">
-            {group.items.map((item) => {
-              const active = isActive(pathname, item)
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={onNavigate}
-                  className={cn(
-                    'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-colors',
-                    active
-                      ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-sm'
-                      : 'text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-foreground'
-                  )}
-                >
-                  <item.icon
-                    className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-primary' : 'text-sidebar-foreground/45 group-hover:text-sidebar-foreground/80')}
-                  />
-                  {item.label}
-                </Link>
-              )
-            })}
+    <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-1 [scrollbar-width:thin]">
+      {groups.map((group) => {
+        if (group.items.length === 1) {
+          const item = group.items[0]
+          const active = isActive(pathname, item)
+          return (
+            <Link key={item.href} href={item.href} onClick={onNavigate} className={cn(NAV_LINK, 'px-3 py-2.5', active && NAV_LINK_ACTIVE)}>
+              <item.icon className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-primary' : 'text-sidebar-foreground/45 group-hover:text-sidebar-foreground/80')} />
+              {item.label}
+            </Link>
+          )
+        }
+        const isOpen = open.has(group.title)
+        const containsActive = group.title === activeGroup
+        return (
+          <div key={group.title}>
+            <button
+              type="button"
+              onClick={() => toggle(group.title)}
+              aria-expanded={isOpen}
+              className={cn(NAV_LINK, 'w-full px-3 py-2.5', containsActive && 'text-sidebar-foreground')}
+            >
+              <group.icon
+                className={cn(
+                  'h-[18px] w-[18px] shrink-0',
+                  containsActive ? 'text-primary' : 'text-sidebar-foreground/45 group-hover:text-sidebar-foreground/80'
+                )}
+              />
+              <span className="flex-1 text-left">{group.title}</span>
+              {containsActive && !isOpen && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
+              <ChevronRight
+                className={cn('h-4 w-4 shrink-0 text-sidebar-foreground/35 transition-transform duration-200', isOpen && 'rotate-90')}
+              />
+            </button>
+            <div className={cn('grid transition-[grid-template-rows] duration-200 ease-out', isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]')}>
+              <div className="overflow-hidden">
+                <div className="ml-[21px] mt-0.5 mb-1.5 space-y-0.5 border-l border-sidebar-border pl-3">
+                  {group.items.map((item) => {
+                    const active = isActive(pathname, item)
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={onNavigate}
+                        tabIndex={isOpen ? undefined : -1}
+                        className={cn(NAV_LINK, 'relative px-3 py-2 text-[13px]', active && NAV_LINK_ACTIVE)}
+                      >
+                        {active && <span className="absolute -left-[13.5px] top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-primary" />}
+                        {item.label}
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      ))}
+        )
+      })}
+    </nav>
+  )
+}
+
+/** Collapsed icon rail: single pages are icon links; each group is an icon that opens its
+ * pages in a flyout to the right. */
+function SidebarRail({ groups, pathname }: { groups: NavGroup[]; pathname: string }) {
+  return (
+    <nav className="flex-1 min-h-0 overflow-y-auto px-2.5 py-3 space-y-1 [scrollbar-width:none]">
+      {groups.map((group) => {
+        if (group.items.length === 1) {
+          const item = group.items[0]
+          const active = isActive(pathname, item)
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              title={item.label}
+              aria-label={item.label}
+              className={cn(NAV_LINK, 'h-11 justify-center', active && NAV_LINK_ACTIVE)}
+            >
+              <item.icon className={cn('h-[18px] w-[18px]', active ? 'text-primary' : 'text-sidebar-foreground/55 group-hover:text-sidebar-foreground')} />
+            </Link>
+          )
+        }
+        const containsActive = group.items.some((i) => isActive(pathname, i))
+        return (
+          <DropdownMenu key={group.title}>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                title={group.title}
+                aria-label={group.title}
+                className={cn(NAV_LINK, 'relative h-11 w-full justify-center data-[state=open]:bg-sidebar-accent', containsActive && NAV_LINK_ACTIVE)}
+              >
+                <group.icon
+                  className={cn('h-[18px] w-[18px]', containsActive ? 'text-primary' : 'text-sidebar-foreground/55 group-hover:text-sidebar-foreground')}
+                />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="right" align="start" sideOffset={14} className="w-56 rounded-xl p-1.5">
+              <DropdownMenuLabel className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{group.title}</DropdownMenuLabel>
+              {group.items.map((item) => {
+                const active = isActive(pathname, item)
+                return (
+                  <DropdownMenuItem key={item.href} asChild className={cn('rounded-lg py-2', active && 'bg-primary/10 font-semibold text-primary focus:bg-primary/10 focus:text-primary')}>
+                    <Link href={item.href}>
+                      <item.icon className={cn(active && '!text-primary')} /> {item.label}
+                    </Link>
+                  </DropdownMenuItem>
+                )
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )
+      })}
     </nav>
   )
 }
@@ -187,32 +314,47 @@ function SidebarBody({
   pathname,
   onNavigate,
   onSignOut,
+  collapsed = false,
+  onToggleCollapsed,
 }: {
   groups: NavGroup[]
   pathname: string
   onNavigate?: () => void
   onSignOut: () => void
+  collapsed?: boolean
+  onToggleCollapsed?: () => void
 }) {
+  const footerLink = cn(NAV_LINK, collapsed ? 'h-11 w-full justify-center' : 'w-full px-3 py-2.5')
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
-      <div className="px-6 pt-6 pb-4">
-        <BrandMark />
+      <div className={cn('flex items-center pt-5 pb-3', collapsed ? 'flex-col gap-3 px-2.5' : 'justify-between px-5')}>
+        <BrandMark collapsed={collapsed} />
+        {onToggleCollapsed && (
+          <button
+            type="button"
+            onClick={onToggleCollapsed}
+            title={collapsed ? 'Expand sidebar (Ctrl+B)' : 'Collapse sidebar (Ctrl+B)'}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-sidebar-foreground/45 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          >
+            {collapsed ? <PanelLeftOpen className="h-[18px] w-[18px]" /> : <PanelLeftClose className="h-[18px] w-[18px]" />}
+          </button>
+        )}
       </div>
-      <SidebarNav groups={groups} pathname={pathname} onNavigate={onNavigate} />
-      <div className="border-t border-sidebar-border p-3 space-y-0.5">
-        <Link
-          href="/"
-          target="_blank"
-          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-medium text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
-        >
-          <Store className="h-[18px] w-[18px] shrink-0 text-sidebar-foreground/45" /> View Store
-          <ExternalLink className="ml-auto h-3.5 w-3.5 text-sidebar-foreground/35" />
+      {collapsed ? <SidebarRail groups={groups} pathname={pathname} /> : <SidebarNav groups={groups} pathname={pathname} onNavigate={onNavigate} />}
+      <div className={cn('border-t border-sidebar-border space-y-0.5', collapsed ? 'p-2.5' : 'p-3')}>
+        <Link href="/" target="_blank" title="View Store" className={footerLink}>
+          <Store className="h-[18px] w-[18px] shrink-0 text-sidebar-foreground/45" />
+          {!collapsed && (
+            <>
+              View Store
+              <ExternalLink className="ml-auto h-3.5 w-3.5 text-sidebar-foreground/35" />
+            </>
+          )}
         </Link>
-        <button
-          onClick={onSignOut}
-          className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-medium text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
-        >
-          <LogOut className="h-[18px] w-[18px] shrink-0 text-sidebar-foreground/45" /> Log out
+        <button onClick={onSignOut} title="Log out" className={footerLink}>
+          <LogOut className="h-[18px] w-[18px] shrink-0 text-sidebar-foreground/45" />
+          {!collapsed && 'Log out'}
         </button>
       </div>
     </div>
@@ -228,6 +370,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [theme, setTheme] = useState<AdminTheme>('light')
+  const [collapsed, setCollapsed] = useState(false)
 
   useEffect(() => {
     try {
@@ -236,6 +379,24 @@ function AdminShell({ children }: { children: React.ReactNode }) {
       // storage unavailable (private mode etc.) — stay on the light default
     }
   }, [])
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(SIDEBAR_STORAGE_KEY) === '1') setCollapsed(true)
+    } catch {
+      // storage unavailable — start expanded
+    }
+  }, [])
+  const toggleCollapsed = useCallback(() => {
+    setCollapsed((c) => {
+      try {
+        localStorage.setItem(SIDEBAR_STORAGE_KEY, c ? '0' : '1')
+      } catch {
+        // non-persistent is fine
+      }
+      return !c
+    })
+  }, [])
+
   const toggleTheme = useCallback(() => {
     setTheme((t) => {
       const next = t === 'light' ? 'dark' : 'light'
@@ -255,10 +416,15 @@ function AdminShell({ children }: { children: React.ReactNode }) {
         e.preventDefault()
         setSearchOpen((o) => !o)
       }
+      // ⌘B / Ctrl+B collapses the sidebar to its icon rail (and back)
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault()
+        toggleCollapsed()
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [toggleCollapsed])
 
   // The dashboard is entirely analytics-driven — a role without analytics.view (Support
   // Agent, Order Manager, etc.) would otherwise land on a 403 immediately after logging in.
@@ -298,8 +464,19 @@ function AdminShell({ children }: { children: React.ReactNode }) {
     <PortalContainerContext.Provider value={portalContainer}>
       <div ref={setPortalContainer} className={cn('admin h-screen flex bg-background text-foreground overflow-hidden', theme === 'dark' && 'dark')}>
         {/* Desktop sidebar */}
-        <aside className="hidden lg:flex w-[264px] flex-shrink-0 flex-col h-full border-r border-sidebar-border">
-          <SidebarBody groups={groups} pathname={pathname} onSignOut={() => signOut()} />
+        <aside
+          className={cn(
+            'hidden lg:flex flex-shrink-0 flex-col h-full border-r border-sidebar-border transition-[width] duration-300 ease-out',
+            collapsed ? 'w-[76px]' : 'w-[264px]'
+          )}
+        >
+          <SidebarBody
+            groups={groups}
+            pathname={pathname}
+            onSignOut={() => signOut()}
+            collapsed={collapsed}
+            onToggleCollapsed={toggleCollapsed}
+          />
         </aside>
 
         {/* Mobile sidebar */}
