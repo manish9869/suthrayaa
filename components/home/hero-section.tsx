@@ -1,47 +1,55 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion, useScroll, useTransform } from 'framer-motion'
+import { ArrowRight, Star, Plus, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatPrice, type HeroSlide, type Product } from '@/lib/data'
-import { HeroDoodles } from './hero-doodles'
+import { useCartStore } from '@/lib/store'
+import { toast } from 'sonner'
+import { EASE_OUT } from '@/components/motion/reveal'
+import { STOREFRONT_IMAGES } from '@/lib/storefront-images'
+import { HeroBackdrop } from './hero-backdrop'
 
 const fallbackSlides = [
   {
-    id: 1,
-    title: 'Handcrafted with Love',
-    subtitle: 'Telling Stories Through Yarn',
-    description: 'Discover unique crochet creations made with passion and care. Each piece is a work of art.',
-    image: '/hero-crochet.jpg',
+    id: 'f1',
+    title: 'Handmade with love. Stitched just for you.',
+    subtitle: 'New season collection',
+    description: 'Crochet keepsakes, décor and gifts — personalised, made to order and crafted slowly in our studio.',
+    image: STOREFRONT_IMAGES.heroMain,
     cta: 'Shop Collection',
     href: '/shop',
-    accent: 'bg-peach',
   },
   {
-    id: 2,
-    title: 'Personalized Keychains',
-    subtitle: 'Make It Yours',
-    description: 'Custom name keychains in beautiful colors. The perfect gift that speaks from the heart.',
+    id: 'f2',
+    title: 'Personalised keychains. Made to be yours.',
+    subtitle: 'Make it personal',
+    description: 'Pick the colours, add a name — we stitch the rest. The little gift that says a lot.',
     image: '/products/personalized-keychain.jpg',
-    cta: 'Customize Now',
+    cta: 'Customise Now',
     href: '/shop?category=keychains',
-    accent: 'bg-lavender',
   },
   {
-    id: 3,
-    title: 'Adorable Amigurumi',
-    subtitle: 'Cuddly Friends Await',
-    description: 'Handmade stuffed toys that bring joy to children and collectors alike.',
+    id: 'f3',
+    title: 'Amigurumi friends. Soft, cuddly, forever.',
+    subtitle: 'Cuddly friends await',
+    description: 'Hand-crocheted toys that bring joy to little ones and collectors alike.',
     image: '/products/amigurumi-bunny.jpg',
     cta: 'Meet the Friends',
     href: '/shop?category=amigurumi',
-    accent: 'bg-mint',
   },
 ]
+
+
+/** Splits "First part. Second part." (or a comma) so the second half can be set in italics. */
+function splitTitle(title: string): [string, string | null] {
+  const m = title.match(/^(.+?[.,!—–])\s+(.+)$/)
+  return m ? [m[1], m[2]] : [title, null]
+}
 
 interface HeroSectionProps {
   slides?: HeroSlide[]
@@ -49,208 +57,230 @@ interface HeroSectionProps {
 }
 
 export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSectionProps) {
-  const slides = cmsSlides && cmsSlides.length > 0
-    ? cmsSlides.map((s, i) => ({
-        id: s.id,
-        title: s.title,
-        subtitle: s.subtitle ?? '',
-        description: s.description ?? '',
-        image: s.image ?? fallbackSlides[i % fallbackSlides.length].image,
-        cta: s.ctaLabel ?? 'Shop Collection',
-        href: s.ctaHref ?? '/shop',
-        accent: s.accentToken ?? fallbackSlides[i % fallbackSlides.length].accent,
-      }))
-    : fallbackSlides
+  const reduce = useReducedMotion()
+  const slides =
+    cmsSlides && cmsSlides.length > 0
+      ? cmsSlides.map((s, i) => ({
+          id: s.id,
+          title: s.title,
+          subtitle: s.subtitle ?? 'New season collection',
+          description: s.description ?? '',
+          image: s.image ?? fallbackSlides[i % fallbackSlides.length].image,
+          cta: s.ctaLabel ?? 'Shop Collection',
+          href: s.ctaHref ?? '/shop',
+        }))
+      : fallbackSlides
 
-  const [currentSlide, setCurrentSlide] = useState(0)
-  const [isAutoPlaying, setIsAutoPlaying] = useState(true)
-
-  const nextSlide = useCallback(() => {
-    setCurrentSlide((prev) => (prev + 1) % slides.length)
-  }, [slides.length])
-
-  const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length)
-  }
+  const [current, setCurrent] = useState(0)
+  const [paused, setPaused] = useState(false)
+  const next = useCallback(() => setCurrent((p) => (p + 1) % slides.length), [slides.length])
 
   useEffect(() => {
-    if (!isAutoPlaying) return
-    const interval = setInterval(nextSlide, 5000)
-    return () => clearInterval(interval)
-  }, [isAutoPlaying, nextSlide])
+    if (paused || slides.length < 2) return
+    const t = setInterval(next, 6500)
+    return () => clearInterval(t)
+  }, [paused, next, slides.length])
 
-  const showcaseProducts = featuredProducts.slice(0, 4)
+  // Floating product card cycles through the featured picks
+  const picks = featuredProducts.slice(0, 4)
+  const [pick, setPick] = useState(0)
+  useEffect(() => {
+    if (picks.length < 2 || paused) return
+    const t = setInterval(() => setPick((p) => (p + 1) % picks.length), 4200)
+    return () => clearInterval(t)
+  }, [picks.length, paused])
+  const { addItem, openCart } = useCartStore()
+  const [added, setAdded] = useState(false)
+  const addPick = (product: Product) => {
+    addItem(product, product.colors[0])
+    openCart()
+    toast.success(`${product.name} added to cart`)
+    setAdded(true)
+    setTimeout(() => setAdded(false), 1200)
+  }
+
+  // Gentle parallax on the photo as the hero scrolls away
+  const ref = useRef<HTMLElement>(null)
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] })
+  const imageY = useTransform(scrollYProgress, [0, 1], [0, reduce ? 0 : 60])
+
+  const slide = slides[current]
+  const [line1, line2] = splitTitle(slide.title)
+  const activePick = picks[pick]
+  const textAnim = reduce
+    ? { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } }
+    : {
+        initial: { opacity: 0, y: 14, filter: 'blur(6px)' },
+        animate: { opacity: 1, y: 0, filter: 'blur(0px)' },
+        exit: { opacity: 0, y: -8, filter: 'blur(4px)' },
+      }
 
   return (
     <section
-      className="relative h-[70vh] min-h-[460px] max-h-[640px] overflow-hidden"
-      onMouseEnter={() => setIsAutoPlaying(false)}
-      onMouseLeave={() => setIsAutoPlaying(true)}
+      ref={ref}
+      className="relative overflow-hidden"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
     >
-      {/*
-        Layering is split into explicit stacking bands under <section>, each its own
-        z-indexed sibling — NOT nested per-slide — because a per-slide wrapper with its own
-        z-index creates its own stacking context, and everything inside it (image AND text)
-        paints together as one atomic unit relative to siblings. Nesting the doodles inside
-        that same z-10 slide wrapper (as a plain sibling div) put them entirely behind the
-        opaque photo, invisible. Splitting into bg (z-0) / doodles (z-[2]) / content (z-10)
-        top-level layers is what actually lets the doodles paint on top of the photo and
-        underneath the text.
-      */}
+      {/* Soft decorative washes */}
+      <div className="pointer-events-none absolute -left-40 top-10 h-[420px] w-[420px] rounded-full bg-blush/50 blur-3xl" />
+      <div className="pointer-events-none absolute right-[-10%] top-[-20%] h-[520px] w-[520px] rounded-full bg-sage/20 blur-3xl" />
+      <HeroBackdrop />
 
-      {/* Background images */}
-      {slides.map((slide, index) => (
-        <div
-          key={slide.id}
-          className={cn('absolute inset-0 z-0 transition-opacity duration-700', index === currentSlide ? 'opacity-100' : 'opacity-0')}
-        >
-          <Image src={slide.image} alt={slide.title} fill className="object-cover" priority={index === 0} />
-        </div>
-      ))}
-      {/* A light overall dim, plus a black radial vignette concentrated behind the centered
-          text — keeps the photo visible at the edges (where the doodles float) while
-          guaranteeing contrast right where the text sits, regardless of what's in the photo.
-          Text below switches to light/cream tones to read against this dark spotlight. */}
-      <div className="absolute inset-0 z-[1] bg-black/15" />
-      <div className="absolute inset-0 z-[1] bg-[radial-gradient(ellipse_58%_68%_at_50%_50%,_rgba(0,0,0,0.62)_0%,_rgba(0,0,0,0.25)_55%,_transparent_80%)]" />
-
-      <HeroDoodles />
-      <div className="hero-floating-motifs pointer-events-none absolute inset-0 z-[3] overflow-hidden" aria-hidden="true">
-        <span className="motif motif-a">✦</span><span className="motif motif-b">○</span><span className="motif motif-c">✧</span>
-        <span className="motif motif-d">+</span><span className="motif motif-e">✦</span><span className="motif motif-f">○</span>
-        <span className="motif motif-g">✿</span><span className="motif motif-h">✧</span><span className="motif motif-i">•</span>
-        <span className="motif motif-j">✦</span><span className="motif motif-k">○</span><span className="motif motif-l">+</span>
-      </div>
-
-      {/* Content */}
-      {slides.map((slide, index) => (
-        <div key={slide.id} className={cn('absolute inset-0 z-10 transition-opacity duration-700', index === currentSlide ? 'opacity-100' : 'opacity-0 pointer-events-none')}>
-          {/* Centered for a punchier, more focused banner */}
-          <div className="relative h-full container mx-auto px-4 flex items-center justify-center">
-            <motion.div
-              className="max-w-2xl flex flex-col items-center text-center"
-              animate={index === currentSlide ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
-              transition={{ type: 'spring', stiffness: 120, damping: 18 }}
-            >
-              <div
-                className={cn(
-                  'inline-block px-4 py-1.5 rounded-full text-sm font-medium mb-4',
-                  slide.accent,
-                  'text-foreground'
+      <div className="container relative mx-auto grid items-center gap-10 px-4 pb-16 pt-6 lg:min-h-[640px] lg:grid-cols-[1.05fr_1fr] lg:gap-8 lg:pb-20 lg:pt-6">
+        {/* Copy */}
+        <div className="relative z-10">
+          <AnimatePresence mode="wait">
+            <motion.div key={slide.id} transition={{ duration: 0.55, ease: EASE_OUT }} {...textAnim}>
+              <p className="eyebrow flex items-center gap-2">
+                <span className="h-px w-8 bg-rose" /> {slide.subtitle}
+              </p>
+              <h1 className="display mt-5 text-[2.9rem] leading-[1.02] sm:text-6xl xl:text-[5.2rem]">
+                {line1}
+                {line2 && (
+                  <>
+                    <br />
+                    <em className="font-normal italic text-primary">{line2}</em>
+                  </>
                 )}
-              >
-                {slide.subtitle}
-              </div>
-              <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif font-bold tracking-tight text-white mb-2 text-balance">
-                {slide.title}
               </h1>
-              <p className="font-script text-4xl md:text-6xl text-secondary leading-none mb-4">
-                Crochet Magic
-              </p>
-              <p className="text-lg font-medium text-white/90 mb-6 text-pretty max-w-lg">
-                {slide.description}
-              </p>
-              <div className="flex flex-wrap justify-center gap-4">
-                <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
-                  <Button size="lg" asChild className="group">
-                    <Link href={slide.href}>
-                      {slide.cta}
-                      <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                    </Link>
-                  </Button>
-                </motion.div>
-                <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
-                  <Button size="lg" variant="outline" asChild>
-                    <Link href="/about">Our Story</Link>
-                  </Button>
-                </motion.div>
+              {slide.description && <p className="mt-6 max-w-md text-[17px] leading-relaxed text-foreground/70">{slide.description}</p>}
+              <div className="mt-8 flex flex-wrap items-center gap-3">
+                <Button size="lg" asChild className="group h-[52px] px-7 text-[15px]">
+                  <Link href={slide.href}>
+                    {slide.cta}
+                    <ArrowRight className="h-4 w-4 transition-transform duration-300 ease-[var(--ease-out)] group-hover:translate-x-1" />
+                  </Link>
+                </Button>
+                <Button size="lg" variant="ghost" asChild className="h-[52px] px-5 text-[15px]">
+                  <Link href="/about">Our story</Link>
+                </Button>
               </div>
+            </motion.div>
+          </AnimatePresence>
 
-              {/* Interactive "check our collection" widget — live bestseller/featured picks */}
-              {showcaseProducts.length > 0 ? (
-                <div className="mt-8">
-                  <p className="text-xs uppercase tracking-[0.2em] text-primary-foreground/60 mb-3">This week&apos;s favorites</p>
-                  <div className="flex flex-wrap justify-center gap-3">
-                    {showcaseProducts.map((product, i) => (
-                      <Link
-                        key={product.id}
-                        href={`/product/${product.slug}`}
-                        className="hero-widget group flex items-center gap-3 rounded-2xl border border-border/70 bg-background/80 py-2 pl-2 pr-4 shadow-soft backdrop-blur-sm transition-colors hover:border-secondary hover:-translate-y-0.5"
-                        style={{ animationDelay: `${i * 110}ms` }}
-                      >
-                        <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl bg-muted">
-                          <Image
-                            src={product.images[0] ?? '/placeholder.svg'}
-                            alt={product.name}
-                            fill
-                            className="object-cover transition-transform duration-300 group-hover:scale-110"
-                          />
-                        </div>
-                        <div className="text-left">
-                          <p className="line-clamp-1 max-w-[9rem] text-sm font-medium leading-tight">{product.name}</p>
-                          <p className="text-xs font-semibold text-secondary">{formatPrice(product.price)}</p>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-8 flex flex-wrap justify-center gap-3">
-                  <div className="hero-widget rounded-2xl border border-border/70 bg-background/80 px-4 py-3 shadow-soft backdrop-blur-sm">
-                    <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Made slowly</p>
-                    <p className="font-serif text-lg font-semibold">One stitch at a time</p>
-                  </div>
-                  <div className="hero-widget rounded-2xl border border-border/70 bg-background/80 px-4 py-3 shadow-soft backdrop-blur-sm" style={{ animationDelay: '120ms' }}>
-                    <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Loved by</p>
-                    <p className="font-serif text-lg font-semibold">500+ happy makers</p>
-                  </div>
+          {/* Slide dots + social proof */}
+          <div className="mt-12 flex flex-wrap items-center gap-6">
+            {slides.length > 1 && (
+              <div className="flex items-center gap-2">
+                {slides.map((s, i) => (
+                  <button
+                    key={s.id}
+                    onClick={() => setCurrent(i)}
+                    aria-label={`Show slide ${i + 1}`}
+                    aria-current={i === current}
+                    className="relative h-1.5 w-8 overflow-hidden rounded-full bg-foreground/15"
+                  >
+                    {i === current && (
+                      <motion.span
+                        key={`${s.id}-${paused}`}
+                        className="absolute inset-y-0 left-0 rounded-full bg-primary"
+                        initial={{ width: paused || reduce ? '100%' : '0%' }}
+                        animate={{ width: '100%' }}
+                        transition={{ duration: paused || reduce ? 0 : 6.5, ease: 'linear' }}
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="flex items-center gap-3">
+              <div className="flex -space-x-2.5">
+                {['/testimonials/avatar-1.jpg', '/testimonials/avatar-2.jpg', '/testimonials/avatar-3.jpg'].map((src) => (
+                  <span key={src} className="relative h-9 w-9 overflow-hidden rounded-full ring-2 ring-background">
+                    <Image src={src} alt="" fill sizes="36px" className="object-cover" />
+                  </span>
+                ))}
+              </div>
+              <div className="text-[13px] leading-tight">
+                <span className="flex items-center gap-1 font-semibold">
+                  <Star className="h-3.5 w-3.5 fill-gold text-gold" /> 4.9 / 5
+                </span>
+                <span className="text-muted-foreground">Loved by 500+ customers</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Visual */}
+        <div className="relative mx-auto w-full max-w-[360px] sm:max-w-[520px]">
+          <div className="absolute inset-x-[6%] bottom-[4%] top-[10%] rounded-full bg-blush" />
+          <motion.div style={{ y: imageY }} className="relative">
+            <div className="arch relative mx-auto aspect-[4/5] w-[78%] overflow-hidden bg-sand shadow-[0_40px_80px_-40px_rgb(30_42_35/0.55)]">
+              <AnimatePresence initial={false}>
+                <motion.div
+                  key={slide.image}
+                  className="absolute inset-0"
+                  initial={{ opacity: 0, scale: reduce ? 1 : 1.06 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.9, ease: EASE_OUT }}
+                >
+                  <Image src={slide.image} alt={slide.title} fill priority sizes="(max-width: 1024px) 80vw, 420px" className="object-cover" />
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </motion.div>
+
+          {/* Rotating badge */}
+          <div className="absolute left-0 top-[8%] hidden h-28 w-28 sm:block">
+            <svg viewBox="0 0 100 100" className={cn('h-full w-full', !reduce && 'animate-[spin_22s_linear_infinite]')} aria-hidden>
+              <defs>
+                <path id="hero-circle" d="M50,50 m-38,0 a38,38 0 1,1 76,0 a38,38 0 1,1 -76,0" />
+              </defs>
+              <circle cx="50" cy="50" r="49" fill="var(--card)" />
+              <text fontSize="10.5" letterSpacing="3" fill="var(--forest)" fontWeight="600">
+                <textPath href="#hero-circle">HANDMADE · WITH · LOVE · IN INDIA ·</textPath>
+              </text>
+            </svg>
+            <span className="absolute inset-0 m-auto flex h-10 w-10 items-center justify-center rounded-full bg-rose text-lg text-white">✿</span>
+          </div>
+
+          {/* Floating product card */}
+          {activePick && (
+            <motion.div
+              initial={reduce ? { opacity: 0 } : { opacity: 0, y: 24, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ delay: 0.45, duration: 0.6, ease: EASE_OUT }}
+              className="absolute -right-2 bottom-[6%] hidden w-[210px] rounded-3xl sm:block bg-card/95 p-3 shadow-[0_24px_60px_-28px_rgb(30_42_35/0.55)] ring-1 ring-border backdrop-blur sm:right-0 sm:w-[230px]"
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={activePick.id}
+                  initial={{ opacity: 0, x: 12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -12 }}
+                  transition={{ duration: 0.3, ease: EASE_OUT }}
+                >
+                  <Link href={`/product/${activePick.slug}`} className="group block">
+                    <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-sand">
+                      <Image src={activePick.images[0] ?? '/placeholder.svg'} alt={activePick.name} fill sizes="230px" className="zoom-img object-cover" />
+                    </div>
+                    <p className="mt-2.5 line-clamp-1 text-sm font-medium">{activePick.name}</p>
+                    <p className="text-sm font-semibold text-primary">{formatPrice(activePick.price)}</p>
+                  </Link>
+                </motion.div>
+              </AnimatePresence>
+              <div className="mt-2.5 flex items-center gap-2">
+                <Button size="sm" className="h-9 flex-1" onClick={() => addPick(activePick)} disabled={added}>
+                  {added ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />} {added ? 'Added' : 'Add to cart'}
+                </Button>
+              </div>
+              {picks.length > 1 && (
+                <div className="mt-2.5 flex justify-center gap-1.5">
+                  {picks.map((p, i) => (
+                    <button
+                      key={p.id}
+                      onClick={() => setPick(i)}
+                      aria-label={`Show ${p.name}`}
+                      className={cn('h-1.5 rounded-full transition-all duration-300', i === pick ? 'w-4 bg-primary' : 'w-1.5 bg-foreground/20')}
+                    />
+                  ))}
                 </div>
               )}
             </motion.div>
-          </div>
+          )}
         </div>
-      ))}
-
-      {/* Navigation Arrows */}
-      <div className="absolute bottom-8 right-8 z-20 flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-10 w-10 rounded-full bg-background/80 backdrop-blur-sm tap-bounce"
-          onClick={prevSlide}
-          aria-label="Previous slide"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-10 w-10 rounded-full bg-background/80 backdrop-blur-sm tap-bounce"
-          onClick={nextSlide}
-          aria-label="Next slide"
-        >
-          <ChevronRight className="h-5 w-5" />
-        </Button>
-      </div>
-
-      {/* Slide Indicators */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
-        <AnimatePresence initial={false}>
-          {slides.map((_, index) => (
-            <motion.button
-              key={index}
-              layout
-              onClick={() => setCurrentSlide(index)}
-              animate={{ width: index === currentSlide ? 32 : 8 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-              className={cn(
-                'h-2 rounded-full',
-                index === currentSlide ? 'bg-secondary' : 'bg-foreground/30 hover:bg-foreground/50'
-              )}
-              aria-label={`Go to slide ${index + 1}`}
-            />
-          ))}
-        </AnimatePresence>
       </div>
     </section>
   )

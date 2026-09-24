@@ -2,6 +2,9 @@
 
 import { useState, useMemo, useEffect, type ReactNode } from 'react'
 import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
+import Image from 'next/image'
+import { STOREFRONT_IMAGES } from '@/lib/storefront-images'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Navbar } from '@/components/navbar'
 import { Footer } from '@/components/footer'
@@ -50,7 +53,11 @@ export function ShopContent({ products, categories }: { products: Product[]; cat
   // re-animation on every tick. Only `onValueCommit` (drag release) pushes into `priceRange`.
   const [sliderRange, setSliderRange] = useState<[number, number]>([0, 1000])
   useEffect(() => setSliderRange(priceRange), [priceRange])
-  const [sortBy, setSortBy] = useState<SortOption>('featured')
+  // "/shop?sort=bestselling" (e.g. the homepage "View all best sellers" link) preselects the sort
+  const sortParam = searchParams.get('sort')
+  const [sortBy, setSortBy] = useState<SortOption>(() =>
+    sortOptions.some((o) => o.value === sortParam) ? (sortParam as SortOption) : 'featured'
+  )
   const [viewMode, setViewMode] = useState<ViewMode>('grid-4')
   const [showFilters, setShowFilters] = useState(false)
 
@@ -200,7 +207,7 @@ export function ShopContent({ products, categories }: { products: Product[]; cat
     const expanded = expandedCategories.has(node.slug)
     return (
       <div key={node.slug}>
-        <div className="flex items-center gap-2 rounded-md py-1 pr-1 transition-colors hover:bg-muted/60">
+        <div className="flex items-center gap-2 rounded-xl px-1.5 py-1 transition-colors hover:bg-muted/60">
           <Checkbox
             id={node.slug}
             checked={selectedCategories.includes(node.slug)}
@@ -243,7 +250,7 @@ export function ShopContent({ products, categories }: { products: Product[]; cat
     <div className="space-y-6">
       {/* Search */}
       <div>
-        <Label className="text-sm font-medium mb-2 block">Search</Label>
+        <Label className="mb-3 block text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Search</Label>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -260,7 +267,7 @@ export function ShopContent({ products, categories }: { products: Product[]; cat
 
       {/* Categories */}
       <div>
-        <Label className="text-sm font-medium mb-3 block">Categories</Label>
+        <Label className="mb-3 block text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Categories</Label>
         <div className="space-y-1 max-h-96 overflow-y-auto pr-1">
           {categoryTree.map((node) => renderTopLevelCategory(node))}
         </div>
@@ -275,7 +282,7 @@ export function ShopContent({ products, categories }: { products: Product[]; cat
           checked={selectedTag?.toLowerCase() === 'clearance'}
           onCheckedChange={(checked) => setSelectedTag(checked ? 'clearance' : null)}
         />
-        <label htmlFor="clearance-filter" className="text-sm cursor-pointer flex items-center gap-1.5 text-destructive font-medium">
+        <label htmlFor="clearance-filter" className="flex cursor-pointer items-center gap-1.5 text-sm font-medium text-rose">
           <Tag className="h-3.5 w-3.5" />
           Clearance only
         </label>
@@ -285,7 +292,7 @@ export function ShopContent({ products, categories }: { products: Product[]; cat
 
       {/* Price Range */}
       <div>
-        <Label className="text-sm font-medium mb-3 block">Price Range</Label>
+        <Label className="mb-3 block text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Price range</Label>
         <DualRangeSlider
           value={sliderRange}
           onValueChange={setSliderRange}
@@ -316,30 +323,85 @@ export function ShopContent({ products, categories }: { products: Product[]; cat
     <>
       <Navbar categories={categories} />
       <main className="min-h-screen">
-        {/* Page Header */}
-        <div className="bg-muted/50 py-8">
-          <div className="container mx-auto px-4">
-            <h1 className="text-3xl md:text-4xl font-serif font-bold text-foreground mb-2">
-              {selectedCategories.length === 1
-                ? categories.find((c) => c.slug === selectedCategories[0])?.name || 'Shop'
-                : selectedTag
-                ? `${selectedTag.charAt(0).toUpperCase()}${selectedTag.slice(1)}`
-                : 'All Products'}
+        {/* Page header */}
+        <section className="relative overflow-hidden">
+          <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-blush/60 blur-3xl" />
+          <div className="pointer-events-none absolute right-0 top-0 h-80 w-80 rounded-full bg-sage/20 blur-3xl" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[46%] lg:block">
+            <Image src={STOREFRONT_IMAGES.shopBanner} alt="" fill priority sizes="46vw" className="object-cover object-right opacity-90" />
+            <div className="absolute inset-0 bg-gradient-to-r from-background via-background/40 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background to-transparent" />
+          </div>
+          <div className="container relative mx-auto px-4 pb-8 pt-8 lg:pt-12">
+            <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-[13px] text-muted-foreground">
+              <Link href="/" className="hover:text-foreground">
+                Home
+              </Link>
+              <span>/</span>
+              <span className="text-foreground">Shop</span>
+            </nav>
+            <h1 className="display mt-4 text-[2.6rem] sm:text-6xl">
+              {selectedCategories.length === 1 ? (
+                categories.find((c) => c.slug === selectedCategories[0])?.name || 'Shop'
+              ) : selectedTag ? (
+                `${selectedTag.charAt(0).toUpperCase()}${selectedTag.slice(1)}`
+              ) : (
+                <>
+                  All <em className="font-normal italic text-primary">creations</em>
+                </>
+              )}
             </h1>
-            <p className="text-muted-foreground">
+            <p className="mt-3 max-w-lg text-[15px] text-muted-foreground">
               {selectedTag?.toLowerCase() === 'clearance'
                 ? 'Limited pieces at limited-time prices — once they’re gone, they’re gone'
-                : 'Discover handcrafted crochet creations made with love'}
+                : 'Handcrafted crochet made to order with love — find something that feels like you.'}
             </p>
-          </div>
-        </div>
 
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex gap-8">
+            {/* Quick category chips */}
+            {categoryTree.length > 0 && (
+              <div className="-mx-4 mt-8 flex gap-2.5 overflow-x-auto px-4 pb-1 scrollbar-hide">
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategories([])}
+                  className={cn(
+                    'tap-bounce flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors',
+                    selectedCategories.length === 0 ? 'border-primary bg-primary text-primary-foreground' : 'bg-card hover:border-primary/50'
+                  )}
+                >
+                  All
+                </button>
+                {categoryTree.map((top) => {
+                  const active = selectedCategories.includes(top.slug)
+                  return (
+                    <button
+                      key={top.id}
+                      type="button"
+                      onClick={() => setSelectedCategories(active ? [] : [top.slug])}
+                      className={cn(
+                        'tap-bounce flex shrink-0 items-center gap-2 rounded-full border py-1.5 pl-1.5 pr-4 text-sm font-medium transition-colors',
+                        active ? 'border-primary bg-primary text-primary-foreground' : 'bg-card hover:border-primary/50'
+                      )}
+                    >
+                      <span className="relative h-7 w-7 overflow-hidden rounded-full bg-muted">
+                        {top.image && <Image src={top.image} alt="" fill sizes="28px" className="object-cover" />}
+                      </span>
+                      {top.name}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </section>
+
+        <div className="container mx-auto px-4 pb-8">
+          <div className="flex gap-10">
             {/* Desktop Sidebar Filters */}
             <aside className="hidden lg:block w-64 flex-shrink-0">
-              <div className="sticky top-28 bg-card rounded-xl p-6 shadow-soft">
-                <h2 className="font-semibold text-lg mb-4">Filters</h2>
+              <div className="sticky top-[124px] rounded-[1.6rem] bg-card p-6 ring-1 ring-border">
+                <h2 className="mb-5 flex items-center gap-2 font-serif text-xl">
+                  <SlidersHorizontal className="h-4 w-4 text-primary" /> Filters
+                </h2>
                 {FilterContent()}
               </div>
             </aside>
@@ -347,22 +409,22 @@ export function ShopContent({ products, categories }: { products: Product[]; cat
             {/* Main Content */}
             <div className="flex-1">
               {/* Toolbar */}
-              <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+              <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b pb-5">
                 <div className="flex items-center gap-4">
                   {/* Mobile Filter Button */}
                   <Sheet open={showFilters} onOpenChange={setShowFilters}>
                     <SheetTrigger asChild>
-                      <Button variant="outline" className="lg:hidden">
-                        <SlidersHorizontal className="h-4 w-4 mr-2" />
+                      <Button variant="outline" className="h-10 lg:hidden">
+                        <SlidersHorizontal className="h-4 w-4" />
                         Filters
                         {activeFilterCount > 0 && (
-                          <Badge className="ml-2 h-5 w-5 p-0 flex items-center justify-center">
+                          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[11px] text-primary-foreground">
                             {activeFilterCount}
-                          </Badge>
+                          </span>
                         )}
                       </Button>
                     </SheetTrigger>
-                    <SheetContent side="left" className="w-80">
+                    <SheetContent side="left" className="w-[88vw] max-w-sm overflow-y-auto bg-background">
                       <SheetHeader>
                         <SheetTitle>Filters</SheetTitle>
                       </SheetHeader>
@@ -373,14 +435,14 @@ export function ShopContent({ products, categories }: { products: Product[]; cat
                   </Sheet>
 
                   <span className="text-sm text-muted-foreground">
-                    {filteredProducts.length} products
+                    <span className="font-semibold text-foreground">{filteredProducts.length}</span> {filteredProducts.length === 1 ? 'piece' : 'pieces'}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-4">
                   {/* Sort */}
                   <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
-                    <SelectTrigger className="w-44">
+                    <SelectTrigger className="h-10 w-44">
                       <SelectValue placeholder="Sort by" />
                     </SelectTrigger>
                     <SelectContent>
@@ -392,38 +454,32 @@ export function ShopContent({ products, categories }: { products: Product[]; cat
                     </SelectContent>
                   </Select>
 
-                  {/* View Mode */}
-                  <div className="hidden sm:flex items-center border rounded-lg">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={cn(
-                        'h-9 w-9 rounded-none rounded-l-lg',
-                        viewMode === 'grid-4' && 'bg-muted'
-                      )}
-                      onClick={() => setViewMode('grid-4')}
-                    >
-                      <Grid3X3 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={cn('h-9 w-9 rounded-none', viewMode === 'grid-3' && 'bg-muted')}
-                      onClick={() => setViewMode('grid-3')}
-                    >
-                      <Grid2X2 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={cn(
-                        'h-9 w-9 rounded-none rounded-r-lg',
-                        viewMode === 'list' && 'bg-muted'
-                      )}
-                      onClick={() => setViewMode('list')}
-                    >
-                      <LayoutList className="h-4 w-4" />
-                    </Button>
+                  {/* View mode */}
+                  <div className="hidden items-center rounded-full border bg-card p-1 sm:flex">
+                    {(
+                      [
+                        ['grid-4', Grid3X3, 'Four columns'],
+                        ['grid-3', Grid2X2, 'Three columns'],
+                        ['list', LayoutList, 'List'],
+                      ] as const
+                    ).map(([mode, Icon, label]) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setViewMode(mode)}
+                        aria-label={label}
+                        aria-pressed={viewMode === mode}
+                        className={cn(
+                          'relative flex h-8 w-9 items-center justify-center rounded-full transition-colors',
+                          viewMode === mode ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                        )}
+                      >
+                        {viewMode === mode && (
+                          <motion.span layoutId="shop-view-pill" className="absolute inset-0 rounded-full bg-primary" transition={{ type: 'spring', duration: 0.35, bounce: 0.15 }} />
+                        )}
+                        <Icon className="relative h-4 w-4" />
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -443,7 +499,7 @@ export function ShopContent({ products, categories }: { products: Product[]; cat
                       <AnimatePresence initial={false}>
                         {searchQuery && (
                           <motion.div key="search" layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}>
-                            <Badge variant="secondary" className="gap-1">
+                            <Badge variant="secondary" className="gap-1.5 rounded-full border bg-card px-3 py-1 text-foreground">
                               Search: {searchQuery}
                               <X className="h-3 w-3 cursor-pointer" onClick={() => setSearchQuery('')} />
                             </Badge>
@@ -451,7 +507,7 @@ export function ShopContent({ products, categories }: { products: Product[]; cat
                         )}
                         {selectedCategories.map((slug) => (
                           <motion.div key={slug} layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}>
-                            <Badge variant="secondary" className="gap-1">
+                            <Badge variant="secondary" className="gap-1.5 rounded-full border bg-card px-3 py-1 text-foreground">
                               {categories.find((c) => c.slug === slug)?.name}
                               <X className="h-3 w-3 cursor-pointer" onClick={() => handleCategoryToggle(slug)} />
                             </Badge>
@@ -459,7 +515,7 @@ export function ShopContent({ products, categories }: { products: Product[]; cat
                         ))}
                         {selectedTag && (
                           <motion.div key="tag" layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}>
-                            <Badge variant="destructive" className="gap-1">
+                            <Badge className="gap-1.5 rounded-full bg-rose px-3 py-1 text-white">
                               {selectedTag.charAt(0).toUpperCase() + selectedTag.slice(1)}
                               <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedTag(null)} />
                             </Badge>
@@ -467,7 +523,7 @@ export function ShopContent({ products, categories }: { products: Product[]; cat
                         )}
                         {(priceRange[0] > 0 || priceRange[1] < 1000) && (
                           <motion.div key="price" layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}>
-                            <Badge variant="secondary" className="gap-1">
+                            <Badge variant="secondary" className="gap-1.5 rounded-full border bg-card px-3 py-1 text-foreground">
                               {formatPrice(priceRange[0])} - {formatPrice(priceRange[1])}
                               <X className="h-3 w-3 cursor-pointer" onClick={() => setPriceRange([0, 1000])} />
                             </Badge>
@@ -485,10 +541,10 @@ export function ShopContent({ products, categories }: { products: Product[]; cat
               {/* Products Grid */}
               {filteredProducts.length === 0 ? (
                 <div className="text-center py-16">
-                  <div className="w-24 h-24 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
-                    <Search className="h-10 w-10 text-muted-foreground" />
+                  <div className="mx-auto mb-5 flex h-24 w-24 items-center justify-center rounded-full bg-blush">
+                    <Search className="h-9 w-9 text-rose" />
                   </div>
-                  <h3 className="text-lg font-medium mb-2">No products found</h3>
+                  <h3 className="display mb-2 text-3xl">Nothing here… yet</h3>
                   <p className="text-muted-foreground mb-4">
                     Try adjusting your filters or search terms
                   </p>
@@ -498,10 +554,10 @@ export function ShopContent({ products, categories }: { products: Product[]; cat
                 <motion.div
                   layout
                   className={cn(
-                    'grid gap-6',
-                    viewMode === 'grid-4' && 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
-                    viewMode === 'grid-3' && 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
-                    viewMode === 'list' && 'grid-cols-1'
+                    'grid gap-x-4 gap-y-10 lg:gap-x-6',
+                    viewMode === 'grid-4' && 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
+                    viewMode === 'grid-3' && 'grid-cols-2 lg:grid-cols-3',
+                    viewMode === 'list' && 'grid-cols-1 sm:grid-cols-2'
                   )}
                 >
                   <AnimatePresence mode="popLayout">
@@ -509,10 +565,10 @@ export function ShopContent({ products, categories }: { products: Product[]; cat
                       <motion.div
                         key={product.id}
                         layout
-                        initial={{ opacity: 0, y: 16 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.92 }}
-                        transition={{ duration: 0.25, delay: Math.min(index, 8) * 0.03 }}
+                        initial={{ opacity: 0, y: 14, filter: 'blur(4px)' }}
+                        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                        exit={{ opacity: 0, scale: 0.96 }}
+                        transition={{ duration: 0.4, delay: Math.min(index, 8) * 0.04, ease: [0.23, 1, 0.32, 1] }}
                       >
                         <ProductCard product={product} />
                       </motion.div>

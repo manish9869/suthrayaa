@@ -1,108 +1,80 @@
+'use client'
+
+import { useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion'
+import { ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Play } from 'lucide-react'
+import { Reveal } from '@/components/motion/reveal'
+import { STOREFRONT_IMAGES } from '@/lib/storefront-images'
+
+const STATS = [
+  { value: '2+', label: 'Years of craft' },
+  { value: '1000+', label: 'Pieces created' },
+  { value: '50+', label: 'Unique designs' },
+]
 
 export function StorySection() {
+  const ref = useRef<HTMLElement>(null)
+  const reduce = useReducedMotion()
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] })
+  const yBig = useTransform(scrollYProgress, [0, 1], [reduce ? 0 : 40, reduce ? 0 : -40])
+  const ySmall = useTransform(scrollYProgress, [0, 1], [reduce ? 0 : 80, reduce ? 0 : -60])
+
   return (
-    <section className="py-16 lg:py-24">
-      <div className="container mx-auto px-4">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          {/* Image Grid */}
-          <div className="relative">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-4">
-                <div className="aspect-[3/4] rounded-2xl overflow-hidden">
-                  <Image
-                    src="/artisan-hands.jpg"
-                    alt="Crafting process"
-                    width={400}
-                    height={533}
-                    className="object-cover w-full h-full"
-                  />
-                </div>
-                <div className="aspect-square rounded-2xl overflow-hidden bg-secondary flex items-center justify-center">
-                  <div className="text-center p-4">
-                    <div className="text-4xl font-serif font-bold text-secondary-foreground">500+</div>
-                    <p className="text-sm text-secondary-foreground/80">Happy Customers</p>
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-4 pt-8">
-                <div className="aspect-square rounded-2xl overflow-hidden bg-mint flex items-center justify-center">
-                  <div className="text-center p-4">
-                    <div className="text-4xl font-serif font-bold text-mint-foreground">100%</div>
-                    <p className="text-sm text-mint-foreground/80">Handmade</p>
-                  </div>
-                </div>
-                <div className="aspect-[3/4] rounded-2xl overflow-hidden relative group cursor-pointer">
-                  <Image
-                    src="/hero-crochet.jpg"
-                    alt="Yarn and crochet"
-                    width={400}
-                    height={533}
-                    className="object-cover w-full h-full"
-                  />
-                  <div className="absolute inset-0 bg-foreground/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center">
-                      <Play className="h-6 w-6 text-foreground ml-1" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Decorative elements */}
-            <div className="absolute -top-4 -left-4 w-24 h-24 bg-peach/50 rounded-full -z-10" />
-            <div className="absolute -bottom-4 -right-4 w-32 h-32 bg-lavender/50 rounded-full -z-10" />
+    <section ref={ref} className="relative overflow-hidden py-20 lg:py-32">
+      <div className="container mx-auto grid items-center gap-16 px-4 lg:grid-cols-2 lg:gap-20">
+        {/* Images */}
+        <div className="relative mx-auto w-full max-w-[520px]">
+          <motion.div style={{ y: yBig }} className="arch relative aspect-[4/5] w-[78%] overflow-hidden bg-sand">
+            <Image src={STOREFRONT_IMAGES.story} alt="Hands crocheting in the Suthrayaa studio" fill sizes="(max-width: 1024px) 80vw, 400px" className="object-cover" />
+          </motion.div>
+          <motion.div
+            style={{ y: ySmall }}
+            className="absolute bottom-[-6%] right-0 aspect-square w-[46%] overflow-hidden rounded-[1.75rem] border-[6px] border-background bg-sand shadow-xl"
+          >
+            <Image src={STOREFRONT_IMAGES.storySecondary} alt="" fill sizes="240px" className="object-cover" />
+          </motion.div>
+          <div className="absolute -left-2 top-[12%] rounded-2xl bg-card px-4 py-3 shadow-lg ring-1 ring-border float-slow">
+            <p className="display text-3xl text-primary">100%</p>
+            <p className="text-xs font-medium text-muted-foreground">Handmade</p>
           </div>
+        </div>
 
-          {/* Content */}
-          <div>
-            <span className="inline-block px-4 py-1.5 rounded-full bg-mint text-sm font-medium mb-4">
-              Our Story
-            </span>
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-foreground mb-6 text-balance">
-              Every Stitch Tells a Story
+        {/* Copy */}
+        <div>
+          <Reveal>
+            <p className="eyebrow">Our story</p>
+            <h2 className="display mt-4 text-[2.4rem] sm:text-5xl lg:text-[3.6rem]">
+              Every stitch <em className="font-normal italic text-primary">tells a story</em>
             </h2>
-            <div className="space-y-4 text-muted-foreground mb-8">
-              <p>
-                Suthrayaa was born from a passion for the timeless art of crochet. What started as a hobby 
-                has blossomed into a mission to bring handcrafted joy to homes across India.
-              </p>
-              <p>
-                The name &quot;Suthrayaa&quot; comes from the Sanskrit word for thread - representing the 
-                beautiful threads that connect us all. Each creation is more than just a product; 
-                it&apos;s a story woven with love, patience, and artistic vision.
-              </p>
-              <p>
-                We believe in sustainable craftsmanship, using premium quality yarns and eco-friendly 
-                materials. Every piece is made to order, ensuring it&apos;s crafted specially for you.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-6 mb-8">
-              <div className="text-center">
-                <div className="text-3xl font-serif font-bold text-primary">2+</div>
-                <p className="text-sm text-muted-foreground">Years of Craft</p>
+          </Reveal>
+          <Reveal delay={0.08} className="mt-6 space-y-4 text-[16px] leading-relaxed text-foreground/70">
+            <p>
+              Suthrayaa was born from a passion for the timeless art of crochet. What started as a hobby has blossomed into a mission to bring
+              handcrafted joy to homes across India.
+            </p>
+            <p>
+              The name &quot;Suthrayaa&quot; comes from the Sanskrit word for thread — the beautiful threads that connect us all. Every piece is made to
+              order with premium, eco-friendly yarn, so it&apos;s crafted specially for you.
+            </p>
+          </Reveal>
+          <Reveal delay={0.14} className="mt-10 grid max-w-md grid-cols-3 gap-4 border-y py-6">
+            {STATS.map((s) => (
+              <div key={s.label}>
+                <p className="display text-4xl text-primary">{s.value}</p>
+                <p className="mt-1 text-[13px] text-muted-foreground">{s.label}</p>
               </div>
-              <div className="text-center">
-                <div className="text-3xl font-serif font-bold text-primary">1000+</div>
-                <p className="text-sm text-muted-foreground">Pieces Created</p>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-serif font-bold text-primary">50+</div>
-                <p className="text-sm text-muted-foreground">Unique Designs</p>
-              </div>
-            </div>
-
-            <Button size="lg" asChild className="group">
+            ))}
+          </Reveal>
+          <Reveal delay={0.2} className="mt-8">
+            <Button size="lg" asChild className="group h-12 px-7">
               <Link href="/about">
-                Read Our Full Story
-                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                Read our full story <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
               </Link>
             </Button>
-          </div>
+          </Reveal>
         </div>
       </div>
     </section>

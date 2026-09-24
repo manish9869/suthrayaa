@@ -232,7 +232,7 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
     return (
       <>
         <Navbar categories={categories} />
-        <main className="min-h-screen bg-muted/30" />
+        <main className="min-h-screen" />
       </>
     )
   }
@@ -241,13 +241,13 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
     return (
       <>
         <Navbar categories={categories} />
-        <main className="min-h-screen bg-muted/30">
+        <main className="min-h-screen">
           <div className="container mx-auto px-4 py-16">
             <div className="max-w-md mx-auto text-center">
               <div className="w-32 h-32 rounded-full bg-muted mx-auto mb-6 flex items-center justify-center">
                 <ShoppingBag className="h-16 w-16 text-muted-foreground" />
               </div>
-              <h1 className="text-2xl font-serif font-bold mb-3">Your Cart is Empty</h1>
+              <h1 className="display text-3xl mb-3">Your Cart is Empty</h1>
               <p className="text-muted-foreground mb-8">Add some handcrafted goodies before checking out.</p>
               <Button size="lg" asChild>
                 <Link href="/shop">Browse Products</Link>
@@ -270,7 +270,7 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
   return (
     <>
       <Navbar categories={categories} />
-      <main className="min-h-screen bg-muted/30">
+      <main className="min-h-screen">
         <div className="bg-background py-4 border-b">
           <div className="container mx-auto px-4">
             <nav className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -294,7 +294,7 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
                       className={cn(
                         'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors',
                         index < currentStepIndex
-                          ? 'bg-secondary text-secondary-foreground'
+                          ? 'bg-primary text-primary-foreground'
                           : index === currentStepIndex
                           ? 'bg-primary text-primary-foreground'
                           : 'bg-muted text-muted-foreground'
@@ -315,7 +315,7 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
                     <div
                       className={cn(
                         'w-12 sm:w-24 h-0.5 mx-2 sm:mx-4',
-                        index < currentStepIndex ? 'bg-secondary' : 'bg-muted'
+                        index < currentStepIndex ? 'bg-primary' : 'bg-muted'
                       )}
                     />
                   )}
@@ -416,12 +416,12 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
                         </div>
                       </div>
 
-                      <div className="p-4 bg-peach/20 rounded-xl">
+                      <div className="p-4 bg-blush/50 rounded-xl">
                         <div className="flex items-start gap-3">
                           <Checkbox id="giftWrap" checked={formData.giftWrap} onCheckedChange={handleCheckboxChange('giftWrap')} />
                           <div className="flex-1">
                             <label htmlFor="giftWrap" className="font-medium cursor-pointer flex items-center gap-2">
-                              <Gift className="h-4 w-4 text-secondary" />
+                              <Gift className="h-4 w-4 text-primary" />
                               Add Gift Wrapping (+{formatPrice(49)})
                             </label>
                             <p className="text-sm text-muted-foreground mt-1">
@@ -472,7 +472,7 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
                                 <div>
                                   <div className="font-medium flex items-center gap-2">
                                     {method.name}
-                                    {isFree && <span className="text-xs bg-mint px-2 py-0.5 rounded-full">FREE</span>}
+                                    {isFree && <span className="text-xs bg-accent px-2 py-0.5 rounded-full">FREE</span>}
                                   </div>
                                   <p className="text-sm text-muted-foreground">{method.description}</p>
                                 </div>
@@ -523,8 +523,8 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
                       </div>
                     </RadioGroup>
 
-                    <div className="mt-6 p-4 bg-mint/20 rounded-xl flex items-center gap-3">
-                      <ShieldCheck className="h-5 w-5 text-mint flex-shrink-0" />
+                    <div className="mt-6 p-4 bg-accent rounded-xl flex items-center gap-3">
+                      <ShieldCheck className="h-5 w-5 text-primary flex-shrink-0" />
                       <p className="text-sm">Your payment information is secured with industry-standard encryption.</p>
                     </div>
 
@@ -548,7 +548,7 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
 
             {/* Order Summary */}
             <div className="lg:col-span-2">
-              <Card className="sticky top-28">
+              <Card className="sticky top-[124px]">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <ShoppingBag className="h-5 w-5" />
@@ -561,7 +561,7 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
                       const itemKey = `${item.product.id}-${item.selectedColor}-${item.customText || ''}-${(item.customizations ?? []).map((c) => c.valueId ?? c.textValue).join(',')}`
                       return (
                         <div key={itemKey} className="flex gap-3">
-                          <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                          <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-sand flex-shrink-0">
                             <Image src={item.product.images[0]} alt={item.product.name} fill className="object-cover" />
                             <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-primary-foreground rounded-full text-xs flex items-center justify-center">
                               {item.quantity}

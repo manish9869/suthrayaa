@@ -31,8 +31,8 @@ export default async function ContactPage() {
         <div className="lg:col-span-2 space-y-4">
           {contactDetails.map((detail) => (
             <div key={detail.label} className="flex items-start gap-3 p-4 rounded-xl bg-card shadow-soft">
-              <div className="w-10 h-10 rounded-full bg-secondary/20 flex items-center justify-center flex-shrink-0">
-                <detail.icon className="h-5 w-5 text-secondary" />
+              <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center flex-shrink-0">
+                <detail.icon className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">{detail.label}</p>

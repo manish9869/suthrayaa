@@ -5,8 +5,10 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
-import { Instagram, Facebook, Mail, Phone, MapPin, Check } from 'lucide-react'
+import { Instagram, Facebook, Mail, Phone, MapPin, Check, ArrowRight, ShieldCheck, Award, Headphones, Heart, Leaf } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Reveal } from '@/components/motion/reveal'
+import { STOREFRONT_IMAGES } from '@/lib/storefront-images'
 import { toast } from 'sonner'
 import { getPublicFooterLinks, getPublicSiteSettings } from '@/lib/api/settings'
 
@@ -47,8 +49,14 @@ const FALLBACK_FOOTER_LINKS: Record<string, FooterLinkItem[]> = {
   ],
 }
 
-const FALLBACK_LOGO_URL =
-  'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Suthraya%20Logo%20-%20Trans-HgT4V8esTeOZ2PwWy5B7QcPjLLrahf.png'
+const FALLBACK_LOGO_URL: string = STOREFRONT_IMAGES.logo
+
+const PROMISES = [
+  { icon: Award, title: 'Quality you can trust', text: 'Premium cotton yarn, finished by hand.' },
+  { icon: Headphones, title: 'Real human support', text: 'We reply within a day, every day.' },
+  { icon: Heart, title: 'Loved by thousands', text: '500+ happy customers across India.' },
+  { icon: Leaf, title: 'Slow & sustainable', text: 'Made to order — no waste, no mass stock.' },
+]
 
 const FALLBACK_DESCRIPTION =
   'Telling stories through yarn. Each piece is handcrafted with love, care, and attention to detail.'
@@ -162,187 +170,169 @@ export function Footer() {
   const aboutLinks = footerColumns.about ?? []
   const policyLinks = footerColumns.policies ?? []
 
+  const columns: { title: string; links: FooterLinkItem[] }[] = [
+    { title: 'Shop', links: shopLinks },
+    { title: 'Help', links: supportLinks },
+    { title: 'About', links: aboutLinks },
+  ].filter((c) => c.links.length > 0)
+
   return (
-    <footer className="bg-primary text-primary-foreground">
-      {/* Newsletter Section */}
+    <footer className="relative pt-12 lg:pt-16">
+      {/* Newsletter */}
       {newsletterEnabled && (
-        <div className="bg-muted py-12">
-          <div className="container mx-auto px-4">
-            <div className="max-w-2xl mx-auto text-center">
-              <h3 className="text-2xl font-serif font-semibold text-foreground mb-2">
-                Join Our Yarn Family
-              </h3>
-              <p className="text-muted-foreground mb-6">
-                Subscribe for exclusive offers, new arrivals, and behind-the-scenes peeks at our creative process.
-              </p>
-              <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+        <div className="container mx-auto px-4">
+          <Reveal className="relative overflow-hidden rounded-[2rem] bg-blush px-6 py-10 sm:px-10 lg:px-14">
+            <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-rose/20 blur-2xl" />
+            <div className="pointer-events-none absolute -bottom-24 left-1/3 h-56 w-56 rounded-full bg-sage/25 blur-2xl" />
+            <div className="relative grid items-center gap-8 lg:grid-cols-[1.1fr_1fr]">
+              <div className="flex items-start gap-5">
+                <span className="hidden h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground sm:flex">
+                  <Mail className="h-6 w-6" />
+                </span>
+                <div>
+                  <h3 className="display text-3xl sm:text-4xl">Join the Suthrayaa circle</h3>
+                  <p className="mt-2 max-w-md text-[15px] text-foreground/70">
+                    New drops, maker stories and member-only offers — straight from our studio to your inbox. Get 10% off your first order.
+                  </p>
+                </div>
+              </div>
+              <form onSubmit={handleSubscribe} className="flex w-full flex-col gap-2 rounded-full sm:flex-row sm:bg-card sm:p-1.5 sm:shadow-sm">
                 <Input
                   type="email"
-                  placeholder="Enter your email"
+                  placeholder="Enter your email address"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="flex-1 bg-background"
+                  className="h-12 flex-1 border-0 px-5 shadow-none focus-visible:ring-0 sm:bg-transparent"
+                  aria-label="Email address"
                 />
-                <Button type="submit" className="bg-primary hover:bg-primary/90 tap-bounce">
-                  {subscribed ? (
-                    <span className="flex items-center gap-1.5 animate-pop-in">
-                      <Check className="h-4 w-4" /> Subscribed
-                    </span>
-                  ) : (
-                    'Subscribe'
-                  )}
+                <Button type="submit" size="lg" className="h-12 px-7">
+                  <AnimatePresence mode="wait" initial={false}>
+                    {subscribed ? (
+                      <motion.span key="ok" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="flex items-center gap-1.5">
+                        <Check className="h-4 w-4" /> Subscribed
+                      </motion.span>
+                    ) : (
+                      <motion.span key="go" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="flex items-center gap-1.5">
+                        Subscribe <ArrowRight className="h-4 w-4" />
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
                 </Button>
               </form>
             </div>
-          </div>
+          </Reveal>
         </div>
       )}
 
-      {/* Main Footer */}
+      {/* Promise strip */}
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8">
-          {/* Brand Column */}
-          <div className="col-span-2 md:col-span-3 lg:col-span-2">
-            <Link href="/" className="inline-block mb-4">
-              <Image
-                src={logoUrl}
-                alt="Suthrayaa"
-                width={140}
-                height={70}
-                className="h-16 w-auto brightness-0 invert"
-              />
-            </Link>
-            <p className="text-primary-foreground/80 text-sm mb-4 max-w-xs">
-              {description}
-            </p>
-            <div className="flex items-center gap-4">
-              {social.instagram && (
-                <a
-                  href={social.instagram}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary-foreground/80 hover:text-secondary transition-colors"
-                  aria-label="Instagram"
-                >
-                  <Instagram className="h-5 w-5" />
-                </a>
-              )}
-              {social.facebook && (
-                <a
-                  href={social.facebook}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary-foreground/80 hover:text-secondary transition-colors"
-                  aria-label="Facebook"
-                >
-                  <Facebook className="h-5 w-5" />
-                </a>
-              )}
-              <a
-                href={`mailto:${contactEmail}`}
-                className="text-primary-foreground/80 hover:text-secondary transition-colors"
-                aria-label="Email"
-              >
-                <Mail className="h-5 w-5" />
-              </a>
+        <div className="grid grid-cols-2 gap-6 lg:grid-cols-4 lg:divide-x lg:divide-border">
+          {PROMISES.map((p, i) => (
+            <Reveal key={p.title} delay={i * 0.05} className="flex items-start gap-3.5 lg:px-6 lg:first:pl-0">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-primary/20 text-primary">
+                <p.icon className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold">{p.title}</p>
+                <p className="mt-0.5 text-[13px] text-muted-foreground">{p.text}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </div>
+
+      {/* Main footer */}
+      <div className="bg-primary text-primary-foreground">
+        <div className="container mx-auto px-4 pt-16 pb-8">
+          <div className="grid gap-12 lg:grid-cols-[1.3fr_2fr_1.2fr]">
+            <div>
+              <Link href="/" className="inline-flex items-center rounded-2xl bg-cream px-3 py-2">
+                <Image src={logoUrl} alt="Suthrayaa" width={120} height={63} className="h-12 w-auto" />
+              </Link>
+              <p className="mt-5 max-w-xs text-sm leading-relaxed text-primary-foreground/70">{description}</p>
+              <div className="mt-6 flex items-center gap-2">
+                {[
+                  { href: social.instagram, icon: Instagram, label: 'Instagram' },
+                  { href: social.facebook, icon: Facebook, label: 'Facebook' },
+                  { href: `mailto:${contactEmail}`, icon: Mail, label: 'Email' },
+                ]
+                  .filter((s) => s.href)
+                  .map((s) => (
+                    <a
+                      key={s.label}
+                      href={s.href}
+                      target={s.href!.startsWith('http') ? '_blank' : undefined}
+                      rel="noopener noreferrer"
+                      aria-label={s.label}
+                      className="tap-bounce flex h-10 w-10 items-center justify-center rounded-full border border-primary-foreground/20 transition-colors hover:border-primary-foreground hover:bg-primary-foreground hover:text-primary"
+                    >
+                      <s.icon className="h-4 w-4" />
+                    </a>
+                  ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
+              {columns.map((col) => (
+                <div key={col.title}>
+                  <h4 className="text-[12px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/55">{col.title}</h4>
+                  <ul className="mt-4 space-y-2.5">
+                    {col.links.map((link) => (
+                      <li key={link.label}>
+                        <Link href={link.href} className="link-underline text-sm text-primary-foreground/85 hover:text-primary-foreground">
+                          {link.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+
+            <div>
+              <h4 className="text-[12px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/55">Get in touch</h4>
+              <ul className="mt-4 space-y-3 text-sm text-primary-foreground/85">
+                <li className="flex items-start gap-2.5">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 opacity-70" /> {contactAddress}
+                </li>
+                <li>
+                  <a href={`tel:${contactPhone.replace(/\s/g, '')}`} className="flex items-center gap-2.5 hover:text-primary-foreground">
+                    <Phone className="h-4 w-4 shrink-0 opacity-70" /> {contactPhone}
+                  </a>
+                </li>
+                <li>
+                  <a href={`mailto:${contactEmail}`} className="flex items-center gap-2.5 hover:text-primary-foreground">
+                    <Mail className="h-4 w-4 shrink-0 opacity-70" /> {contactEmail}
+                  </a>
+                </li>
+              </ul>
+              <h4 className="mt-8 text-[12px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/55">We accept</h4>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {['UPI', 'Visa', 'Mastercard', 'RuPay', 'Net Banking'].map((m) => (
+                  <span key={m} className="rounded-md bg-primary-foreground/10 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-primary-foreground/90">
+                    {m}
+                  </span>
+                ))}
+              </div>
+              <p className="mt-3 flex items-center gap-1.5 text-xs text-primary-foreground/60">
+                <ShieldCheck className="h-3.5 w-3.5" /> 100% secure checkout via Razorpay
+              </p>
             </div>
           </div>
 
-          {/* Shop Links */}
-          {shopLinks.length > 0 && (
-            <div>
-              <h4 className="font-semibold mb-4 text-secondary">Shop</h4>
-              <ul className="space-y-2">
-                {shopLinks.map((link) => (
-                  <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      className="text-sm text-primary-foreground/80 hover:text-secondary hover:translate-x-0.5 inline-block transition-all"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+          <div className="mt-14 flex flex-col items-center justify-between gap-4 border-t border-primary-foreground/15 pt-6 text-xs text-primary-foreground/60 md:flex-row">
+            <p>{copyrightText ?? `© ${new Date().getFullYear()} Suthrayaa. All rights reserved. Made with love in India.`}</p>
+            <div className="flex flex-wrap items-center gap-5">
+              {policyLinks.map((link) => (
+                <Link key={link.label} href={link.href} className="link-underline hover:text-primary-foreground">
+                  {link.label}
+                </Link>
+              ))}
             </div>
-          )}
-
-          {/* Support Links */}
-          {supportLinks.length > 0 && (
-            <div>
-              <h4 className="font-semibold mb-4 text-secondary">Support</h4>
-              <ul className="space-y-2">
-                {supportLinks.map((link) => (
-                  <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      className="text-sm text-primary-foreground/80 hover:text-secondary hover:translate-x-0.5 inline-block transition-all"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* About Links */}
-          {aboutLinks.length > 0 && (
-            <div>
-              <h4 className="font-semibold mb-4 text-secondary">About</h4>
-              <ul className="space-y-2">
-                {aboutLinks.map((link) => (
-                  <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      className="text-sm text-primary-foreground/80 hover:text-secondary hover:translate-x-0.5 inline-block transition-all"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Contact Info */}
-          <div>
-            <h4 className="font-semibold mb-4 text-secondary">Contact</h4>
-            <ul className="space-y-3">
-              <li className="flex items-start gap-2 text-sm text-primary-foreground/80">
-                <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                <span>{contactAddress}</span>
-              </li>
-              <li className="flex items-center gap-2 text-sm text-primary-foreground/80">
-                <Phone className="h-4 w-4 flex-shrink-0" />
-                <span>{contactPhone}</span>
-              </li>
-              <li className="flex items-center gap-2 text-sm text-primary-foreground/80">
-                <Mail className="h-4 w-4 flex-shrink-0" />
-                <span>{contactEmail}</span>
-              </li>
-            </ul>
           </div>
         </div>
-
-        <Separator className="my-8 bg-primary-foreground/20" />
-
-        {/* Bottom Bar */}
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-primary-foreground/60">
-            {copyrightText ?? `© ${new Date().getFullYear()} Suthrayaa. All rights reserved. Made with love in India.`}
-          </p>
-          <div className="flex items-center gap-4">
-            {policyLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="text-sm text-primary-foreground/60 hover:text-secondary transition-colors"
-              >
-                {link.label}
-              </Link>
-            ))}
-          </div>
+        <div aria-hidden className="pointer-events-none select-none overflow-hidden">
+          <p className="display translate-y-[18%] text-center text-[18vw] leading-none text-primary-foreground/[0.06]">Suthrayaa</p>
         </div>
       </div>
     </footer>

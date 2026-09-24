@@ -106,9 +106,9 @@ export function ProductCustomizer({ customizations, onChange }: ProductCustomize
     setSelections((prev) => ({ ...prev, [customizationId]: { customizationId, textValue } }))
 
   return (
-    <div className="space-y-5 rounded-xl bg-peach/20 p-4">
+    <div className="space-y-5 rounded-xl bg-blush/50 p-4">
       <p className="flex items-center gap-1.5 text-sm font-semibold">
-        <Sparkles className="h-4 w-4 text-secondary" /> Customize Your Piece
+        <Sparkles className="h-4 w-4 text-primary" /> Customize Your Piece
       </p>
 
       {visibleGroups.map((group) => {
@@ -140,7 +140,7 @@ export function ProductCustomizer({ customizations, onChange }: ProductCustomize
                       >
                         {value.label}
                         {value.priceAdjustment > 0 && (
-                          <span className={cn('ml-1', active ? 'opacity-90' : 'text-secondary')}>
+                          <span className={cn('ml-1', active ? 'opacity-90' : 'text-primary')}>
                             +{formatPrice(value.priceAdjustment)}
                           </span>
                         )}

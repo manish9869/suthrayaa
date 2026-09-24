@@ -1,84 +1,67 @@
 'use client'
 
-import { useRef } from 'react'
-import Link from 'next/link'
-import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { useRef, useState, useEffect } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { ProductCard } from '@/components/product-card'
 import type { Product } from '@/lib/data'
-import { Reveal } from '@/components/motion/reveal'
+import { Stagger, StaggerItem } from '@/components/motion/reveal'
+import { SectionHeading } from './section-heading'
+import { cn } from '@/lib/utils'
 
 export function BestSellers({ products: bestSellers }: { products: Product[] }) {
   const scrollRef = useRef<HTMLDivElement>(null)
+  const [edges, setEdges] = useState({ start: true, end: false })
+
+  const update = () => {
+    const el = scrollRef.current
+    if (!el) return
+    setEdges({ start: el.scrollLeft < 8, end: el.scrollLeft + el.clientWidth >= el.scrollWidth - 8 })
+  }
+  useEffect(update, [bestSellers.length])
 
   if (bestSellers.length === 0) return null
 
   const scroll = (direction: 'left' | 'right') => {
-    if (scrollRef.current) {
-      const scrollAmount = 320
-      scrollRef.current.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth',
-      })
-    }
+    const el = scrollRef.current
+    if (!el) return
+    el.scrollBy({ left: (direction === 'left' ? -1 : 1) * el.clientWidth * 0.8, behavior: 'smooth' })
   }
 
   return (
-    <section className="py-16 lg:py-24 bg-peach/30">
+    <section className="bg-sand/60 py-20 lg:py-28">
       <div className="container mx-auto px-4">
-        {/* Section Header */}
-        <Reveal className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-12">
-          <div>
-            <span className="inline-block px-4 py-1.5 rounded-full bg-secondary text-sm font-medium mb-4">
-              Customer Favorites
-            </span>
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-foreground">
-              Best Sellers
-            </h2>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              className="rounded-full"
-              onClick={() => scroll('left')}
-              aria-label="Scroll left"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="rounded-full"
-              onClick={() => scroll('right')}
-              aria-label="Scroll right"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </Button>
-          </div>
-        </Reveal>
-
-        {/* Scrollable Products */}
-        <div
-          ref={scrollRef}
-          className="flex gap-6 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-        >
-          {bestSellers.map((product) => (
-            <div key={product.id} className="flex-shrink-0 w-72 snap-start">
-              <ProductCard product={product} />
-            </div>
-          ))}
+        <div className="relative">
+          <SectionHeading eyebrow="Customer favourites" title="Best" accent="sellers" href="/shop?sort=bestselling" linkLabel="View all best sellers" />
         </div>
-
-        {/* View All Link */}
-        <div className="text-center mt-8">
-          <Button variant="outline" asChild className="group">
-            <Link href="/shop?sort=bestselling">
-              View All Best Sellers
-              <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </Link>
-          </Button>
+        <div className="relative">
+          <div ref={scrollRef} onScroll={update} className="-mx-4 flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-px-4 px-4 pb-2 scrollbar-hide">
+            <Stagger className="flex gap-5">
+              {bestSellers.map((product) => (
+                <StaggerItem key={product.id} className="w-[64vw] shrink-0 snap-start sm:w-[300px]">
+                  <ProductCard product={product} />
+                </StaggerItem>
+              ))}
+            </Stagger>
+          </div>
+          {(['left', 'right'] as const).map((dir) => {
+            const disabled = dir === 'left' ? edges.start : edges.end
+            return (
+              <button
+                key={dir}
+                type="button"
+                onClick={() => scroll(dir)}
+                disabled={disabled}
+                aria-label={dir === 'left' ? 'Scroll left' : 'Scroll right'}
+                className={cn(
+                  'tap-bounce absolute top-[38%] hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-card shadow-lg ring-1 ring-border transition-opacity duration-200 md:flex',
+                  dir === 'left' ? '-left-5' : '-right-5',
+                  disabled && 'pointer-events-none opacity-0'
+                )}
+              >
+                {dir === 'left' ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+              </button>
+            )
+          })}
         </div>
       </div>
     </section>

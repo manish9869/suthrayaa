@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Playfair_Display, Plus_Jakarta_Sans, Allura } from 'next/font/google'
+import { Playfair_Display, Plus_Jakarta_Sans, Allura, Fraunces } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { Toaster } from 'sonner'
 import { StoreSettingsGate } from '@/components/store-settings-gate'
@@ -8,6 +8,14 @@ import './globals.css'
 const playfair = Playfair_Display({
   subsets: ['latin'],
   variable: '--font-playfair',
+  display: 'swap',
+})
+
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  style: ['normal', 'italic'],
+  axes: ['opsz', 'SOFT'],
+  variable: '--font-fraunces',
   display: 'swap',
 })
 
@@ -86,7 +94,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" data-scroll-behavior="smooth" className={`${playfair.variable} ${jakarta.variable} ${allura.variable} bg-background`}>
+    <html lang="en" data-scroll-behavior="smooth" className={`${playfair.variable} ${fraunces.variable} ${jakarta.variable} ${allura.variable} bg-background`}>
       <body className="font-sans antialiased min-h-screen">
         <StoreSettingsGate>{children}</StoreSettingsGate>
         <Toaster position="bottom-right" richColors />

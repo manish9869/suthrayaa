@@ -18,15 +18,15 @@ export default async function OrderConfirmationPage({ searchParams }: OrderConfi
   return (
     <>
       <Navbar categories={categories} />
-      <main className="min-h-screen bg-muted/30">
+      <main className="min-h-screen">
         <div className="container mx-auto px-4 py-16">
           <div className="max-w-2xl mx-auto">
             {/* Success Icon */}
             <div className="text-center mb-8">
-              <div className="w-20 h-20 rounded-full bg-mint mx-auto mb-6 flex items-center justify-center">
-                <CheckCircle className="h-10 w-10 text-mint-foreground" />
+              <div className="w-20 h-20 rounded-full bg-accent mx-auto mb-6 flex items-center justify-center">
+                <CheckCircle className="h-10 w-10 text-primary" />
               </div>
-              <h1 className="text-3xl font-serif font-bold text-foreground mb-2">
+              <h1 className="display text-4xl sm:text-5xl text-foreground mb-2">
                 Thank You for Your Order!
               </h1>
               <p className="text-muted-foreground">
@@ -50,8 +50,8 @@ export default async function OrderConfirmationPage({ searchParams }: OrderConfi
                 {/* Order Timeline */}
                 <div className="space-y-4">
                   <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
-                      <CheckCircle className="h-5 w-5 text-secondary-foreground" />
+                    <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                      <CheckCircle className="h-5 w-5 text-primary-foreground" />
                     </div>
                     <div>
                       <p className="font-medium">Order Confirmed</p>
@@ -89,9 +89,9 @@ export default async function OrderConfirmationPage({ searchParams }: OrderConfi
             </Card>
 
             {/* Payment Notice */}
-            <Card className="mb-8 bg-peach/20 border-peach">
+            <Card className="mb-8 bg-blush/50 border-transparent">
               <CardContent className="p-6 flex items-start gap-4">
-                <Mail className="h-6 w-6 text-secondary flex-shrink-0" />
+                <Mail className="h-6 w-6 text-primary flex-shrink-0" />
                 <div>
                   <p className="font-medium">{isCod ? 'Pay on Delivery' : 'Payment Received'}</p>
                   <p className="text-sm text-muted-foreground">
@@ -104,19 +104,19 @@ export default async function OrderConfirmationPage({ searchParams }: OrderConfi
             </Card>
 
             {/* What&apos;s Next */}
-            <div className="bg-lavender/20 rounded-xl p-6 mb-8">
+            <div className="bg-blush/50 rounded-xl p-6 mb-8">
               <h2 className="font-semibold mb-4">What Happens Next?</h2>
               <ul className="space-y-3 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
-                  <span className="w-5 h-5 rounded-full bg-secondary text-secondary-foreground text-xs flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
+                  <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
                   Our artisan will start crafting your personalized items within 24 hours
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="w-5 h-5 rounded-full bg-secondary text-secondary-foreground text-xs flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
+                  <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
                   You&apos;ll receive an email with tracking details once shipped
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="w-5 h-5 rounded-full bg-secondary text-secondary-foreground text-xs flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
+                  <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
                   Your handcrafted treasures will arrive within the estimated delivery window
                 </li>
               </ul>
