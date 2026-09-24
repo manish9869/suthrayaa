@@ -87,147 +87,143 @@
   --sidebar-ring: #6d4aff;
 }
 
-/* Admin console — light theme (default). A crisp, neutral workspace: white cards floating on
-   a soft warm-grey canvas, an ink-dark sidebar, and the terracotta brand color as the single
-   action accent. Scoped to the `.admin` class on the admin wrappers only, so the storefront's
-   :root palette is untouched. The `.dark` block below is declared later with the same
-   specificity, so `admin dark` (the in-app theme toggle) overrides these tokens. */
+/* Admin console — light theme (default). Matches the customer storefront: violet primary,
+   peach/gold accents, a soft lilac canvas with white cards, and the deep-indigo "ink" of the
+   storefront footer for the sidebar. Scoped to the `.admin` class on the admin wrappers, so
+   the storefront's :root palette is untouched. The `.dark` block below has the same
+   specificity and comes later, so `admin dark` (the in-app theme toggle) overrides these. */
 .admin {
-  --background: #f4f4f1;
-  --foreground: #17181c;
+  --background: #f7f5fc;
+  --foreground: #1f1a33;
 
-  --primary: #d4572a;
+  --primary: #6d4aff;
   --primary-foreground: #ffffff;
 
   --card: #ffffff;
-  --card-foreground: #17181c;
+  --card-foreground: #1f1a33;
 
   --popover: #ffffff;
-  --popover-foreground: #17181c;
+  --popover-foreground: #1f1a33;
 
-  /* Neutral secondary surface (secondary buttons, the active page chip, secondary badges) */
-  --secondary: #ecebe6;
-  --secondary-foreground: #17181c;
+  /* Lilac secondary surface (secondary buttons, the active page chip, secondary badges) */
+  --secondary: #efeaff;
+  --secondary-foreground: #2b1d6b;
 
-  --muted: #f1f0ed;
-  --muted-foreground: #6b6e76;
+  --muted: #f3f0fa;
+  --muted-foreground: #6b6485;
 
-  /* Neutral hover/focus surface for ghost buttons, menu items, etc. */
-  --accent: #f1f0ed;
-  --accent-foreground: #17181c;
+  /* Soft lilac hover/focus surface for ghost buttons, menu items, etc. */
+  --accent: #f1edfb;
+  --accent-foreground: #1f1a33;
 
   --mint: #16a34a;
   --mint-foreground: #ffffff;
 
-  --gold: #e3a008;
+  --gold: #f5b544;
   --gold-foreground: #3b2800;
 
-  --peach: #f97316;
-  --peach-foreground: #ffffff;
+  --peach: #ff9e7a;
+  --peach-foreground: #4a1d0c;
 
-  --lavender: #f28b6d;
-  --lavender-foreground: #3b1408;
+  --lavender: #b9a8ff;
+  --lavender-foreground: #2b1d6b;
 
-  --violet: #7c5cff;
+  --violet: #8b6bff;
   --violet-foreground: #ffffff;
 
-  --teal: #0ea5a4;
-  --sky: #2f80ed;
+  --teal: #14b8a6;
+  --sky: #3b82f6;
 
   --destructive: #e5484d;
   --destructive-foreground: #ffffff;
 
-  --border: #e7e6e2;
-  --input: #e3e2de;
-  --ring: #d4572a;
+  --border: #ebe6f5;
+  --input: #e6e0f2;
+  --ring: #6d4aff;
 
-  --chart-1: #d4572a;
-  --chart-2: #e3a008;
-  --chart-3: #0ea5a4;
-  --chart-4: #7c5cff;
-  --chart-5: #16a34a;
+  --chart-1: #6d4aff;
+  --chart-2: #ff9e7a;
+  --chart-3: #f5b544;
+  --chart-4: #14b8a6;
+  --chart-5: #b9a8ff;
 
   --radius: 0.9rem;
 
-  /* The sidebar stays ink-dark in both admin themes */
-  --sidebar: #141518;
-  --sidebar-foreground: #f2f1ee;
+  /* Deep-indigo sidebar (the storefront footer's ink) in both admin themes */
+  --sidebar: #1c1642;
+  --sidebar-foreground: #efeaff;
   --sidebar-primary: #ffffff;
-  --sidebar-primary-foreground: #141518;
-  --sidebar-accent: #22242a;
+  --sidebar-primary-foreground: #1c1642;
+  --sidebar-accent: #2a2258;
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #26282e;
-  --sidebar-ring: #d4572a;
+  --sidebar-border: #2e2660;
+  --sidebar-ring: #ff9e7a;
 }
 
-/* Admin console theme — a cool slate/charcoal dark UI, deliberately distinct from the
-   warm customer storefront above, with terracotta/gold/sage brand accents carried through.
+/* Admin console dark theme — the storefront palette carried into a deep violet-indigo UI.
    Scoped via a `dark` class on the admin layout wrapper only (see app/admin), so it never
    affects the customer-facing pages, which have no theme toggle. */
 .dark {
-  --background: #0a0b0d;
-  --foreground: #e9e7e2;
+  --background: #0f0c1d;
+  --foreground: #ece8f7;
 
-  --primary: #ff6b3d;
-  --primary-foreground: #1a0800;
+  --primary: #8f74ff;
+  --primary-foreground: #ffffff;
 
-  --card: #121317;
-  --card-foreground: #e9e7e2;
+  --card: #171329;
+  --card-foreground: #ece8f7;
 
-  --popover: #121317;
-  --popover-foreground: #e9e7e2;
+  --popover: #171329;
+  --popover-foreground: #ece8f7;
 
-  --secondary: #23252b;
-  --secondary-foreground: #e9e7e2;
+  --secondary: #241d42;
+  --secondary-foreground: #ece8f7;
 
-  --muted: #1a1b20;
-  --muted-foreground: #98a0ac;
+  --muted: #1b1631;
+  --muted-foreground: #a49cc0;
 
-  /* Teal — kept distinct from mint (both were near-identical sage greens) for more
-     hue variety across the admin's accent set. */
-  --accent: #1d1f25;
-  --accent-foreground: #e9e7e2;
+  --accent: #221b3c;
+  --accent-foreground: #ece8f7;
 
-  --teal: #1fd1c7;
-  --sky: #5aa2ff;
+  --teal: #2dd4bf;
+  --sky: #60a5fa;
 
-  --mint: #2fdc84;
+  --mint: #34d399;
   --mint-foreground: #04220f;
 
-  --gold: #ffc136;
+  --gold: #ffc861;
   --gold-foreground: #2b1a00;
 
-  --peach: #ff9d5c;
-  --peach-foreground: #2a1808;
+  --peach: #ffab8c;
+  --peach-foreground: #2a1206;
 
-  --lavender: #ff7d66;
-  --lavender-foreground: #2a1408;
+  --lavender: #c5b6ff;
+  --lavender-foreground: #1f1450;
 
-  /* Violet — 5th category color, used for admin dashboard section coding */
-  --violet: #a374ff;
+  --violet: #a98cff;
   --violet-foreground: #1c0f3d;
 
-  --destructive: #ff4759;
+  --destructive: #ff5c6c;
   --destructive-foreground: #fff5f5;
 
-  --border: #24262c;
-  --input: #1a1b20;
-  --ring: #ff6b3d;
+  --border: #2a2447;
+  --input: #1f1a36;
+  --ring: #8f74ff;
 
-  --chart-1: #ff6b3d;
-  --chart-2: #ffc136;
-  --chart-3: #1fd1c7;
-  --chart-4: #ff7d66;
-  --chart-5: #2fdc84;
+  --chart-1: #8f74ff;
+  --chart-2: #ffab8c;
+  --chart-3: #ffc861;
+  --chart-4: #2dd4bf;
+  --chart-5: #c5b6ff;
 
-  --sidebar: #0e0f12;
-  --sidebar-foreground: #e9e7e2;
+  --sidebar: #0b0917;
+  --sidebar-foreground: #ece8f7;
   --sidebar-primary: #ffffff;
-  --sidebar-primary-foreground: #0e0f12;
-  --sidebar-accent: #1a1b20;
-  --sidebar-accent-foreground: #e9e7e2;
-  --sidebar-border: #24262c;
-  --sidebar-ring: #ff6b3d;
+  --sidebar-primary-foreground: #0b0917;
+  --sidebar-accent: #1d1735;
+  --sidebar-accent-foreground: #ece8f7;
+  --sidebar-border: #221c3d;
+  --sidebar-ring: #ffab8c;
 }
 
 @theme inline {
@@ -524,10 +520,16 @@
   .admin [data-slot='card'] {
     border-radius: 1.1rem;
     border-color: var(--border);
-    box-shadow: 0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.03);
+    box-shadow: 0 1px 2px rgb(49 32 140 / 0.05), 0 1px 3px rgb(49 32 140 / 0.04);
   }
   .admin [data-slot='card-title'] {
     letter-spacing: -0.01em;
+  }
+  /* Page titles in the storefront's editorial serif */
+  .admin main h1 {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    letter-spacing: -0.02em;
   }
   .admin [data-slot='table-header'] {
     background: color-mix(in oklab, var(--muted) 70%, transparent);

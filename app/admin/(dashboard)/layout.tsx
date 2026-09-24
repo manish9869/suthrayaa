@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { RbacProvider, useRbac } from '@/lib/rbac/rbac-context'
@@ -153,12 +154,13 @@ function isActive(pathname: string, item: NavItem | string) {
 function BrandMark({ collapsed = false }: { collapsed?: boolean }) {
   return (
     <Link href="/admin" className="flex items-center gap-3" title="Suthrayaa Admin">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/25">
-        <span className="font-serif text-lg font-bold leading-none">S</span>
+      {/* The storefront logo, inverted to white on the indigo sidebar (as in the storefront footer) */}
+      <span className="relative h-10 w-10 shrink-0">
+        <Image src="/logo.png" alt="" fill sizes="40px" className="object-contain brightness-0 invert" />
       </span>
       {!collapsed && (
         <span className="leading-tight">
-          <span className="block text-[15px] font-semibold tracking-tight text-sidebar-foreground">Suthrayaa</span>
+          <span className="block font-serif text-[17px] font-medium tracking-tight text-sidebar-foreground">Suthrayaa</span>
           <span className="block text-[11px] font-medium text-sidebar-foreground/45">Admin Console</span>
         </span>
       )}
@@ -610,8 +612,8 @@ function AdminShell({ children }: { children: React.ReactNode }) {
 function AdminSplash() {
   return (
     <div className="admin flex min-h-screen flex-col items-center justify-center gap-5 bg-background">
-      <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25">
-        <span className="font-serif text-2xl font-bold leading-none">S</span>
+      <span className="relative h-16 w-16 animate-pulse">
+        <Image src="/logo.png" alt="" fill sizes="64px" priority className="object-contain" />
       </span>
       <Spinner className="size-5 text-muted-foreground" />
     </div>
