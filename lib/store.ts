@@ -38,7 +38,9 @@ interface CartState {
     product: Product,
     selectedColor: string,
     customText?: string,
-    customizations?: CartCustomizationSelection[]
+    customizations?: CartCustomizationSelection[],
+    /** How many to add (defaults to 1) — used by the product page's quantity picker. */
+    quantity?: number
   ) => void
   removeItem: (productId: string, selectedColor: string, customText?: string, customizations?: CartCustomizationSelection[]) => void
   updateQuantity: (
@@ -76,7 +78,8 @@ export const useCartStore = create<CartState>()(
       items: [],
       isOpen: false,
 
-      addItem: (product, selectedColor, customText, customizations) => {
+      addItem: (product, selectedColor, customText, customizations, quantity = 1) => {
+        const qty = Math.max(1, Math.floor(quantity))
         set((state) => {
           const existingIndex = state.items.findIndex((item) =>
             matches(item, product.id, selectedColor, customText, customizations)
@@ -84,12 +87,12 @@ export const useCartStore = create<CartState>()(
 
           if (existingIndex > -1) {
             const newItems = [...state.items]
-            newItems[existingIndex].quantity += 1
+            newItems[existingIndex] = { ...newItems[existingIndex], quantity: newItems[existingIndex].quantity + qty }
             return { items: newItems }
           }
 
           return {
-            items: [...state.items, { product, quantity: 1, selectedColor, customText, customizations }],
+            items: [...state.items, { product, quantity: qty, selectedColor, customText, customizations }],
           }
         })
       },

@@ -31,7 +31,7 @@ export function WishlistContent({ categories }: { categories: Category[] }) {
     return (
       <>
         <Navbar categories={categories} />
-        <main className="min-h-screen bg-muted/30" />
+        <main className="min-h-screen" />
       </>
     )
   }
@@ -40,13 +40,13 @@ export function WishlistContent({ categories }: { categories: Category[] }) {
     return (
       <>
         <Navbar categories={categories} />
-        <main className="min-h-screen bg-muted/30">
+        <main className="min-h-screen">
           <div className="container mx-auto px-4 py-16">
             <div className="max-w-md mx-auto text-center">
               <div className="w-32 h-32 rounded-full bg-muted mx-auto mb-6 flex items-center justify-center">
                 <Heart className="h-16 w-16 text-muted-foreground" />
               </div>
-              <h1 className="text-2xl font-serif font-bold mb-3">Your Wishlist is Empty</h1>
+              <h1 className="display text-3xl mb-3">Your Wishlist is Empty</h1>
               <p className="text-muted-foreground mb-8">
                 Save your favorite handcrafted pieces here to find them easily later.
               </p>
@@ -67,11 +67,11 @@ export function WishlistContent({ categories }: { categories: Category[] }) {
   return (
     <>
       <Navbar categories={categories} />
-      <main className="min-h-screen bg-muted/30">
+      <main className="min-h-screen">
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center gap-3 mb-8">
             <Heart className="h-6 w-6 text-destructive fill-current" />
-            <h1 className="text-3xl font-serif font-bold">My Wishlist ({items.length})</h1>
+            <h1 className="display text-4xl sm:text-5xl">My Wishlist ({items.length})</h1>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

@@ -14,6 +14,7 @@ import { Separator } from '@/components/ui/separator'
 import { Mail, Lock, Eye, EyeOff, Phone, Sparkles, User, Loader2 } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import { STOREFRONT_IMAGES } from '@/lib/storefront-images'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -166,21 +167,28 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-muted/30 px-4 py-16">
+    <main className="grid min-h-screen lg:grid-cols-2">
+      {/* Editorial side */}
+      <aside className="relative hidden overflow-hidden bg-sand lg:block">
+        <Image src={STOREFRONT_IMAGES.authSide} alt="" fill priority sizes="50vw" className="object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-primary/85 via-primary/10 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 p-12 text-primary-foreground">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-primary-foreground/75">The Suthrayaa circle</p>
+          <p className="display mt-3 max-w-md text-5xl">
+            Handmade, <em className="font-normal italic">just for you.</em>
+          </p>
+          <p className="mt-4 max-w-sm text-[15px] text-primary-foreground/80">Save your wishlist, track orders and check out faster — every stitch, remembered.</p>
+        </div>
+      </aside>
+
+      <div className="flex items-center justify-center px-4 py-12 sm:px-8">
       <div className="w-full max-w-md">
-        <Link href="/" className="flex justify-center mb-8">
-          <Image
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Suthraya%20Logo%20-%20Trans-HgT4V8esTeOZ2PwWy5B7QcPjLLrahf.png"
-            alt="Suthrayaa"
-            width={140}
-            height={70}
-            className="h-14 w-auto"
-            priority
-          />
+        <Link href="/" className="mb-10 flex justify-center">
+          <Image src={STOREFRONT_IMAGES.logo} alt="Suthrayaa" width={140} height={74} className="h-16 w-auto" priority />
         </Link>
 
-        <Card className="shadow-soft">
-          <CardContent className="p-8">
+        <Card className="border-0 bg-transparent shadow-none sm:border sm:bg-card sm:shadow-sm">
+          <CardContent className="p-0 sm:p-8">
             {recoveryMode ? (
               <>
                 <div className="flex justify-center mb-4">
@@ -188,7 +196,7 @@ export default function LoginPage() {
                     <Lock className="h-5 w-5" />
                   </div>
                 </div>
-                <h1 className="text-2xl font-serif font-bold text-center mb-1">Set a New Password</h1>
+                <h1 className="display text-3xl text-center mb-1">Set a New Password</h1>
                 <p className="text-sm text-muted-foreground text-center mb-6">Choose a new password for your account.</p>
                 <form onSubmit={handleSetNewPassword} className="space-y-4">
                   <div className="space-y-2">
@@ -226,7 +234,7 @@ export default function LoginPage() {
                     <User className="h-5 w-5" />
                   </div>
                 </div>
-                <h1 className="text-2xl font-serif font-bold text-center mb-1">
+                <h1 className="display text-3xl text-center mb-1">
                   {authMode === 'signin' ? 'Welcome Back' : 'Create Your Account'}
                 </h1>
                 <p className="text-sm text-muted-foreground text-center mb-6">
@@ -406,8 +414,17 @@ export default function LoginPage() {
         </Card>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
-          By continuing, you agree to Suthrayaa&apos;s Terms of Service and Privacy Policy.
+          By continuing, you agree to Suthrayaa&apos;s{' '}
+          <Link href="/terms" className="link-underline text-foreground">
+            Terms of Service
+          </Link>{' '}
+          and{' '}
+          <Link href="/privacy" className="link-underline text-foreground">
+            Privacy Policy
+          </Link>
+          .
         </p>
+      </div>
       </div>
     </main>
   )

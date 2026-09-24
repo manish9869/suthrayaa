@@ -79,7 +79,7 @@ export default async function FaqsPage() {
       <div className="space-y-10">
         {faqGroups.map((group) => (
           <div key={group.group}>
-            <h2 className="text-lg font-serif font-bold text-foreground mb-3">{group.group}</h2>
+            <h2 className="text-lg font-serif font-medium tracking-tight text-foreground mb-3">{group.group}</h2>
             <Accordion type="single" collapsible className="w-full">
               {group.items.map((item, i) => (
                 <AccordionItem key={item.q} value={`${group.group}-${i}`}>

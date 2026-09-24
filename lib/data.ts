@@ -1,5 +1,6 @@
 import { apiFetch } from "@/lib/api/http"
 import { getCachedStoreSettings } from "@/lib/store-settings-cache"
+import { withStudioImages, withStudioImage } from "@/lib/studio-images"
 
 // Types stay identical to what every component already expects — only the data source
 // (a live Express API instead of hardcoded arrays) changed. customizationOptions gained
@@ -160,12 +161,18 @@ export async function getProducts(params: {
   if (params.page) query.set("page", String(params.page))
   if (params.sort) query.set("sort", params.sort)
 
-  return apiFetch<ProductListResponse>(`/products?${query.toString()}`)
+  const res = await apiFetch<ProductListResponse>(`/products?${query.toString()}`)
+  return { ...res, items: res.items.map(withProductImages) }
+}
+
+/** Placeholder-only products fall back to the matching studio shot (see lib/studio-images). */
+function withProductImages(p: Product): Product {
+  return { ...p, images: withStudioImages(p.images, p.name, p.category, p.categorySlug) }
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   try {
-    return await apiFetch<Product>(`/products/${slug}`)
+    return withProductImages(await apiFetch<Product>(`/products/${slug}`))
   } catch {
     return null
   }
@@ -201,7 +208,8 @@ export async function getProductReviews(productSlug: string): Promise<Review[]> 
 }
 
 export async function getCategories(): Promise<Category[]> {
-  return apiFetch<Category[]>("/categories")
+  const categories = await apiFetch<Category[]>("/categories")
+  return categories.map((c) => ({ ...c, image: withStudioImage(c.image, c.name, c.slug) ?? c.image }))
 }
 
 export async function getTestimonials(): Promise<Testimonial[]> {

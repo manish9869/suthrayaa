@@ -4,9 +4,8 @@ import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Heart, ShoppingBag, Star, Eye, Check } from 'lucide-react'
+import { Heart, ShoppingBag, Star, Check, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { useCartStore, useWishlistStore } from '@/lib/store'
 import { useHydrated } from '@/lib/hooks/use-hydrated'
@@ -49,166 +48,138 @@ export function ProductCard({ product, className }: ProductCardProps) {
   const isClearance = product.tags.some((t) => t.toLowerCase() === 'clearance')
   const href = `/product/${product.slug}`
 
+  const colorDots = product.colors.slice(0, 4)
+
   return (
     // Interactive buttons (wishlist, quick-add) are SIBLINGS of the image Link, not nested
     // inside it — a <button> inside an <a> is invalid HTML and produced unreliable click
     // targeting (clicks meant for the link could silently land on a hover-only button instead).
-    <div className={cn('group relative bg-card rounded-xl overflow-hidden shadow-soft hover-lift', className)}>
-      <div className="relative aspect-square overflow-hidden bg-muted">
+    <div className={cn('group relative', className)}>
+      <div className="relative aspect-[4/5] overflow-hidden rounded-[1.4rem] bg-sand">
         <Link href={href} className="absolute inset-0 z-0" aria-label={product.name}>
           <Image
             src={product.images[0]}
             alt={product.name}
             fill
-            className="object-cover transition-transform duration-500 group-hover:scale-110"
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+            className={cn('zoom-img object-cover', product.images[1] && 'transition-opacity duration-500 [@media(hover:hover)]:group-hover:opacity-0')}
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           />
+          {product.images[1] && (
+            <Image
+              src={product.images[1]}
+              alt=""
+              fill
+              aria-hidden
+              className="zoom-img object-cover opacity-0 transition-opacity duration-500 [@media(hover:hover)]:group-hover:opacity-100"
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            />
+          )}
         </Link>
 
         {/* Badges */}
-        <div className="pointer-events-none absolute top-3 left-3 flex flex-col gap-2">
-          {isClearance && (
-            <Badge className="bg-destructive text-destructive-foreground text-xs">
-              Clearance
-            </Badge>
+        <div className="pointer-events-none absolute left-3 top-3 flex flex-col items-start gap-1.5">
+          {isClearance && <span className="rounded-full bg-destructive px-2.5 py-1 text-[11px] font-semibold text-white">Clearance</span>}
+          {!isClearance && discount > 0 && (
+            <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-semibold text-secondary-foreground">−{discount}%</span>
           )}
           {product.bestseller && (
-            <Badge className="bg-secondary text-secondary-foreground text-xs">
-              Bestseller
-            </Badge>
+            <span className="rounded-full bg-card/90 px-2.5 py-1 text-[11px] font-semibold text-foreground backdrop-blur">Bestseller</span>
           )}
           {product.newArrival && (
-            <Badge className="bg-mint text-mint-foreground text-xs">
-              New
-            </Badge>
-          )}
-          {!isClearance && discount > 0 && (
-            <Badge className="bg-destructive text-destructive-foreground text-xs">
-              -{discount}%
-            </Badge>
+            <span className="rounded-full bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground">New</span>
           )}
           {product.stock < 5 && product.stock > 0 && (
-            <Badge variant="outline" className="bg-background/80 text-xs">
-              Only {product.stock} left
-            </Badge>
+            <span className="rounded-full bg-card/90 px-2.5 py-1 text-[11px] font-medium text-rose backdrop-blur">Only {product.stock} left</span>
           )}
         </div>
 
-        {/* Wishlist Button */}
-        <Button
-          variant="ghost"
-          size="icon"
+        {/* Wishlist */}
+        <button
+          type="button"
           className={cn(
-            'tap-bounce absolute top-3 right-3 z-10 h-9 w-9 rounded-full bg-background/80 backdrop-blur-sm transition-all',
-            inWishlist
-              ? 'text-destructive'
-              : 'text-foreground opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto'
+            'tap-bounce absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-card/90 shadow-sm backdrop-blur transition-colors',
+            inWishlist ? 'text-rose' : 'text-foreground/70 hover:text-rose'
           )}
           onClick={handleWishlistToggle}
           aria-label={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
+          aria-pressed={inWishlist}
         >
           <Heart className={cn('h-4 w-4', inWishlist && 'fill-current animate-pop-in')} />
-        </Button>
+        </button>
 
-        {/* Quick Actions */}
-        <div className="absolute inset-x-3 bottom-3 z-10 flex gap-2 opacity-0 translate-y-4 pointer-events-none transition-all duration-300 group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto">
-          <Button
-            size="sm"
-            className="flex-1 bg-primary/90 backdrop-blur-sm hover:bg-primary overflow-hidden"
-            onClick={handleAddToCart}
-            disabled={justAdded}
-          >
+        {/* Quick add — slides up on hover devices, a compact button on touch */}
+        <div className="absolute inset-x-3 bottom-3 z-10 hidden translate-y-3 opacity-0 transition-[opacity,transform] duration-300 ease-[var(--ease-out)] [@media(hover:hover)]:flex [@media(hover:hover)]:group-hover:translate-y-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-within:translate-y-0 [@media(hover:hover)]:group-focus-within:opacity-100">
+          <Button className="h-11 flex-1 overflow-hidden shadow-lg" onClick={handleAddToCart} disabled={justAdded}>
             <AnimatePresence mode="wait" initial={false}>
               {justAdded ? (
                 <motion.span
                   key="added"
-                  initial={{ opacity: 0, y: 6 }}
+                  initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
+                  exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.15 }}
-                  className="flex items-center"
+                  className="flex items-center gap-2"
                 >
-                  <Check className="h-4 w-4 mr-2" />
-                  Added
+                  <Check className="h-4 w-4" /> Added
                 </motion.span>
               ) : (
                 <motion.span
                   key="add"
-                  initial={{ opacity: 0, y: 6 }}
+                  initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
+                  exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.15 }}
-                  className="flex items-center"
+                  className="flex items-center gap-2"
                 >
-                  <ShoppingBag className="h-4 w-4 mr-2" />
-                  Add to Cart
+                  <ShoppingBag className="h-4 w-4" /> Add to cart
                 </motion.span>
               )}
             </AnimatePresence>
           </Button>
-          <Button size="icon" variant="secondary" className="h-9 w-9 bg-background/90 backdrop-blur-sm tap-bounce" asChild>
-            <Link href={href} aria-label={`View ${product.name}`}>
-              <Eye className="h-4 w-4" />
-            </Link>
-          </Button>
         </div>
+        <button
+          type="button"
+          onClick={handleAddToCart}
+          disabled={justAdded}
+          aria-label={`Add ${product.name} to cart`}
+          className="tap-bounce absolute bottom-3 right-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg [@media(hover:hover)]:hidden"
+        >
+          {justAdded ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+        </button>
       </div>
 
       {/* Content */}
-      <Link href={href} className="block p-4">
-        <p className="text-xs text-muted-foreground mb-1">{product.category}</p>
-        <h3 className="font-medium text-foreground leading-tight mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+      <Link href={href} className="block px-1 pt-3.5">
+        <div className="flex items-center justify-between gap-2">
+          <p className="truncate text-[11.5px] font-medium uppercase tracking-[0.12em] text-muted-foreground">{product.category}</p>
+          {product.reviewCount > 0 && (
+            <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+              <Star className="h-3.5 w-3.5 fill-gold text-gold" />
+              <span className="font-medium text-foreground">{product.rating.toFixed(1)}</span>({product.reviewCount})
+            </span>
+          )}
+        </div>
+        <h3 className="mt-1 line-clamp-2 text-[15px] font-medium leading-snug text-foreground transition-colors group-hover:text-primary">
           {product.name}
         </h3>
-
-        {/* Rating */}
-        <div className="flex items-center gap-1 mb-2">
-          <div className="flex items-center">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Star
-                key={i}
-                className={cn(
-                  'h-3.5 w-3.5',
-                  i < Math.floor(product.rating)
-                    ? 'fill-secondary text-secondary'
-                    : 'text-muted'
-                )}
-              />
-            ))}
+        <div className="mt-1.5 flex items-center justify-between gap-2">
+          <div className="flex items-baseline gap-2">
+            {product.fromPrice != null ? (
+              <span className="font-semibold">From {formatPrice(product.fromPrice)}</span>
+            ) : (
+              <span className="font-semibold">{formatPrice(product.price)}</span>
+            )}
+            {product.comparePrice && product.fromPrice == null && (
+              <span className="text-sm text-muted-foreground line-through">{formatPrice(product.comparePrice)}</span>
+            )}
           </div>
-          <span className="text-xs text-muted-foreground">
-            ({product.reviewCount})
-          </span>
-        </div>
-
-        {/* Price */}
-        <div className="flex items-center gap-2">
-          {product.fromPrice != null ? (
-            <span className="font-semibold text-primary">From {formatPrice(product.fromPrice)}</span>
-          ) : (
-            <span className="font-semibold text-primary">{formatPrice(product.price)}</span>
-          )}
-          {product.comparePrice && product.fromPrice == null && (
-            <span className="text-sm text-muted-foreground line-through">
-              {formatPrice(product.comparePrice)}
-            </span>
-          )}
-        </div>
-
-        {/* Colors */}
-        <div className="flex items-center gap-1 mt-3">
-          {product.colors.slice(0, 5).map((color) => (
-            <div
-              key={color}
-              className="w-4 h-4 rounded-full border border-border"
-              style={{ backgroundColor: color }}
-              title={color}
-            />
-          ))}
-          {product.colors.length > 5 && (
-            <span className="text-xs text-muted-foreground ml-1">
-              +{product.colors.length - 5}
-            </span>
+          {colorDots.length > 0 && (
+            <div className="flex items-center -space-x-1">
+              {colorDots.map((color) => (
+                <span key={color} className="h-3.5 w-3.5 rounded-full ring-2 ring-background" style={{ backgroundColor: color }} title={color} />
+              ))}
+              {product.colors.length > 4 && <span className="pl-2 text-[11px] text-muted-foreground">+{product.colors.length - 4}</span>}
+            </div>
           )}
         </div>
       </Link>

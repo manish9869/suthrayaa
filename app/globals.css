@@ -3,79 +3,88 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Suthrayaa storefront — lavender & peach: a bright, playful palette with violet as the single
+   action colour, peach/coral highlights, soft lilac surfaces and a deep ink-violet for the footer. */
 :root {
-  /* Suthrayaa Brand Colors — warm, handmade-craft palette: terracotta + sage + cream,
-     built for a cozy, artisan-market feel with a friendlier (larger) corner radius. */
-  --background: #fbf6ee;
-  --foreground: #3a2a1f;
+  --background: #fcfbff;
+  --foreground: #1f1a33;
 
-  /* Terracotta — warm, earthy primary */
-  --primary: #c1502e;
-  --primary-foreground: #fff8f0;
+  /* Violet — primary actions, links, active states */
+  --primary: #6d4aff;
+  --primary-foreground: #ffffff;
 
-  /* Warm off-white cards, lifted off the cream page background */
-  --card: #fffdf9;
-  --card-foreground: #3a2a1f;
+  --card: #ffffff;
+  --card-foreground: #1f1a33;
 
-  --popover: #fffdf9;
-  --popover-foreground: #3a2a1f;
+  --popover: #ffffff;
+  --popover-foreground: #1f1a33;
 
-  /* Mustard gold — energetic secondary accent */
-  --secondary: #d8a13b;
-  --secondary-foreground: #3a2410;
+  /* Peach — secondary accent (badges, highlights, sale tags) */
+  --secondary: #ff9e7a;
+  --secondary-foreground: #3a1e14;
 
-  /* Soft warm sand for muted backgrounds */
-  --muted: #f1e9d8;
-  --muted-foreground: #8a7a63;
+  --muted: #f4f1fb;
+  --muted-foreground: #6b6680;
 
-  /* Sage green accent */
-  --accent: #7c9473;
-  --accent-foreground: #ffffff;
+  /* Lilac wash — hover surfaces */
+  --accent: #efeaff;
+  --accent-foreground: #4b2fd6;
 
-  /* Mint for success/special */
-  --mint: #a9c9a0;
-  --mint-foreground: #22391f;
+  --mint: #ddf5e7;
+  --mint-foreground: #1e7a48;
 
-  /* Gold for highlights */
-  --gold: #d8a13b;
-  --gold-foreground: #3a2410;
+  --gold: #f5b544;
+  --gold-foreground: #3a2a0c;
 
-  /* Peach for warmth */
-  --peach: #f3c9a0;
-  --peach-foreground: #5c3a1e;
+  --peach: #ffe6dc;
+  --peach-foreground: #a2442a;
 
-  /* Dusty clay — a warm rose-terracotta accent (kept as "lavender" token for compatibility) */
-  --lavender: #e8b4a0;
-  --lavender-foreground: #5c2e1e;
+  --lavender: #efeaff;
+  --lavender-foreground: #4b2fd6;
 
-  /* Violet — 5th category color, used for admin dashboard section coding */
-  --violet: #8b7fd6;
-  --violet-foreground: #211a4a;
+  --violet: #6d4aff;
+  --violet-foreground: #ffffff;
 
-  --destructive: #d64545;
-  --destructive-foreground: #fff8f0;
+  /* Named storefront hues (token names kept stable across themes):
+     blush = soft peach surface, rose = coral text/badge accent, sage = soft lilac decoration,
+     forest = brand ink, cream = page, sand = image placeholder, ink = deep footer violet */
+  --blush: #ffe6dc;
+  --rose: #e2603f;
+  --sage: #b9a8ff;
+  --forest: #4b2fd6;
+  --cream: #fcfbff;
+  --sand: #f3efff;
+  --ink: #1c1642;
 
-  --border: #e8dcc4;
-  --input: #f0e6d2;
-  --ring: #d8a13b;
+  --destructive: #e5484d;
+  --destructive-foreground: #ffffff;
 
-  /* Chart colors using brand palette */
-  --chart-1: #c1502e;
-  --chart-2: #d8a13b;
-  --chart-3: #7c9473;
-  --chart-4: #e8b4a0;
-  --chart-5: #a9c9a0;
+  --border: #e8e3f5;
+  --input: #e8e3f5;
+  --ring: #6d4aff;
 
-  --radius: 1.1rem;
+  --chart-1: #6d4aff;
+  --chart-2: #ff9e7a;
+  --chart-3: #b9a8ff;
+  --chart-4: #f5b544;
+  --chart-5: #ffe6dc;
 
-  --sidebar: #fffdf9;
-  --sidebar-foreground: #3a2a1f;
-  --sidebar-primary: #c1502e;
-  --sidebar-primary-foreground: #fff8f0;
-  --sidebar-accent: #f1e9d8;
-  --sidebar-accent-foreground: #3a2a1f;
-  --sidebar-border: #e8dcc4;
-  --sidebar-ring: #d8a13b;
+  --radius: 1rem;
+
+  /* Motion — Emil Kowalski-style curves: strong ease-out for entrances and interactions,
+     a drawer curve for sheets. Durations stay short so the UI feels instant. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1f1a33;
+  --sidebar-primary: #6d4aff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f4f1fb;
+  --sidebar-accent-foreground: #1f1a33;
+  --sidebar-border: #e8e3f5;
+  --sidebar-ring: #6d4aff;
 }
 
 /* Admin console — light theme (default). A crisp, neutral workspace: white cards floating on
@@ -222,8 +231,8 @@
 }
 
 @theme inline {
-  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
-  --font-serif: 'Playfair Display', serif;
+  --font-sans: var(--font-jakarta), 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-fraunces), 'Fraunces', Georgia, serif;
   --font-script: 'Allura', cursive;
   --font-mono: 'Geist Mono', 'Geist Mono Fallback', monospace;
   
@@ -263,6 +272,14 @@
   --color-lavender-foreground: var(--lavender-foreground);
   --color-violet: var(--violet);
   --color-violet-foreground: var(--violet-foreground);
+  --color-blush: var(--blush);
+  --color-rose: var(--rose);
+  --color-sage: var(--sage);
+  --color-forest: var(--forest);
+  --color-cream: var(--cream);
+  --color-sand: var(--sand);
+  --color-ink: var(--ink);
+  --ease-out-quint: var(--ease-out);
   --color-teal: var(--teal);
   --color-sky: var(--sky);
   
@@ -293,7 +310,7 @@
   
   /* Custom selection color */
   ::selection {
-    background-color: oklch(0.78 0.12 85 / 0.3);
+    background-color: color-mix(in oklab, var(--rose) 28%, transparent);
   }
 }
 
@@ -387,8 +404,8 @@
   @keyframes widget-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 
   /* Tactile press feedback for buttons/chips/icon-buttons across the storefront. */
-  .tap-bounce { transition: transform 150ms ease; }
-  .tap-bounce:active { transform: scale(0.94); }
+  .tap-bounce { transition: transform 160ms var(--ease-out); }
+  .tap-bounce:active { transform: scale(0.95); }
 
   /* One-shot pop for things that just changed (cart count, wishlist heart, applied filter). */
   .animate-pop-in { animation: pop-in 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
@@ -421,6 +438,82 @@
   display: none; /* Chrome/Safari/Edge Chromium */
 }
 
+/* ---- Storefront motion & surface system ------------------------------------------------
+   Principles (after Emil Kowalski): only animate transform/opacity/filter; ease-out for
+   anything the user triggers; keep interactions under ~250ms; never animate from scale(0);
+   gate hover-only motion behind real hover devices; honour prefers-reduced-motion.
+   Storefront-only rules are scoped away from the admin console (.dark / .admin wrappers). */
+[data-slot='button']:not(.dark *):not(.admin *) {
+  border-radius: 9999px;
+  transition-property: transform, background-color, color, border-color, box-shadow, opacity;
+  transition-duration: 180ms;
+  transition-timing-function: var(--ease-out);
+}
+[data-slot='button']:not(.dark *):not(.admin *):not(:disabled):active {
+  transform: scale(0.97);
+}
+[data-slot='input']:not(.dark *):not(.admin *),
+[data-slot='select-trigger']:not(.dark *):not(.admin *) {
+  border-radius: 9999px;
+  background-color: var(--card);
+}
+[data-slot='textarea']:not(.dark *):not(.admin *) {
+  border-radius: 1.1rem;
+  background-color: var(--card);
+}
+[data-slot='card']:not(.dark *):not(.admin *) {
+  border-radius: 1.4rem;
+  border-color: var(--border);
+  box-shadow: 0 1px 2px rgb(31 26 51 / 0.04);
+}
+
+@layer utilities {
+  /* Eyebrow label above section titles */
+  .eyebrow {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--rose);
+  }
+  /* Editorial display type */
+  .display {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.02;
+    font-variation-settings: 'opsz' 144, 'SOFT' 50;
+  }
+  /* Image that eases in on hover (only for real hover devices) */
+  .zoom-img { transition: transform 700ms var(--ease-out); }
+  @media (hover: hover) and (pointer: fine) {
+    .group:hover .zoom-img { transform: scale(1.045); }
+    .lift { transition: transform 300ms var(--ease-out), box-shadow 300ms var(--ease-out); }
+    .lift:hover { transform: translateY(-4px); box-shadow: 0 18px 40px -22px rgb(76 47 214 / 0.35); }
+  }
+  /* Underline that draws in from the left */
+  .link-underline { background: linear-gradient(currentColor, currentColor) no-repeat 0 100% / 0% 1px; transition: background-size 300ms var(--ease-out); }
+  .link-underline:hover, .link-underline[aria-current='page'] { background-size: 100% 1px; }
+  /* Infinite marquee (announcement / brand strip) */
+  .marquee { display: flex; width: max-content; animation: marquee 38s linear infinite; }
+  .marquee:hover { animation-play-state: paused; }
+  @keyframes marquee { to { transform: translateX(-50%); } }
+  /* Slow float for decorative shapes */
+  .float-slow { animation: float-slow 9s ease-in-out infinite; }
+  /* Hero product "film": a slow Ken Burns breathe plus a light sweep across the stage */
+  .ken-burns { animation: ken-burns 14s ease-in-out infinite alternate; transform-origin: 50% 40%; }
+  @keyframes ken-burns { from { transform: scale(1) translate(0, 0); } to { transform: scale(1.09) translate(-1.5%, -1%); } }
+  .stage-sheen { background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.45) 50%, transparent 65%); background-size: 250% 100%; animation: stage-sheen 6.5s var(--ease-out) infinite; mix-blend-mode: soft-light; }
+  @keyframes stage-sheen { 0% { background-position: 130% 0; } 60%, 100% { background-position: -30% 0; } }
+  @keyframes float-slow { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-10px) rotate(2deg); } }
+  /* Arch-shaped image mask (Lumora hero) */
+  .arch { border-radius: 999px 999px 1.75rem 1.75rem; }
+  .grain::after { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.05; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+  @media (prefers-reduced-motion: reduce) {
+    .marquee, .float-slow, .ken-burns, .stage-sheen { animation: none; }
+    .zoom-img, .lift { transition: none; }
+  }
+}
 /* ---- Admin console polish -------------------------------------------------------------
    Scoped refinements applied to every admin page through the shared shadcn primitives, so
    individual pages don't each need to restyle cards and tables. */

@@ -42,12 +42,12 @@ export function ContactForm() {
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-xl bg-mint/20 p-8 text-center"
+        className="rounded-xl bg-accent p-8 text-center"
       >
-        <div className="w-12 h-12 rounded-full bg-mint flex items-center justify-center mx-auto mb-3 animate-pop-in">
-          <Check className="h-6 w-6 text-mint-foreground" />
+        <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center mx-auto mb-3 animate-pop-in">
+          <Check className="h-6 w-6 text-primary" />
         </div>
-        <h3 className="font-serif font-bold text-lg mb-1">Thanks for reaching out!</h3>
+        <h3 className="font-serif font-medium tracking-tight text-lg mb-1">Thanks for reaching out!</h3>
         <p className="text-sm text-muted-foreground">
           We&apos;ve emailed you a confirmation and usually reply within 1–2 business days. In the meantime, feel
           free to browse our <a href="/faqs" className="text-primary underline underline-offset-2">FAQs</a>.

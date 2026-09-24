@@ -65,7 +65,7 @@ export function CartContent({ categories }: { categories: Category[] }) {
     return (
       <>
         <Navbar categories={categories} />
-        <main className="min-h-screen bg-muted/30" />
+        <main className="min-h-screen" />
       </>
     )
   }
@@ -74,13 +74,13 @@ export function CartContent({ categories }: { categories: Category[] }) {
     return (
       <>
         <Navbar categories={categories} />
-        <main className="min-h-screen bg-muted/30">
+        <main className="min-h-screen">
           <div className="container mx-auto px-4 py-16">
             <div className="max-w-md mx-auto text-center">
               <div className="w-32 h-32 rounded-full bg-muted mx-auto mb-6 flex items-center justify-center">
                 <ShoppingBag className="h-16 w-16 text-muted-foreground" />
               </div>
-              <h1 className="text-2xl font-serif font-bold mb-3">Your Cart is Empty</h1>
+              <h1 className="display text-3xl mb-3">Your Cart is Empty</h1>
               <p className="text-muted-foreground mb-8">
                 Looks like you haven&apos;t added any handcrafted goodies to your cart yet.
               </p>
@@ -101,7 +101,7 @@ export function CartContent({ categories }: { categories: Category[] }) {
   return (
     <>
       <Navbar categories={categories} />
-      <main className="min-h-screen bg-muted/30">
+      <main className="min-h-screen">
         {/* Breadcrumb */}
         <div className="bg-background py-4 border-b">
           <div className="container mx-auto px-4">
@@ -116,24 +116,24 @@ export function CartContent({ categories }: { categories: Category[] }) {
         </div>
 
         <div className="container mx-auto px-4 py-8">
-          <h1 className="text-3xl font-serif font-bold mb-8">Shopping Cart ({items.length})</h1>
+          <h1 className="display text-4xl sm:text-5xl mb-8">Shopping Cart ({items.length})</h1>
 
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Cart Items */}
             <div className="lg:col-span-2 space-y-4">
               {/* Free Shipping Progress */}
               {!freeShipping && (
-                <Card className="bg-peach/20 border-peach">
+                <Card className="bg-blush/50 border-transparent">
                   <CardContent className="py-4">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium">
                         Add {formatPrice(shippingThreshold - subtotal)} more for FREE shipping!
                       </span>
-                      <Truck className="h-5 w-5 text-secondary" />
+                      <Truck className="h-5 w-5 text-primary" />
                     </div>
                     <div className="h-2 bg-muted rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-secondary rounded-full transition-all duration-500"
+                        className="h-full bg-primary rounded-full transition-all duration-500"
                         style={{ width: `${Math.min((subtotal / shippingThreshold) * 100, 100)}%` }}
                       />
                     </div>
@@ -142,13 +142,13 @@ export function CartContent({ categories }: { categories: Category[] }) {
               )}
 
               {freeShipping && (
-                <Card className="bg-mint/20 border-mint">
+                <Card className="bg-accent border-transparent">
                   <CardContent className="py-4 flex items-center justify-between">
                     <span className="text-sm font-medium flex items-center gap-2">
                       <Truck className="h-5 w-5" />
                       You&apos;ve unlocked FREE shipping!
                     </span>
-                    <ShieldCheck className="h-5 w-5 text-mint" />
+                    <ShieldCheck className="h-5 w-5 text-primary" />
                   </CardContent>
                 </Card>
               )}
@@ -173,7 +173,7 @@ export function CartContent({ categories }: { categories: Category[] }) {
                         <div className="flex gap-4">
                           <Link
                             href={`/product/${item.product.slug}`}
-                            className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-lg overflow-hidden bg-muted flex-shrink-0"
+                            className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-2xl overflow-hidden bg-sand flex-shrink-0"
                           >
                             <Image src={item.product.images[0]} alt={item.product.name} fill className="object-cover" />
                           </Link>
@@ -203,7 +203,7 @@ export function CartContent({ categories }: { categories: Category[] }) {
                             )}
 
                             <div className="flex items-center justify-between mt-4">
-                              <div className="flex items-center border rounded-lg">
+                              <div className="flex items-center border rounded-full bg-card">
                                 <Button
                                   variant="ghost"
                                   size="icon"
@@ -270,7 +270,7 @@ export function CartContent({ categories }: { categories: Category[] }) {
 
             {/* Order Summary */}
             <div className="lg:col-span-1">
-              <Card className="sticky top-28">
+              <Card className="sticky top-[124px]">
                 <CardHeader>
                   <CardTitle>Order Summary</CardTitle>
                 </CardHeader>
@@ -279,9 +279,9 @@ export function CartContent({ categories }: { categories: Category[] }) {
                   <div>
                     <label className="text-sm font-medium mb-2 block">Have a coupon?</label>
                     {appliedCoupon ? (
-                      <div className="flex items-center justify-between p-3 bg-mint/20 rounded-lg">
+                      <div className="flex items-center justify-between p-3 bg-accent rounded-lg">
                         <div className="flex items-center gap-2">
-                          <Tag className="h-4 w-4 text-mint" />
+                          <Tag className="h-4 w-4 text-primary" />
                           <span className="text-sm font-medium">{appliedCoupon.code}</span>
                         </div>
                         <Button variant="ghost" size="sm" onClick={handleRemoveCoupon}>
@@ -313,7 +313,7 @@ export function CartContent({ categories }: { categories: Category[] }) {
                       <span>{formatPrice(subtotal)}</span>
                     </div>
                     {appliedCoupon && (
-                      <div className="flex justify-between text-sm text-mint">
+                      <div className="flex justify-between text-sm text-primary">
                         <span>Discount</span>
                         <span>-{formatPrice(discount)}</span>
                       </div>

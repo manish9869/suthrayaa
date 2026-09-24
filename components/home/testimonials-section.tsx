@@ -1,140 +1,120 @@
 'use client'
 
-import { useState } from 'react'
-import { ChevronLeft, ChevronRight, Star, Quote } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { useState, useEffect } from 'react'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import { ChevronLeft, ChevronRight, Star, Quote, BadgeCheck } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import type { Testimonial } from '@/lib/data'
-import { Reveal } from '@/components/motion/reveal'
+import { Reveal, EASE_OUT } from '@/components/motion/reveal'
 
 export function TestimonialsSection({ testimonials }: { testimonials: Testimonial[] }) {
-  const [currentIndex, setCurrentIndex] = useState(0)
+  const [[index, direction], setState] = useState<[number, number]>([0, 1])
+  const [paused, setPaused] = useState(false)
+  const reduce = useReducedMotion()
+  const count = testimonials.length
 
-  if (testimonials.length === 0) return null
+  useEffect(() => {
+    if (paused || count < 2) return
+    const t = setInterval(() => setState(([i]) => [(i + 1) % count, 1]), 7000)
+    return () => clearInterval(t)
+  }, [paused, count])
 
-  const next = () => {
-    setCurrentIndex((prev) => (prev + 1) % testimonials.length)
-  }
-
-  const prev = () => {
-    setCurrentIndex((prev) => (prev - 1 + testimonials.length) % testimonials.length)
-  }
+  if (count === 0) return null
+  const go = (d: number) => setState(([i]) => [(i + d + count) % count, d])
+  const t = testimonials[index]
+  const avg = testimonials.reduce((s, x) => s + x.rating, 0) / count
 
   return (
-    <section className="py-16 lg:py-24">
+    <section className="py-20 lg:py-28" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
       <div className="container mx-auto px-4">
-        {/* Section Header */}
-        <Reveal className="text-center mb-12">
-          <span className="inline-block px-4 py-1.5 rounded-full bg-lavender text-sm font-medium mb-4">
-            Love From Our Customers
-          </span>
-          <h2 className="text-3xl md:text-4xl font-serif font-bold text-foreground mb-4">
-            What Our Customers Say
-          </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Real stories from real people who have experienced the magic of handcrafted crochet.
-          </p>
-        </Reveal>
-
-        {/* Testimonials Carousel */}
-        <div className="max-w-4xl mx-auto">
-          <div className="relative">
-            {/* Quote Icon */}
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
-              <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center">
-                <Quote className="h-5 w-5 text-secondary-foreground" />
+        <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
+          <Reveal className="flex flex-col justify-between">
+            <div>
+              <p className="eyebrow">Kind words</p>
+              <h2 className="display mt-4 text-[2.4rem] sm:text-5xl">
+                Loved by <em className="font-normal italic text-primary">our community</em>
+              </h2>
+              <p className="mt-4 max-w-sm text-[15px] text-muted-foreground">Real stories from people who’ve gifted, cuddled and kept our handmade pieces.</p>
+            </div>
+            <div className="mt-10 flex items-end gap-4">
+              <p className="display text-7xl text-primary">{avg.toFixed(1)}</p>
+              <div className="pb-2">
+                <div className="flex gap-0.5">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star key={i} className={cn('h-4 w-4', i < Math.round(avg) ? 'fill-gold text-gold' : 'text-muted-foreground/30')} />
+                  ))}
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">Average from happy customers</p>
               </div>
             </div>
+          </Reveal>
 
-            <Card className="pt-8 shadow-soft">
-              <CardContent className="p-8 md:p-12 text-center">
-                {/* Rating */}
-                <div className="flex items-center justify-center gap-1 mb-6">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star
-                      key={i}
-                      className={cn(
-                        'h-5 w-5',
-                        i < testimonials[currentIndex].rating
-                          ? 'fill-secondary text-secondary'
-                          : 'text-muted'
-                      )}
+          <Reveal delay={0.08} className="relative">
+            <div className="relative min-h-[340px] overflow-hidden rounded-[2rem] bg-card p-8 ring-1 ring-border sm:p-12">
+              <Quote className="absolute right-8 top-8 h-16 w-16 text-blush" />
+              <AnimatePresence mode="wait" initial={false} custom={direction}>
+                <motion.figure
+                  key={t.id}
+                  custom={direction}
+                  initial={reduce ? { opacity: 0 } : { opacity: 0, x: 24 * direction, filter: 'blur(4px)' }}
+                  animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
+                  exit={reduce ? { opacity: 0 } : { opacity: 0, x: -24 * direction, filter: 'blur(4px)' }}
+                  transition={{ duration: 0.4, ease: EASE_OUT }}
+                  className="relative"
+                >
+                  <div className="flex gap-0.5">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} className={cn('h-[18px] w-[18px]', i < t.rating ? 'fill-gold text-gold' : 'text-muted-foreground/25')} />
+                    ))}
+                  </div>
+                  <blockquote className="display mt-6 text-2xl leading-snug text-foreground sm:text-[2rem]">“{t.content}”</blockquote>
+                  <figcaption className="mt-8 flex items-center gap-4">
+                    <Avatar className="h-12 w-12 bg-blush">
+                      {t.avatar && <AvatarImage src={t.avatar} alt={t.customerName} />}
+                      <AvatarFallback className="bg-blush font-medium text-rose">
+                        {t.customerName
+                          .split(' ')
+                          .map((n) => n[0])
+                          .join('')}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="flex items-center gap-1.5 font-semibold">
+                        {t.customerName} <BadgeCheck className="h-4 w-4 text-primary" />
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {t.location}
+                        {t.productPurchased && ` · bought ${t.productPurchased}`}
+                      </p>
+                    </div>
+                  </figcaption>
+                </motion.figure>
+              </AnimatePresence>
+            </div>
+            {count > 1 && (
+              <div className="mt-6 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {testimonials.map((x, i) => (
+                    <button
+                      key={x.id}
+                      onClick={() => setState([i, i > index ? 1 : -1])}
+                      aria-label={`Show testimonial ${i + 1}`}
+                      className={cn('h-1.5 rounded-full transition-all duration-300 ease-[var(--ease-out)]', i === index ? 'w-8 bg-primary' : 'w-1.5 bg-foreground/20 hover:bg-foreground/40')}
                     />
                   ))}
                 </div>
-
-                {/* Quote */}
-                <blockquote className="text-lg md:text-xl text-foreground mb-8 leading-relaxed">
-                  &quot;{testimonials[currentIndex].content}&quot;
-                </blockquote>
-
-                {/* Customer Info */}
-                <div className="flex flex-col items-center">
-                  <Avatar className="h-14 w-14 mb-3 bg-peach">
-                    {testimonials[currentIndex].avatar && (
-                      <AvatarImage src={testimonials[currentIndex].avatar} alt={testimonials[currentIndex].customerName} />
-                    )}
-                    <AvatarFallback className="text-lg font-medium">
-                      {testimonials[currentIndex].customerName.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="font-semibold text-foreground">
-                    {testimonials[currentIndex].customerName}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {testimonials[currentIndex].location}
-                  </div>
-                  {testimonials[currentIndex].productPurchased && (
-                    <div className="text-sm text-secondary mt-1">
-                      Purchased: {testimonials[currentIndex].productPurchased}
-                    </div>
-                  )}
+                <div className="flex gap-2">
+                  <button onClick={() => go(-1)} aria-label="Previous testimonial" className="tap-bounce flex h-11 w-11 items-center justify-center rounded-full border bg-card transition-colors hover:border-primary hover:text-primary">
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button onClick={() => go(1)} aria-label="Next testimonial" className="tap-bounce flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Navigation */}
-            <div className="flex items-center justify-center gap-4 mt-8">
-              <Button
-                variant="outline"
-                size="icon"
-                className="rounded-full"
-                onClick={prev}
-                aria-label="Previous testimonial"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </Button>
-
-              {/* Dots */}
-              <div className="flex items-center gap-2">
-                {testimonials.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentIndex(index)}
-                    className={cn(
-                      'h-2 rounded-full transition-all duration-300',
-                      index === currentIndex
-                        ? 'w-6 bg-secondary'
-                        : 'w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50'
-                    )}
-                    aria-label={`Go to testimonial ${index + 1}`}
-                  />
-                ))}
               </div>
-
-              <Button
-                variant="outline"
-                size="icon"
-                className="rounded-full"
-                onClick={next}
-                aria-label="Next testimonial"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
+            )}
+          </Reveal>
         </div>
       </div>
     </section>

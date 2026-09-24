@@ -1,6 +1,9 @@
 import type { ReactNode } from 'react'
+import Image from 'next/image'
+import Link from 'next/link'
 import { Navbar } from '@/components/navbar'
 import { Footer } from '@/components/footer'
+import { Reveal } from '@/components/motion/reveal'
 import type { Category } from '@/lib/data'
 
 interface StaticPageShellProps {
@@ -8,30 +11,44 @@ interface StaticPageShellProps {
   eyebrow?: string
   title: string
   description?: string
+  /** Optional wide editorial banner under the heading. */
+  image?: string
   /** Use the wide layout for pages with their own multi-column sections (e.g. About). */
   wide?: boolean
   children: ReactNode
 }
 
-export function StaticPageShell({ categories, eyebrow, title, description, wide, children }: StaticPageShellProps) {
+export function StaticPageShell({ categories, eyebrow, title, description, image, wide, children }: StaticPageShellProps) {
   return (
     <>
       <Navbar categories={categories} />
       <main className="min-h-screen">
-        <div className="bg-muted/50 py-12 lg:py-16">
-          <div className="container mx-auto px-4 text-center">
-            {eyebrow && (
-              <span className="inline-block px-4 py-1.5 rounded-full bg-peach text-sm font-medium mb-4">
-                {eyebrow}
-              </span>
-            )}
-            <h1 className="text-3xl md:text-4xl font-serif font-bold text-foreground mb-3 text-balance">{title}</h1>
-            {description && <p className="text-muted-foreground max-w-2xl mx-auto text-pretty">{description}</p>}
+        <section className="relative overflow-hidden">
+          <div className="pointer-events-none absolute -left-32 -top-24 h-80 w-80 rounded-full bg-blush/60 blur-3xl" />
+          <div className="pointer-events-none absolute -right-20 top-10 h-72 w-72 rounded-full bg-sage/20 blur-3xl" />
+          <div className="container relative mx-auto px-4 pb-10 pt-10 text-center lg:pb-14 lg:pt-16">
+            <nav aria-label="Breadcrumb" className="mb-6 flex items-center justify-center gap-2 text-[13px] text-muted-foreground">
+              <Link href="/" className="hover:text-foreground">
+                Home
+              </Link>
+              <span>/</span>
+              <span className="text-foreground">{eyebrow ?? title}</span>
+            </nav>
+            <Reveal>
+              {eyebrow && <p className="eyebrow mb-4">{eyebrow}</p>}
+              <h1 className="display mx-auto max-w-4xl text-balance text-[2.6rem] sm:text-6xl lg:text-7xl">{title}</h1>
+              {description && <p className="mx-auto mt-5 max-w-2xl text-pretty text-[16px] leading-relaxed text-muted-foreground">{description}</p>}
+            </Reveal>
           </div>
-        </div>
-        <div className={wide ? 'container mx-auto px-4 py-12 lg:py-16' : 'container mx-auto px-4 py-12 lg:py-16 max-w-3xl'}>
-          {children}
-        </div>
+          {image && (
+            <Reveal delay={0.1} className="container mx-auto px-4">
+              <div className="relative aspect-[16/7] overflow-hidden rounded-[2rem] bg-sand">
+                <Image src={image} alt="" fill priority sizes="100vw" className="object-cover" />
+              </div>
+            </Reveal>
+          )}
+        </section>
+        <div className={wide ? 'container mx-auto px-4 py-12 lg:py-16' : 'container mx-auto max-w-3xl px-4 py-12 lg:py-16'}>{children}</div>
       </main>
       <Footer />
     </>

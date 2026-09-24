@@ -1,23 +1,23 @@
 'use client'
 
-import { useState, useEffect, useMemo, Fragment } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, ShoppingBag, Heart, Search, User } from 'lucide-react'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import { Menu, X, ShoppingBag, Heart, Search, User, ChevronDown, ArrowRight, Truck, RotateCcw, ShieldCheck, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { useCartStore } from '@/lib/store'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { formatPrice, searchProducts, type Category, type Product } from '@/lib/data'
-import { buildCategoryTree, type CategoryNode } from '@/lib/utils/category-tree'
+import { buildCategoryTree, totalProductCount } from '@/lib/utils/category-tree'
 import { CartDrawer } from './cart-drawer'
 import { getPublicNavItems, getPublicSiteSettings } from '@/lib/api/settings'
+import { STOREFRONT_IMAGES } from '@/lib/storefront-images'
+import { EASE_OUT } from '@/components/motion/reveal'
 
 interface NavLinkItem {
   href: string
@@ -32,8 +32,12 @@ const FALLBACK_NAV_LINKS: NavLinkItem[] = [
   { href: '/contact', label: 'Contact' },
 ]
 
-const FALLBACK_LOGO_URL =
-  'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Suthraya%20Logo%20-%20Trans-HgT4V8esTeOZ2PwWy5B7QcPjLLrahf.png'
+const PERKS = [
+  { icon: Truck, text: 'Free shipping on orders over ₹999' },
+  { icon: RotateCcw, text: 'Easy 7-day returns' },
+  { icon: ShieldCheck, text: 'Secure & safe payments' },
+  { icon: Sparkles, text: 'Handmade to order in India' },
+]
 
 interface AnnouncementState {
   text: string
@@ -42,18 +46,18 @@ interface AnnouncementState {
 }
 
 export function Navbar({ categories = [] }: { categories?: Category[] }) {
-  const categoryTree = useMemo(
-    () => buildCategoryTree(categories.filter((c) => c.showInNavigation)),
-    [categories]
-  )
+  const categoryTree = useMemo(() => buildCategoryTree(categories.filter((c) => c.showInNavigation)), [categories])
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [megaOpen, setMegaOpen] = useState(false)
+  const megaTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<Product[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
+  const reduce = useReducedMotion()
   const { getTotalItems, openCart } = useCartStore()
   const totalItems = getTotalItems()
   const { user, signOut } = useAuth()
@@ -64,18 +68,23 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
   useEffect(() => setMounted(true), [])
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20)
-    }
-    window.addEventListener('scroll', handleScroll)
+    const handleScroll = () => setIsScrolled(window.scrollY > 12)
+    handleScroll()
+    window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  // Close transient panels on navigation
+  useEffect(() => {
+    setMegaOpen(false)
+    setIsSearchOpen(false)
+  }, [pathname])
 
   // Nav links, logo and announcement bar are admin-configurable via Site Settings. Fetched
   // client-side (public, unauthenticated endpoints) with hardcoded fallbacks so the header is
   // never empty/broken if the settings API hiccups or hasn't been configured yet.
   const [navLinks, setNavLinks] = useState<NavLinkItem[]>(FALLBACK_NAV_LINKS)
-  const [logoUrl, setLogoUrl] = useState(FALLBACK_LOGO_URL)
+  const [logoUrl, setLogoUrl] = useState<string>(STOREFRONT_IMAGES.logo)
   const [announcement, setAnnouncement] = useState<AnnouncementState | null>(null)
 
   useEffect(() => {
@@ -117,16 +126,15 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
         }
       })
       .catch(() => {
-        // No settings loaded — logo falls back to the hardcoded default and the announcement
-        // bar simply stays hidden (it's opt-in/admin-controlled, unlike the nav/logo).
+        // No settings loaded — logo stays on the bundled default and the admin announcement
+        // stays hidden (the perks strip shows instead).
       })
   }, [])
 
-  // Sticky announcements stay pinned inside the fixed header while scrolling (today's
-  // behavior); non-sticky ones only show at the top of the page and collapse once scrolled —
-  // reusing the existing isScrolled tracking above instead of introducing new scroll logic.
-  const showAnnouncement = Boolean(announcement) && (announcement!.sticky || !isScrolled)
-  const navMidpoint = Math.ceil(navLinks.length / 2)
+  // The top strip shows the admin announcement when one is live, otherwise the store perks.
+  // Sticky announcements stay pinned while scrolling; everything else collapses once scrolled.
+  const topStripSticky = Boolean(announcement?.sticky)
+  const showTopStrip = topStripSticky || !isScrolled
 
   // Debounced live search — queries the same /products search endpoint as the shop page,
   // just trimmed to a handful of quick suggestions.
@@ -147,6 +155,14 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
     return () => clearTimeout(t)
   }, [searchQuery])
 
+  // Esc closes search from anywhere
+  useEffect(() => {
+    if (!isSearchOpen) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && closeSearch()
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [isSearchOpen])
+
   // Next.js's <Link> is a no-op when its href matches the current route — clicking "Home" or
   // the logo while already on "/" (but scrolled down) would otherwise do nothing. Scroll to
   // top ourselves in that one case; every other route still navigates normally.
@@ -157,7 +173,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
     }
   }
 
-  const closeSearch = () => {
+  function closeSearch() {
     setIsSearchOpen(false)
     setSearchQuery('')
     setSearchResults([])
@@ -170,74 +186,105 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
     closeSearch()
   }
 
+  // Hover intent for the mega menu: open immediately, close after a short grace period so the
+  // pointer can travel from the trigger into the panel without it flickering shut.
+  const openMega = () => {
+    if (megaTimer.current) clearTimeout(megaTimer.current)
+    setMegaOpen(true)
+  }
+  const closeMegaSoon = () => {
+    if (megaTimer.current) clearTimeout(megaTimer.current)
+    megaTimer.current = setTimeout(() => setMegaOpen(false), 140)
+  }
+
+  const isShopLink = (href: string) => href === '/shop' || href.startsWith('/shop?')
+  const isActiveLink = (href: string) => (href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(href + '/'))
+  const megaCategories = categoryTree.slice(0, 6)
+  const panelTransition = { duration: reduce ? 0 : 0.22, ease: EASE_OUT }
+
   return (
     <>
-      <header
-        className={cn(
-          'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
-          isScrolled
-            ? 'bg-background/95 backdrop-blur-md shadow-soft'
-            : 'bg-transparent'
-        )}
-      >
-        {/* Announcement Bar */}
-        {showAnnouncement && announcement && (
-          <div className="bg-primary text-primary-foreground text-center py-2 text-sm overflow-hidden">
-            <AnimatePresence mode="wait">
-              <motion.p
-                key={announcement.text}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.35 }}
-                className="flex items-center justify-center gap-1.5"
-              >
-                {announcement.link ? (
-                  <Link href={announcement.link} className="hover:underline">
-                    {announcement.text}
-                  </Link>
-                ) : (
-                  announcement.text
-                )}
-              </motion.p>
-            </AnimatePresence>
-          </div>
-        )}
+      <header className="fixed inset-x-0 top-0 z-50">
+        {/* Top strip */}
+        <div
+          className={cn(
+            'overflow-hidden bg-primary text-primary-foreground transition-[height] duration-300 ease-[var(--ease-out)]',
+            showTopStrip ? 'h-9' : 'h-0'
+          )}
+        >
+          {announcement ? (
+            <div className="flex h-9 items-center justify-center px-4 text-center text-[12.5px] font-medium tracking-wide">
+              {announcement.link ? (
+                <Link href={announcement.link} className="link-underline">
+                  {announcement.text}
+                </Link>
+              ) : (
+                announcement.text
+              )}
+            </div>
+          ) : (
+            <>
+              <div className="hidden h-9 items-center justify-between px-8 text-[12.5px] font-medium tracking-wide lg:flex container mx-auto">
+                {PERKS.map((p) => (
+                  <span key={p.text} className="flex items-center gap-2 opacity-90">
+                    <p.icon className="h-3.5 w-3.5" /> {p.text}
+                  </span>
+                ))}
+              </div>
+              <div className="flex h-9 items-center overflow-hidden lg:hidden" aria-hidden>
+                <div className="marquee gap-10 pr-10 text-[12px] font-medium">
+                  {[...PERKS, ...PERKS].map((p, i) => (
+                    <span key={i} className="flex shrink-0 items-center gap-2">
+                      <p.icon className="h-3.5 w-3.5" /> {p.text}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
 
-        <nav className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16 lg:h-20">
-            {/* Mobile Menu Button */}
+        {/* Main bar */}
+        <div
+          className={cn(
+            'relative border-b transition-[background-color,border-color,box-shadow] duration-300',
+            isScrolled || megaOpen || isSearchOpen
+              ? 'border-border/70 bg-background/85 shadow-[0_8px_30px_-18px_rgb(49_32_140/0.35)] backdrop-blur-xl'
+              : 'border-transparent bg-background'
+          )}
+        >
+          <nav className="container mx-auto flex h-[72px] items-center gap-4 px-4">
+            {/* Mobile menu */}
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild className="lg:hidden">
-                <Button variant="ghost" size="icon" className="tap-bounce" aria-label="Open menu">
-                  <Menu className="h-6 w-6" />
+                <Button variant="ghost" size="icon" aria-label="Open menu">
+                  <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-80 p-0">
+              <SheetContent side="left" className="w-[88vw] max-w-sm gap-0 bg-background p-0">
                 <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-                <div className="flex flex-col h-full">
-                  <div className="p-4 border-b">
+                <div className="flex h-full flex-col">
+                  <div className="border-b px-5 py-4">
                     <Link
                       href="/"
+                      className="flex items-center gap-3"
                       onClick={(e) => {
                         handleHomeClick(e)
                         setIsMobileMenuOpen(false)
                       }}
                     >
-                      <Image
-                        src={logoUrl}
-                        alt="Suthrayaa"
-                        width={120}
-                        height={60}
-                        className="h-12 w-auto"
-                      />
+                      <Image src={logoUrl} alt="Suthrayaa" width={96} height={51} className="h-11 w-auto" />
                     </Link>
                   </div>
-                  <div className="flex-1 overflow-auto py-4">
-                    <div className="space-y-1 px-2">
-                      {navLinks.map((link) => (
+                  <div className="flex-1 overflow-auto px-3 py-4">
+                    {navLinks.map((link, i) => (
+                      <motion.div
+                        key={link.href}
+                        initial={reduce ? false : { opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.05 + i * 0.04, duration: 0.35, ease: EASE_OUT }}
+                      >
                         <Link
-                          key={link.href}
                           href={link.href}
                           target={link.openInNewTab ? '_blank' : undefined}
                           rel={link.openInNewTab ? 'noopener noreferrer' : undefined}
@@ -246,289 +293,369 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
                             setIsMobileMenuOpen(false)
                           }}
                           className={cn(
-                            'block px-4 py-3 rounded-lg text-lg transition-colors',
-                            pathname === link.href
-                              ? 'bg-muted text-primary font-medium'
-                              : 'text-foreground hover:bg-muted'
+                            'flex items-center justify-between rounded-2xl px-4 py-3 font-serif text-2xl transition-colors',
+                            isActiveLink(link.href) ? 'bg-accent text-primary' : 'text-foreground hover:bg-muted'
                           )}
                         >
                           {link.label}
+                          <ArrowRight className="h-4 w-4 opacity-40" />
                         </Link>
-                      ))}
-                    </div>
-                    <div className="mt-6 px-4">
-                      <h3 className="text-sm font-semibold text-muted-foreground mb-3">
-                        Categories
-                      </h3>
-                      <div className="space-y-1">
-                        {categoryTree.map((top) => (
-                          <div key={top.id} className="mb-2">
+                      </motion.div>
+                    ))}
+                    {categoryTree.length > 0 && (
+                      <div className="mt-6 px-2">
+                        <p className="eyebrow mb-3 px-2">Shop by category</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {categoryTree.map((top) => (
                             <Link
+                              key={top.id}
                               href={`/shop?category=${top.slug}`}
                               onClick={() => setIsMobileMenuOpen(false)}
-                              className="block px-4 py-2 text-sm font-semibold text-foreground hover:bg-muted rounded-lg transition-colors"
+                              className="flex items-center gap-2.5 rounded-2xl border bg-card p-2 text-sm font-medium"
                             >
-                              {top.name}
+                              <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-muted">
+                                {top.image && <Image src={top.image} alt="" fill sizes="40px" className="object-cover" />}
+                              </span>
+                              <span className="line-clamp-2 leading-tight">{top.name}</span>
                             </Link>
-                            {top.children.map((sub) => (
-                              <div key={sub.id}>
-                                <Link
-                                  href={`/shop?category=${sub.slug}`}
-                                  onClick={() => setIsMobileMenuOpen(false)}
-                                  className="block pl-8 pr-4 py-1.5 text-sm text-foreground/80 hover:bg-muted rounded-lg transition-colors"
-                                >
-                                  {sub.name}
-                                </Link>
-                                {sub.children.map((leaf) => (
-                                  <Link
-                                    key={leaf.id}
-                                    href={`/shop?category=${leaf.slug}`}
-                                    onClick={() => setIsMobileMenuOpen(false)}
-                                    className="block pl-12 pr-4 py-1 text-xs text-muted-foreground hover:bg-muted rounded-lg transition-colors"
-                                  >
-                                    {leaf.name}
-                                  </Link>
-                                ))}
-                              </div>
-                            ))}
+                          ))}
+                        </div>
+                        {categoryTree.some((t) => t.children.length > 0) && (
+                          <div className="mt-4 space-y-3">
+                            {categoryTree
+                              .filter((t) => t.children.length > 0)
+                              .map((top) => (
+                                <div key={top.id}>
+                                  <p className="px-2 text-xs font-semibold text-muted-foreground">{top.name}</p>
+                                  <div className="mt-1 flex flex-wrap gap-1.5 px-2">
+                                    {top.children.flatMap((sub) => [sub, ...sub.children]).map((c) => (
+                                      <Link
+                                        key={c.id}
+                                        href={`/shop?category=${c.slug}`}
+                                        onClick={() => setIsMobileMenuOpen(false)}
+                                        className="rounded-full border bg-card px-3 py-1 text-xs"
+                                      >
+                                        {c.name}
+                                      </Link>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
                           </div>
-                        ))}
+                        )}
                       </div>
-                    </div>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 border-t p-4">
+                    <Button variant="outline" asChild onClick={() => setIsMobileMenuOpen(false)}>
+                      <Link href="/wishlist">
+                        <Heart className="h-4 w-4" /> Wishlist
+                      </Link>
+                    </Button>
+                    {user ? (
+                      <Button variant="outline" onClick={() => signOut()}>
+                        <User className="h-4 w-4" /> Sign out
+                      </Button>
+                    ) : (
+                      <Button asChild onClick={() => setIsMobileMenuOpen(false)}>
+                        <Link href="/login">
+                          <User className="h-4 w-4" /> Sign in
+                        </Link>
+                      </Button>
+                    )}
                   </div>
                 </div>
               </SheetContent>
             </Sheet>
 
             {/* Logo */}
-            <Link href="/" className="flex-shrink-0" onClick={handleHomeClick}>
-              <Image
-                src={logoUrl}
-                alt="Suthrayaa"
-                width={140}
-                height={70}
-                className="h-12 lg:h-14 w-auto"
-                priority
-              />
+            <Link href="/" className="flex shrink-0 items-center gap-2.5" onClick={handleHomeClick} aria-label="Suthrayaa home">
+              <Image src={logoUrl} alt="Suthrayaa" width={104} height={55} className="h-14 w-auto lg:h-[60px]" priority />
             </Link>
 
-            {/* Desktop Navigation */}
-            <div className="hidden lg:flex items-center gap-8">
-              {navLinks.slice(0, navMidpoint).map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  target={link.openInNewTab ? '_blank' : undefined}
-                  rel={link.openInNewTab ? 'noopener noreferrer' : undefined}
-                  onClick={link.href === '/' ? handleHomeClick : undefined}
-                  className={cn(
-                    'text-sm font-medium transition-colors relative py-2',
-                    pathname === link.href ? 'text-primary' : 'text-foreground/80 hover:text-primary',
-                    'after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-secondary after:scale-x-0 after:transition-transform after:origin-center hover:after:scale-x-100',
-                    pathname === link.href && 'after:scale-x-100'
-                  )}
-                >
-                  {link.label}
-                </Link>
-              ))}
-              <DropdownMenu>
-                <DropdownMenuTrigger className="relative py-2 text-sm font-medium text-foreground/80 hover:text-primary outline-none">
-                  Categories
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="center" className="w-72 max-h-[75vh] overflow-y-auto">
-                  <DropdownMenuLabel>Shop by category</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {categoryTree.map((top) => (
-                    <Fragment key={top.id}>
-                      <DropdownMenuItem asChild className="font-semibold mt-1 first:mt-0">
-                        <Link href={`/shop?category=${top.slug}`}>{top.name}</Link>
-                      </DropdownMenuItem>
-                      {top.children.map((sub) => (
-                        <Fragment key={sub.id}>
-                          <DropdownMenuItem asChild className="pl-6 text-foreground/80">
-                            <Link href={`/shop?category=${sub.slug}`}>{sub.name}</Link>
-                          </DropdownMenuItem>
-                          {sub.children.map((leaf) => (
-                            <DropdownMenuItem key={leaf.id} asChild className="pl-10 text-sm text-muted-foreground">
-                              <Link href={`/shop?category=${leaf.slug}`}>{leaf.name}</Link>
-                            </DropdownMenuItem>
-                          ))}
-                        </Fragment>
-                      ))}
-                    </Fragment>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-              {navLinks.slice(navMidpoint).map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  target={link.openInNewTab ? '_blank' : undefined}
-                  rel={link.openInNewTab ? 'noopener noreferrer' : undefined}
-                  onClick={link.href === '/' ? handleHomeClick : undefined}
-                  className={cn(
-                    'text-sm font-medium transition-colors relative py-2',
-                    pathname === link.href ? 'text-primary' : 'text-foreground/80 hover:text-primary',
-                    'after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-secondary after:scale-x-0 after:transition-transform after:origin-center hover:after:scale-x-100',
-                    pathname === link.href && 'after:scale-x-100'
-                  )}
-                >
-                  {link.label}
-                </Link>
-              ))}
+            {/* Desktop navigation */}
+            <div className="hidden flex-1 items-center justify-center gap-9 lg:flex">
+              {navLinks.map((link) =>
+                isShopLink(link.href) && categoryTree.length > 0 ? (
+                  <div key={link.href} onMouseEnter={openMega} onMouseLeave={closeMegaSoon} className="relative">
+                    <Link
+                      href={link.href}
+                      aria-expanded={megaOpen}
+                      aria-current={isActiveLink('/shop') ? 'page' : undefined}
+                      onFocus={openMega}
+                      className="link-underline flex items-center gap-1 py-2 text-[14.5px] font-medium text-foreground/85 hover:text-foreground"
+                    >
+                      {link.label}
+                      <ChevronDown className={cn('h-3.5 w-3.5 transition-transform duration-200', megaOpen && 'rotate-180')} />
+                    </Link>
+                  </div>
+                ) : (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    target={link.openInNewTab ? '_blank' : undefined}
+                    rel={link.openInNewTab ? 'noopener noreferrer' : undefined}
+                    onClick={link.href === '/' ? handleHomeClick : undefined}
+                    aria-current={isActiveLink(link.href) ? 'page' : undefined}
+                    className="link-underline py-2 text-[14.5px] font-medium text-foreground/85 hover:text-foreground aria-[current=page]:text-primary"
+                  >
+                    {link.label}
+                  </Link>
+                )
+              )}
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-2">
-              {/* Search */}
-              <div className="relative">
-                {isSearchOpen ? (
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-72 lg:w-80">
-                    <div className="flex items-center gap-2 bg-background border rounded-full px-3 py-1 shadow-lg animate-in slide-in-from-right-5">
-                      <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <Input
-                        type="search"
-                        placeholder="Search for keychains, amigurumi..."
-                        className="border-0 focus-visible:ring-0 h-8 px-0"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') submitSearch()
-                          if (e.key === 'Escape') closeSearch()
-                        }}
-                        autoFocus
-                      />
-                      <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={closeSearch}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    {/* Autosuggest */}
-                    <AnimatePresence>
-                      {searchQuery.trim().length >= 2 && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -6 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -6 }}
-                          transition={{ duration: 0.15 }}
-                          className="absolute top-full mt-2 w-full bg-popover border rounded-xl shadow-lg overflow-hidden"
-                        >
-                          {searchLoading ? (
-                            <p className="px-4 py-3 text-sm text-muted-foreground">Searching...</p>
-                          ) : searchResults.length > 0 ? (
-                            <>
-                              <div className="max-h-80 overflow-y-auto py-1">
-                                {searchResults.map((product) => (
-                                  <Link
-                                    key={product.id}
-                                    href={`/product/${product.slug}`}
-                                    onClick={closeSearch}
-                                    className="flex items-center gap-3 px-3 py-2 hover:bg-muted transition-colors"
-                                  >
-                                    <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
-                                      <Image src={product.images[0] ?? '/placeholder.svg'} alt={product.name} fill className="object-cover" />
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                      <p className="text-sm font-medium truncate">{product.name}</p>
-                                      <p className="text-xs text-secondary font-semibold">{formatPrice(product.price)}</p>
-                                    </div>
-                                  </Link>
-                                ))}
-                              </div>
-                              <button
-                                onClick={submitSearch}
-                                className="w-full text-center text-sm font-medium text-primary py-2.5 border-t hover:bg-muted transition-colors"
-                              >
-                                See all results for &quot;{searchQuery.trim()}&quot;
-                              </button>
-                            </>
-                          ) : (
-                            <p className="px-4 py-3 text-sm text-muted-foreground">No products found for &quot;{searchQuery.trim()}&quot;</p>
-                          )}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="tap-bounce"
-                    onClick={() => setIsSearchOpen(true)}
-                    aria-label="Search"
+            <div className="ml-auto flex items-center gap-0.5 lg:ml-0">
+              <Button variant="ghost" size="icon" onClick={() => (isSearchOpen ? closeSearch() : setIsSearchOpen(true))} aria-label="Search">
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.span
+                    key={isSearchOpen ? 'x' : 's'}
+                    initial={{ opacity: 0, rotate: -30, scale: 0.8 }}
+                    animate={{ opacity: 1, rotate: 0, scale: 1 }}
+                    exit={{ opacity: 0, rotate: 30, scale: 0.8 }}
+                    transition={{ duration: 0.15 }}
                   >
-                    <Search className="h-5 w-5" />
-                  </Button>
-                )}
-              </div>
+                    {isSearchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
+                  </motion.span>
+                </AnimatePresence>
+              </Button>
 
-              {/* Wishlist */}
-              <Button variant="ghost" size="icon" asChild className="hidden sm:flex tap-bounce">
+              <Button variant="ghost" size="icon" asChild className="hidden sm:inline-flex">
                 <Link href="/wishlist" aria-label="Wishlist">
                   <Heart className="h-5 w-5" />
                 </Link>
               </Button>
 
-              {/* Account */}
               {user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="hidden sm:flex tap-bounce" aria-label="Account">
+                    <Button variant="ghost" size="icon" className="hidden sm:inline-flex" aria-label="Account">
                       <User className="h-5 w-5" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuLabel className="truncate">
-                      {user.email || user.phone || 'My Account'}
+                  <DropdownMenuContent align="end" className="w-56 rounded-2xl p-1.5">
+                    <DropdownMenuLabel className="truncate font-normal">
+                      <span className="block text-xs text-muted-foreground">Signed in as</span>
+                      <span className="block truncate font-medium">{user.email || user.phone || 'My Account'}</span>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => signOut()}>Sign Out</DropdownMenuItem>
+                    <DropdownMenuItem asChild className="rounded-xl">
+                      <Link href="/wishlist">
+                        <Heart /> Wishlist
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => signOut()} className="rounded-xl">
+                      <X /> Sign Out
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <Button variant="ghost" size="icon" asChild className="hidden sm:flex tap-bounce">
+                <Button variant="ghost" size="icon" asChild className="hidden sm:inline-flex">
                   <Link href="/login" aria-label="Sign in">
                     <User className="h-5 w-5" />
                   </Link>
                 </Button>
               )}
 
-              {/* Cart */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative tap-bounce"
-                onClick={openCart}
-                aria-label="Cart"
-              >
+              <Button variant="ghost" size="icon" className="relative" onClick={openCart} aria-label="Cart">
                 <ShoppingBag className="h-5 w-5" />
                 <AnimatePresence>
                   {mounted && totalItems > 0 && (
-                    <motion.div
+                    <motion.span
                       key={totalItems}
-                      initial={{ scale: 0.4, opacity: 0 }}
+                      initial={{ scale: 0.6, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0.4, opacity: 0 }}
-                      transition={{ type: 'spring', stiffness: 500, damping: 20 }}
-                      className="absolute -top-1 -right-1"
+                      exit={{ scale: 0.6, opacity: 0 }}
+                      transition={{ type: 'spring', duration: 0.35, bounce: 0.35 }}
+                      className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-secondary px-1 text-[10.5px] font-semibold text-secondary-foreground ring-2 ring-background"
                     >
-                      <Badge className="h-5 w-5 flex items-center justify-center p-0 text-xs bg-secondary text-secondary-foreground">
-                        {totalItems}
-                      </Badge>
-                    </motion.div>
+                      {totalItems}
+                    </motion.span>
                   )}
                 </AnimatePresence>
               </Button>
             </div>
-          </div>
-        </nav>
+          </nav>
+
+          {/* Mega menu */}
+          <AnimatePresence>
+            {megaOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={panelTransition}
+                onMouseEnter={openMega}
+                onMouseLeave={closeMegaSoon}
+                className="absolute inset-x-0 top-full hidden border-b bg-background/95 shadow-[0_24px_50px_-30px_rgb(49_32_140/0.45)] backdrop-blur-xl lg:block"
+              >
+                <div className="container mx-auto grid grid-cols-[1fr_320px] gap-10 px-4 py-8">
+                  <div>
+                    <div className="mb-5 flex items-center justify-between">
+                      <p className="eyebrow">Shop by category</p>
+                      <Link href="/shop" className="link-underline text-sm font-medium text-primary">
+                        View all products
+                      </Link>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                      {megaCategories.map((top) => (
+                        <div key={top.id} className="group">
+                          <Link href={`/shop?category=${top.slug}`} className="flex items-center gap-3 rounded-2xl p-2 transition-colors hover:bg-muted">
+                            <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full bg-muted">
+                              {top.image && <Image src={top.image} alt="" fill sizes="56px" className="zoom-img object-cover" />}
+                            </span>
+                            <span>
+                              <span className="block font-medium">{top.name}</span>
+                              <span className="block text-xs text-muted-foreground">{totalProductCount(top)} pieces</span>
+                            </span>
+                          </Link>
+                          {top.children.length > 0 && (
+                            <div className="ml-[76px] mt-1 space-y-1">
+                              {top.children.slice(0, 5).map((sub) => (
+                                <Link key={sub.id} href={`/shop?category=${sub.slug}`} className="block text-sm text-muted-foreground hover:text-foreground">
+                                  {sub.name}
+                                </Link>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <Link href="/shop?sort=newest" className="group relative block overflow-hidden rounded-3xl bg-primary text-primary-foreground">
+                    <Image src={STOREFRONT_IMAGES.megaMenu} alt="" fill sizes="320px" className="zoom-img object-cover object-top opacity-70" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-primary via-primary/40 to-transparent" />
+                    <div className="relative flex h-full min-h-[220px] flex-col justify-end p-6">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-foreground/75">New season</p>
+                      <p className="mt-1 font-serif text-2xl leading-tight">Fresh off the hook</p>
+                      <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium">
+                        Explore new arrivals <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                      </span>
+                    </div>
+                  </Link>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Search panel */}
+          <AnimatePresence>
+            {isSearchOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={panelTransition}
+                className="absolute inset-x-0 top-full border-b bg-background/95 shadow-[0_24px_50px_-30px_rgb(49_32_140/0.45)] backdrop-blur-xl"
+              >
+                <div className="container mx-auto max-w-3xl px-4 py-6">
+                  <div className="flex items-center gap-3 rounded-full border bg-card px-5 py-1 shadow-sm focus-within:ring-2 focus-within:ring-ring/30">
+                    <Search className="h-5 w-5 shrink-0 text-muted-foreground" />
+                    <input
+                      type="search"
+                      placeholder="Search keychains, amigurumi, coasters…"
+                      className="h-12 w-full bg-transparent text-base outline-none placeholder:text-muted-foreground"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && submitSearch()}
+                      autoFocus
+                    />
+                    {searchQuery && (
+                      <button onClick={submitSearch} className="shrink-0 text-sm font-medium text-primary">
+                        Search
+                      </button>
+                    )}
+                  </div>
+
+                  {searchQuery.trim().length >= 2 ? (
+                    <div className="mt-4">
+                      {searchLoading ? (
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                          {Array.from({ length: 4 }).map((_, i) => (
+                            <div key={i} className="h-16 animate-pulse rounded-2xl bg-muted" />
+                          ))}
+                        </div>
+                      ) : searchResults.length > 0 ? (
+                        <>
+                          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                            {searchResults.map((product, i) => (
+                              <motion.div
+                                key={product.id}
+                                initial={reduce ? false : { opacity: 0, y: 6 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: i * 0.04, duration: 0.25, ease: EASE_OUT }}
+                              >
+                                <Link
+                                  href={`/product/${product.slug}`}
+                                  onClick={closeSearch}
+                                  className="flex items-center gap-3 rounded-2xl p-2 transition-colors hover:bg-muted"
+                                >
+                                  <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl bg-muted">
+                                    <Image src={product.images[0] ?? '/placeholder.svg'} alt={product.name} fill sizes="48px" className="object-cover" />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="truncate text-sm font-medium">{product.name}</p>
+                                    <p className="text-xs text-muted-foreground">{product.category}</p>
+                                  </div>
+                                  <p className="text-sm font-semibold">{formatPrice(product.price)}</p>
+                                </Link>
+                              </motion.div>
+                            ))}
+                          </div>
+                          <button onClick={submitSearch} className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary">
+                            See all results for &quot;{searchQuery.trim()}&quot; <ArrowRight className="h-4 w-4" />
+                          </button>
+                        </>
+                      ) : (
+                        <p className="py-4 text-sm text-muted-foreground">No products found for &quot;{searchQuery.trim()}&quot;</p>
+                      )}
+                    </div>
+                  ) : (
+                    categoryTree.length > 0 && (
+                      <div className="mt-4 flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-medium text-muted-foreground">Popular:</span>
+                        {categoryTree.slice(0, 6).map((c) => (
+                          <Link
+                            key={c.id}
+                            href={`/shop?category=${c.slug}`}
+                            onClick={closeSearch}
+                            className="rounded-full border bg-card px-3 py-1 text-xs font-medium transition-colors hover:border-primary hover:text-primary"
+                          >
+                            {c.name}
+                          </Link>
+                        ))}
+                      </div>
+                    )
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </header>
 
-      {/* Cart Drawer */}
+      {/* Dim the page behind open panels */}
+      <AnimatePresence>
+        {(megaOpen || isSearchOpen) && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-40 bg-foreground/15 backdrop-blur-[2px]"
+            onClick={() => {
+              setMegaOpen(false)
+              closeSearch()
+            }}
+          />
+        )}
+      </AnimatePresence>
+
       <CartDrawer />
 
-      {/* Spacer for fixed header */}
-      <div className={showAnnouncement ? 'h-[calc(2.5rem+4rem)] lg:h-[calc(2.5rem+5rem)]' : 'h-16 lg:h-20'} />
+      {/* Spacer for the fixed header (top strip + 72px bar) */}
+      <div className="h-[calc(2.25rem+72px)]" />
     </>
   )
 }
