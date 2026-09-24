@@ -123,7 +123,7 @@ export default function EmailTemplatesPage() {
     <ProtectedRoute permission="emails.view">
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-serif font-bold">Email Templates</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Email Templates</h1>
         <p className="text-muted-foreground text-sm">
           Every transactional email the store sends, editable without touching code. Use {AVAILABLE_VARIABLES.slice(0, 3).join(', ')}, etc. — they fill in automatically.
         </p>

@@ -208,7 +208,7 @@ export default function AdminProductsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-serif font-bold">Products</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Products</h1>
           <p className="text-muted-foreground text-sm">
             {filtered.length} of {products.length} products
           </p>

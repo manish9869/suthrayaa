@@ -120,7 +120,7 @@ function SettingsPageContent() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-serif font-bold">Site Settings</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Site Settings</h1>
         <p className="text-muted-foreground text-sm">Configure Suthrayaa for the Indian market — store identity, GST, shipping, payments, and storefront content.</p>
       </div>
 

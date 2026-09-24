@@ -77,7 +77,7 @@ export default function AdminColorsPage() {
     <ProtectedRoute permission="colors.view">
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-serif font-bold">Colors</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Colors</h1>
         <Dialog open={addOpen} onOpenChange={setAddOpen}>
           <Can permission="colors.create">
             <DialogTrigger asChild>

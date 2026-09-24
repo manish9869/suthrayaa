@@ -51,7 +51,7 @@ export default function AdminHeroSlidesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-serif font-bold">Hero Slides</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Hero Slides</h1>
           <p className="text-muted-foreground text-sm">Shown on the homepage hero carousel</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>

@@ -51,7 +51,7 @@ export default function AdminTestimonialsPage() {
     <ProtectedRoute permission="content.view">
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-serif font-bold">Testimonials</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Testimonials</h1>
         <Dialog open={open} onOpenChange={setOpen}>
           <Can permission="content.create">
             <DialogTrigger asChild>

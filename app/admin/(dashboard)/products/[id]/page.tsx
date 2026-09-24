@@ -24,7 +24,7 @@ export default function EditProductPage() {
   return (
     <ProtectedRoute permission="products.update">
     <div className="space-y-6">
-      <h1 className="text-2xl font-serif font-bold">Edit Product</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">Edit Product</h1>
       <ProductForm product={product} />
     </div>
     </ProtectedRoute>

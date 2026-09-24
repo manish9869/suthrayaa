@@ -50,7 +50,7 @@ function RolesPageContent() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-serif font-bold">Users &amp; Roles</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Users &amp; Roles</h1>
           <p className="text-muted-foreground text-sm">{roles ? `${roles.length} roles` : 'Loading...'}</p>
         </div>
         <div className="flex items-center gap-2">
@@ -80,7 +80,7 @@ function RolesPageContent() {
         ) : (
           <Table>
             <TableHeader>
-              <TableRow className="border-white/10 hover:bg-transparent">
+              <TableRow className="border-border hover:bg-transparent">
                 <SortableTh label="Role Name" sortKey="name" activeKey={sortKey} direction={direction} onSort={toggleSort} />
                 <TableHead>Description</TableHead>
                 <SortableTh label="Users" sortKey="users" activeKey={sortKey} direction={direction} onSort={toggleSort} />
@@ -91,7 +91,7 @@ function RolesPageContent() {
             </TableHeader>
             <TableBody>
               {sorted.map((r) => (
-                <TableRow key={r.id} className="border-white/10">
+                <TableRow key={r.id} className="border-border">
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
                       {r.name}

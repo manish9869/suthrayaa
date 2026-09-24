@@ -10,7 +10,7 @@ export default async function NewProductPage({
   return (
     <ProtectedRoute permission="products.create">
     <div className="space-y-6">
-      <h1 className="text-2xl font-serif font-bold">Add Product</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">Add Product</h1>
       <ProductForm defaultCategoryId={categoryId} />
     </div>
     </ProtectedRoute>

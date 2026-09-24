@@ -60,7 +60,7 @@ function AuditLogsContent() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-serif font-bold">Audit Logs</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Audit Logs</h1>
         <p className="text-muted-foreground text-sm">A record of sensitive admin actions — who did what, and when.</p>
       </div>
 
@@ -93,7 +93,7 @@ function AuditLogsContent() {
           <>
             <Table>
               <TableHeader>
-                <TableRow className="border-white/10 hover:bg-transparent">
+                <TableRow className="border-border hover:bg-transparent">
                   <TableHead>When</TableHead>
                   <TableHead>Admin</TableHead>
                   <TableHead>Action</TableHead>
@@ -104,14 +104,14 @@ function AuditLogsContent() {
               </TableHeader>
               <TableBody>
                 {logs.length === 0 ? (
-                  <TableRow className="border-white/10">
+                  <TableRow className="border-border">
                     <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                       No audit events in this range
                     </TableCell>
                   </TableRow>
                 ) : (
                   logs.map((log) => (
-                    <TableRow key={log.id} className="border-white/10">
+                    <TableRow key={log.id} className="border-border">
                       <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                         {new Date(log.createdAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                       </TableCell>

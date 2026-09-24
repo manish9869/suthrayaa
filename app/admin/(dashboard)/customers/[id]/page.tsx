@@ -194,7 +194,7 @@ export default function AdminCustomerDetailPage() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-serif font-bold flex items-center gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
             {fullName}
             {customer.marketingOptIn && (
               <Badge variant="outline" className="text-xs font-normal">

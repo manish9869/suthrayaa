@@ -31,7 +31,7 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <main className="dark min-h-screen flex items-center justify-center bg-background px-4">
+    <main className="admin min-h-screen flex items-center justify-center bg-background px-4">
       <Card className="w-full max-w-sm shadow-soft">
         <CardContent className="p-8">
           <div className="flex justify-center mb-4">
@@ -39,7 +39,7 @@ export default function AdminLoginPage() {
               <Lock className="h-5 w-5" />
             </div>
           </div>
-          <h1 className="text-xl font-serif font-bold text-center mb-1">Admin Sign In</h1>
+          <h1 className="text-xl font-semibold tracking-tight text-center mb-1">Admin Sign In</h1>
           <p className="text-sm text-muted-foreground text-center mb-6">Suthrayaa staff access only</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">

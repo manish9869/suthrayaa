@@ -81,7 +81,7 @@ export default function AdminCouponsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-serif font-bold">Coupons</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Coupons</h1>
           <p className="text-muted-foreground text-sm">
             {filtered.length} of {coupons.length} coupons
           </p>
@@ -155,7 +155,7 @@ export default function AdminCouponsPage() {
       <div className={`${GLASS_PANEL} overflow-hidden`}>
         <Table>
           <TableHeader>
-            <TableRow className="border-white/10 hover:bg-transparent">
+            <TableRow className="border-border hover:bg-transparent">
               <SortableTh label="Code" sortKey="code" activeKey={sortKey} direction={direction} onSort={toggleSort} />
               <SortableTh label="Discount" sortKey="discount" activeKey={sortKey} direction={direction} onSort={toggleSort} />
               <SortableTh label="Min Order" sortKey="minOrder" activeKey={sortKey} direction={direction} onSort={toggleSort} />
@@ -166,14 +166,14 @@ export default function AdminCouponsPage() {
           </TableHeader>
           <TableBody>
             {pageItems.length === 0 ? (
-              <TableRow className="border-white/10">
+              <TableRow className="border-border">
                 <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                   No coupons match these filters
                 </TableCell>
               </TableRow>
             ) : (
               pageItems.map((c) => (
-                <TableRow key={c.id} className="border-white/10">
+                <TableRow key={c.id} className="border-border">
                   <TableCell className="font-medium">{c.code}</TableCell>
                   <TableCell>{c.type === 'percent' ? `${c.value}%` : formatPrice(c.value)}</TableCell>
                   <TableCell>{formatPrice(c.min_subtotal)}</TableCell>

@@ -264,7 +264,7 @@ export function CategoryManager({ nodeId }: { nodeId: string | null }) {
 
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-serif font-bold">{current ? current.name : 'Categories'}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{current ? current.name : 'Categories'}</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {current
               ? `${levelNames[Math.min(childDepth, 2)] ?? 'Sub-subcategories'} within ${current.name}`

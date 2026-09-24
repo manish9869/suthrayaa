@@ -176,7 +176,7 @@ function UsersPageContent() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-serif font-bold">Users &amp; Roles</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Users &amp; Roles</h1>
           <p className="text-muted-foreground text-sm">{users ? `${users.length} admin users` : 'Loading...'}</p>
         </div>
         <div className="flex items-center gap-2">
@@ -211,7 +211,7 @@ function UsersPageContent() {
         ) : (
           <Table>
             <TableHeader>
-              <TableRow className="border-white/10 hover:bg-transparent">
+              <TableRow className="border-border hover:bg-transparent">
                 <SortableTh label="Name" sortKey="name" activeKey={sortKey} direction={direction} onSort={toggleSort} />
                 <SortableTh label="Email" sortKey="email" activeKey={sortKey} direction={direction} onSort={toggleSort} />
                 <TableHead>Roles</TableHead>
@@ -223,14 +223,14 @@ function UsersPageContent() {
             </TableHeader>
             <TableBody>
               {sorted.length === 0 ? (
-                <TableRow className="border-white/10">
+                <TableRow className="border-border">
                   <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                     {users.length === 0 ? 'No admin users yet' : 'No users match this search'}
                   </TableCell>
                 </TableRow>
               ) : (
                 sorted.map((u) => (
-                  <TableRow key={u.id} className="border-white/10">
+                  <TableRow key={u.id} className="border-border">
                     <TableCell className="font-medium">
                       {u.displayName ?? '—'}
                       {u.id === currentAdmin?.id && (

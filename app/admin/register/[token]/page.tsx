@@ -54,7 +54,7 @@ export default function AdminRegisterPage() {
   }
 
   return (
-    <main className="dark min-h-screen flex items-center justify-center bg-background px-4">
+    <main className="admin min-h-screen flex items-center justify-center bg-background px-4">
       <Card className="w-full max-w-sm shadow-soft">
         <CardContent className="p-8">
           <div className="flex justify-center mb-4">
@@ -71,7 +71,7 @@ export default function AdminRegisterPage() {
 
           {invalid && (
             <div className="text-center space-y-2">
-              <h1 className="text-xl font-serif font-bold">This invite is no longer valid</h1>
+              <h1 className="text-xl font-semibold tracking-tight">This invite is no longer valid</h1>
               <p className="text-sm text-muted-foreground">
                 It may have expired or already been used. Ask whoever invited you to send a new one.
               </p>
@@ -80,7 +80,7 @@ export default function AdminRegisterPage() {
 
           {invite && (
             <>
-              <h1 className="text-xl font-serif font-bold text-center mb-1">Welcome to Suthrayaa</h1>
+              <h1 className="text-xl font-semibold tracking-tight text-center mb-1">Welcome to Suthrayaa</h1>
               <p className="text-sm text-muted-foreground text-center mb-1">Set a password to activate your admin account</p>
               <p className="text-xs text-muted-foreground text-center mb-4">{invite.email}</p>
               <div className="flex justify-center gap-1 mb-6 flex-wrap">

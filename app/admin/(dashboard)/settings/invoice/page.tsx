@@ -48,7 +48,7 @@ export default function InvoiceSettingsPage() {
     <ProtectedRoute permission="settings.view">
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h1 className="text-2xl font-serif font-bold">Invoice Settings</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Invoice Settings</h1>
         <p className="text-muted-foreground text-sm">
           Controls what appears on every invoice. Changing these only affects invoices generated from now on — already-issued invoices stay exactly as they were.
         </p>

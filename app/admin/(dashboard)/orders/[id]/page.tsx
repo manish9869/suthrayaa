@@ -205,7 +205,7 @@ export default function AdminOrderDetailPage() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-2xl font-serif font-bold flex items-center gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
             {order.orderNumber}
             {order.isCustomOrder && (
               <Badge variant="secondary" className="text-xs">
@@ -223,13 +223,13 @@ export default function AdminOrderDetailPage() {
         <StatCard
           icon={CreditCard}
           label="Payment"
-          value={<StatusDot label={order.paymentStatus} tone={PAYMENT_DOT[order.paymentStatus] ?? 'muted'} className="text-lg font-bold" />}
+          value={<StatusDot label={order.paymentStatus} tone={PAYMENT_DOT[order.paymentStatus] ?? 'muted'} className="text-sm font-semibold px-3 py-1" />}
           tone={PAYMENT_DOT[order.paymentStatus] === 'destructive' ? 'destructive' : PAYMENT_DOT[order.paymentStatus] === 'mint' ? 'mint' : 'gold'}
         />
         <StatCard
           icon={Truck}
           label="Fulfilment"
-          value={<StatusDot label={STATUS_LABELS[order.status] ?? order.status.replace(/_/g, ' ')} tone={STATUS_DOT[order.status] ?? 'muted'} className="text-lg font-bold" />}
+          value={<StatusDot label={STATUS_LABELS[order.status] ?? order.status.replace(/_/g, ' ')} tone={STATUS_DOT[order.status] ?? 'muted'} className="text-sm font-semibold px-3 py-1" />}
           tone="violet"
         />
       </div>

@@ -78,6 +78,79 @@
   --sidebar-ring: #d8a13b;
 }
 
+/* Admin console — light theme (default). A crisp, neutral workspace: white cards floating on
+   a soft warm-grey canvas, an ink-dark sidebar, and the terracotta brand color as the single
+   action accent. Scoped to the `.admin` class on the admin wrappers only, so the storefront's
+   :root palette is untouched. The `.dark` block below is declared later with the same
+   specificity, so `admin dark` (the in-app theme toggle) overrides these tokens. */
+.admin {
+  --background: #f4f4f1;
+  --foreground: #17181c;
+
+  --primary: #d4572a;
+  --primary-foreground: #ffffff;
+
+  --card: #ffffff;
+  --card-foreground: #17181c;
+
+  --popover: #ffffff;
+  --popover-foreground: #17181c;
+
+  /* Warm amber — secondary action (e.g. the active page chip), echoing the storefront's gold */
+  --secondary: #fbd46b;
+  --secondary-foreground: #3b2800;
+
+  --muted: #f1f0ed;
+  --muted-foreground: #6b6e76;
+
+  /* Neutral hover/focus surface for ghost buttons, menu items, etc. */
+  --accent: #f1f0ed;
+  --accent-foreground: #17181c;
+
+  --mint: #16a34a;
+  --mint-foreground: #ffffff;
+
+  --gold: #e3a008;
+  --gold-foreground: #3b2800;
+
+  --peach: #f97316;
+  --peach-foreground: #ffffff;
+
+  --lavender: #f28b6d;
+  --lavender-foreground: #3b1408;
+
+  --violet: #7c5cff;
+  --violet-foreground: #ffffff;
+
+  --teal: #0ea5a4;
+  --sky: #2f80ed;
+
+  --destructive: #e5484d;
+  --destructive-foreground: #ffffff;
+
+  --border: #e7e6e2;
+  --input: #e3e2de;
+  --ring: #d4572a;
+
+  --chart-1: #d4572a;
+  --chart-2: #e3a008;
+  --chart-3: #0ea5a4;
+  --chart-4: #7c5cff;
+  --chart-5: #16a34a;
+
+  --radius: 0.9rem;
+
+  /* The sidebar stays ink-dark in both admin themes */
+  --sidebar: #141518;
+  --sidebar-foreground: #f2f1ee;
+  --sidebar-primary: #ffffff;
+  --sidebar-primary-foreground: #141518;
+  --sidebar-accent: #22242a;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #26282e;
+  --sidebar-ring: #d4572a;
+}
+
 /* Admin console theme — a cool slate/charcoal dark UI, deliberately distinct from the
    warm customer storefront above, with terracotta/gold/sage brand accents carried through.
    Scoped via a `dark` class on the admin layout wrapper only (see app/admin), so it never
@@ -103,8 +176,11 @@
 
   /* Teal — kept distinct from mint (both were near-identical sage greens) for more
      hue variety across the admin's accent set. */
-  --accent: #1fd1c7;
-  --accent-foreground: #04211f;
+  --accent: #1d1f25;
+  --accent-foreground: #e9e7e2;
+
+  --teal: #1fd1c7;
+  --sky: #5aa2ff;
 
   --mint: #2fdc84;
   --mint-foreground: #04220f;
@@ -135,10 +211,10 @@
   --chart-4: #ff7d66;
   --chart-5: #2fdc84;
 
-  --sidebar: #0a0b0d;
+  --sidebar: #0e0f12;
   --sidebar-foreground: #e9e7e2;
-  --sidebar-primary: #ff6b3d;
-  --sidebar-primary-foreground: #1a0800;
+  --sidebar-primary: #ffffff;
+  --sidebar-primary-foreground: #0e0f12;
   --sidebar-accent: #1a1b20;
   --sidebar-accent-foreground: #e9e7e2;
   --sidebar-border: #24262c;
@@ -150,7 +226,6 @@
   --font-serif: 'Playfair Display', serif;
   --font-script: 'Allura', cursive;
   --font-mono: 'Geist Mono', 'Geist Mono Fallback', monospace;
-  --font-script: 'Allura', cursive;
   
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -188,6 +263,8 @@
   --color-lavender-foreground: var(--lavender-foreground);
   --color-violet: var(--violet);
   --color-violet-foreground: var(--violet-foreground);
+  --color-teal: var(--teal);
+  --color-sky: var(--sky);
   
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -342,4 +419,65 @@
 }
 .scrollbar-hide::-webkit-scrollbar {
   display: none; /* Chrome/Safari/Edge Chromium */
+}
+
+/* ---- Admin console polish -------------------------------------------------------------
+   Scoped refinements applied to every admin page through the shared shadcn primitives, so
+   individual pages don't each need to restyle cards and tables. */
+@layer components {
+  .admin {
+    -webkit-font-smoothing: antialiased;
+  }
+  .admin [data-slot='card'] {
+    border-radius: 1.1rem;
+    border-color: var(--border);
+    box-shadow: 0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.03);
+  }
+  .admin [data-slot='card-title'] {
+    letter-spacing: -0.01em;
+  }
+  .admin [data-slot='table-header'] {
+    background: color-mix(in oklab, var(--muted) 70%, transparent);
+  }
+  .admin [data-slot='table-head'] {
+    height: 2.75rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .admin [data-slot='table-head'] button {
+    text-transform: inherit;
+    letter-spacing: inherit;
+  }
+  .admin [data-slot='table-row'] {
+    border-color: color-mix(in oklab, var(--border) 80%, transparent);
+  }
+  .admin [data-slot='table-cell'] {
+    padding-top: 0.8rem;
+    padding-bottom: 0.8rem;
+  }
+  .admin .tabular-nums,
+  .admin [data-slot='table-cell'] {
+    font-variant-numeric: tabular-nums;
+  }
+  .admin ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  .admin ::-webkit-scrollbar-thumb {
+    background: color-mix(in oklab, var(--muted-foreground) 30%, transparent);
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  .admin ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+/* Unlayered so it beats the primitive's `text-foreground` utility: every admin column
+   header (sortable or not) reads as the same muted label. */
+.admin [data-slot='table-head'] {
+  color: var(--muted-foreground);
 }

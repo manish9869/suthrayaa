@@ -49,7 +49,7 @@ function NewRoleContent() {
       </Button>
 
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-2xl font-serif font-bold">Create Role</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Create Role</h1>
         <Button onClick={handleCreate} disabled={saving}>
           {saving ? 'Creating...' : 'Create Role'}
         </Button>

@@ -172,7 +172,7 @@ export default function AdminCustomersPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-serif font-bold">Customers</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Customers</h1>
           <p className="text-muted-foreground text-sm">
             {filtered.length} of {customers.length} registered
           </p>
