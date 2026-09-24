@@ -12,6 +12,7 @@ import { TrustBadges } from '@/components/home/trust-badges'
 import { PromoSection } from '@/components/home/promo-section'
 import { NewArrivals } from '@/components/home/new-arrivals'
 import { LogoIntro } from '@/components/home/logo-intro'
+import { ShowcaseReel } from '@/components/home/showcase-reel'
 import { getCategories, getFeaturedProducts, getBestsellerProducts, getNewArrivals, getTestimonials, getHeroSlides } from '@/lib/data'
 import { getPublicHomepageSections } from '@/lib/api/settings'
 
@@ -78,10 +79,11 @@ export default async function HomePage() {
           return (
             <Fragment key={key}>
               {node}
-              {/* TrustBadges and StorySection have no entry in the homepage-sections catalog
+              {/* TrustBadges, ShowcaseReel and StorySection have no entry in the homepage-sections catalog
                   (they're fixed storefront chrome, not admin-toggleable) — anchored right after
                   the sections they originally followed in the hardcoded layout. */}
               {key === 'hero_banner' && <TrustBadges />}
+              {key === 'featured_categories' && <ShowcaseReel />}
               {key === 'featured_products' && <StorySection />}
             </Fragment>
           )

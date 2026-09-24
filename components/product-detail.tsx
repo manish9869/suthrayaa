@@ -33,7 +33,7 @@ import { useCartStore, useWishlistStore } from '@/lib/store'
 import { useHydrated } from '@/lib/hooks/use-hydrated'
 import { formatPrice, type Product, type Review, type Category } from '@/lib/data'
 import { ProductCustomizer, type ResolvedCustomization } from '@/components/product-customizer'
-import { ColorYarnSwatch } from '@/components/color-yarn-swatch'
+import { YarnColorPicker } from '@/components/yarn-color-picker'
 import { toast } from 'sonner'
 import { EASE_OUT, Stagger, StaggerItem } from '@/components/motion/reveal'
 import { SectionHeading } from '@/components/home/section-heading'
@@ -301,43 +301,20 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
 
                 {/* Color selection — locked while customizing if the admin disabled color choice */}
                 {showBaseColorPicker && (
-                  <div>
-                    <Label className="mb-3 block text-sm font-medium">
-                      Colour: <span className="font-normal capitalize text-muted-foreground">{effectiveColor}</span>
-                      {isCustomizing && customText && !allowColorChoice && (
-                        <span className="ml-2 text-xs text-muted-foreground">(fixed for personalized orders)</span>
-                      )}
-                    </Label>
-                    <div className="flex flex-wrap gap-2.5">
-                      {product.colors.map((color) => {
-                        const disabledForCustomization = isCustomizing && customText.length > 0 && !allowColorChoice && color !== allowedColors[0]
-                        return (
-                          <button
-                            key={color}
-                            onClick={() => !disabledForCustomization && setSelectedColor(color)}
-                            disabled={disabledForCustomization}
-                            className={cn(
-                              'tap-bounce relative h-11 w-11 rounded-full ring-2 ring-offset-2 ring-offset-background transition-all',
-                              effectiveColor === color ? 'ring-primary' : 'ring-transparent hover:ring-border',
-                              disabledForCustomization && 'cursor-not-allowed opacity-30'
-                            )}
-                            aria-label={`Select color ${color}`}
-                            aria-pressed={effectiveColor === color}
-                          >
-                            <ColorYarnSwatch color={color} />
-                            {effectiveColor === color && (
-                              <Check
-                                className={cn(
-                                  'absolute inset-0 m-auto h-4 w-4 animate-pop-in drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]',
-                                  LIGHT_HEXES.includes(color.toUpperCase()) ? 'text-foreground' : 'text-white'
-                                )}
-                              />
-                            )}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
+                  <YarnColorPicker
+                    options={product.colors.map((color) => ({
+                      value: color,
+                      color,
+                      disabled: isCustomizing && customText.length > 0 && !allowColorChoice && color !== allowedColors[0],
+                    }))}
+                    value={effectiveColor}
+                    onChange={setSelectedColor}
+                    note={
+                      isCustomizing && customText && !allowColorChoice ? (
+                        <span className="text-xs text-muted-foreground">(fixed for personalized orders)</span>
+                      ) : undefined
+                    }
+                  />
                 )}
 
                 {!product.isCustomizable && rules?.isLimitedEdition && (

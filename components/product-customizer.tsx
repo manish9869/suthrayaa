@@ -1,12 +1,12 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Sparkles, Check } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import { formatPrice, type ProductCustomization } from '@/lib/data'
-import { ColorYarnSwatch } from '@/components/color-yarn-swatch'
+import { YarnColorPicker } from '@/components/yarn-color-picker'
 
 export interface CustomizerSelection {
   customizationId: string
@@ -25,7 +25,6 @@ interface ProductCustomizerProps {
   onChange: (resolved: ResolvedCustomization[], priceAdjustment: number, missingRequired: string[]) => void
 }
 
-const LIGHT_HEXES = ['#FFFFFF', '#F5F5DC', '#FFE5B5', '#FFB5BA']
 
 /**
  * Renders the admin-configured customization groups for a product as clean, tappable
@@ -151,36 +150,13 @@ export function ProductCustomizer({ customizations, onChange }: ProductCustomize
             )}
 
             {group.type === 'color' && (
-              <div className="flex flex-wrap gap-2">
-                {group.values
-                  .filter((v) => v.enabled)
-                  .map((value) => {
-                    const active = current?.valueId === value.id
-                    return (
-                      <button
-                        key={value.id}
-                        type="button"
-                        onClick={() => select(group.id, value.id)}
-                        title={value.label}
-                        aria-label={value.label}
-                        className={cn(
-                          'relative h-10 w-10 rounded-full border-2 transition-all',
-                          active ? 'border-primary ring-2 ring-primary ring-offset-2' : 'border-border hover:border-muted-foreground'
-                        )}
-                      >
-                        <ColorYarnSwatch color={value.value} />
-                        {active && (
-                          <Check
-                            className={cn(
-                              'absolute inset-0 m-auto h-4 w-4 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]',
-                              LIGHT_HEXES.includes(value.value.toUpperCase()) ? 'text-foreground' : 'text-white'
-                            )}
-                          />
-                        )}
-                      </button>
-                    )
-                  })}
-              </div>
+              <YarnColorPicker
+                size="sm"
+                title="Shade"
+                options={group.values.filter((v) => v.enabled).map((v) => ({ value: v.id, color: v.value, label: v.label }))}
+                value={current?.valueId}
+                onChange={(id) => select(group.id, id)}
+              />
             )}
 
             {(group.type === 'text' || group.type === 'number') && (

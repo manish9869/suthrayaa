@@ -14,18 +14,80 @@ import { EASE_OUT } from '@/components/motion/reveal'
 import { STOREFRONT_IMAGES } from '@/lib/storefront-images'
 import { HeroBackdrop } from './hero-backdrop'
 
-const fallbackSlides = [
+/** Real Suthrayaa pieces, cut out so they sit on the brand stage. */
+const SHOWCASE = {
+  marigold: '/showcase/garland-marigold.webp',
+  hibiscusGarland: '/showcase/garland-hibiscus.webp',
+  ring: '/showcase/ring-flower.webp',
+  toran: '/showcase/peacock-toran.webp',
+  star: '/showcase/star-hanging.webp',
+  hibiscusVase: '/showcase/hibiscus-vase.webp',
+  sunflowerPot: '/showcase/sunflower-pot.webp',
+  sunflowers: '/showcase/sunflower-stems.webp',
+  hairTie: '/showcase/hair-tie-white.webp',
+}
+
+type Slide = {
+  id: string
+  title: string
+  subtitle: string
+  description: string
+  image: string
+  cta: string
+  href: string
+  /** Transparent product cut-out shown floating on the stage instead of a full photo. */
+  cutout?: string
+  /** Smaller cut-outs that drift around the arch. */
+  satellites?: string[]
+}
+
+const fallbackSlides: Slide[] = [
   {
     id: 'f0',
     title: 'Garlands for your devghar. Stitched with devotion.',
     subtitle: 'Pooja & devghar collection',
-    description: 'Marigold and hibiscus toran, garlands and chowki covers — handmade in crochet so they stay fresh for every puja.',
+    description: 'Marigold and hibiscus garlands, flower rings and chowki covers — handmade in crochet so they stay fresh for every puja.',
     image: STOREFRONT_IMAGES.heroGarland,
+    cutout: SHOWCASE.marigold,
+    satellites: [SHOWCASE.hibiscusGarland, SHOWCASE.ring],
     cta: 'Shop Devghar Collection',
     href: '/shop?category=devghar-collection-v2',
   },
   {
     id: 'f1',
+    title: 'Forever flowers. Never wilting.',
+    subtitle: 'Crochet flowers & bouquets',
+    description: 'Hibiscus in a glass vase, sunflower stems and potted blooms — every petal hooked by hand, bright all year.',
+    image: STOREFRONT_IMAGES.heroFlowers,
+    cutout: SHOWCASE.hibiscusVase,
+    satellites: [SHOWCASE.sunflowers, SHOWCASE.sunflowerPot],
+    cta: 'Shop Flowers',
+    href: '/shop?category=flowers-floral',
+  },
+  {
+    id: 'f2',
+    title: 'Doorways & walls, made festive.',
+    subtitle: 'Torans & home décor',
+    description: 'Peacock-feather torans, star hangings and flower rings that bring colour to every doorway and corner.',
+    image: STOREFRONT_IMAGES.heroFlowers,
+    cutout: SHOWCASE.star,
+    satellites: [SHOWCASE.toran, SHOWCASE.ring],
+    cta: 'Shop Home Décor',
+    href: '/shop?category=home-and-decor',
+  },
+  {
+    id: 'f3',
+    title: 'Hair accessories, softly made.',
+    subtitle: 'Hair ties · scrunchies · clips',
+    description: 'Flower hair ties, scrunchies and bow clips in soft cotton yarn — gentle on hair, lovely on everyone.',
+    image: STOREFRONT_IMAGES.heroHair,
+    cutout: SHOWCASE.hairTie,
+    satellites: [SHOWCASE.sunflowers],
+    cta: 'Shop Hair Accessories',
+    href: '/shop?search=hair',
+  },
+  {
+    id: 'f4',
     title: 'Tiny keychains. Big personality.',
     subtitle: 'Handmade crochet keychains',
     description: 'Bunnies, strawberries, daisies and name keychains — stitched by hand to carry a little joy everywhere.',
@@ -33,26 +95,22 @@ const fallbackSlides = [
     cta: 'Shop Keychains',
     href: '/shop?search=keychain',
   },
-  {
-    id: 'f2',
-    title: 'Hair accessories, softly made.',
-    subtitle: 'Scrunchies · clips · headbands',
-    description: 'Flower hair ties, scrunchies and bow clips in soft cotton yarn — gentle on hair, lovely on everyone.',
-    image: STOREFRONT_IMAGES.heroHair,
-    cta: 'Shop Hair Accessories',
-    href: '/shop?search=hair',
-  },
-  {
-    id: 'f3',
-    title: 'Forever flowers. Cozy corners.',
-    subtitle: 'Potted flowers & home décor',
-    description: 'Sunflowers, lilies and smiley blooms in little pots, bottle covers and hangings that never wilt.',
-    image: STOREFRONT_IMAGES.heroFlowers,
-    cta: 'Shop Flowers & Décor',
-    href: '/shop?category=flowers-floral',
-  },
 ]
 
+/** Lavender-to-peach stage with a slowly breathing product cut-out — a soft, looping "product film". */
+function ProductStage({ src, alt, reduce }: { src: string; alt: string; reduce: boolean }) {
+  return (
+    <div className="absolute inset-0 bg-[linear-gradient(180deg,#e3d9ff_0%,#efe8ff_45%,#ffe3d6_100%)]">
+      {/* light sweep */}
+      {!reduce && <div className="stage-sheen absolute inset-0" />}
+      {/* pedestal */}
+      <div className="absolute inset-x-[14%] bottom-[7%] h-[9%] rounded-[50%] bg-[radial-gradient(closest-side,rgb(49_32_140/0.22),transparent)]" />
+      <div className={cn('absolute inset-x-[13%] bottom-[13%] top-[11%]', !reduce && 'stage-breathe')}>
+        <Image src={src} alt={alt} fill priority sizes="(max-width: 1024px) 70vw, 380px" className="object-contain drop-shadow-[0_24px_28px_rgb(49_32_140/0.3)]" />
+      </div>
+    </div>
+  )
+}
 
 /** Splits "First part. Second part." (or a comma) so the second half can be set in italics. */
 function splitTitle(title: string): [string, string | null] {
@@ -67,7 +125,7 @@ interface HeroSectionProps {
 
 export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSectionProps) {
   const reduce = useReducedMotion()
-  const slides =
+  const slides: Slide[] =
     cmsSlides && cmsSlides.length > 0
       ? cmsSlides.map((s, i) => ({
           id: s.id,
@@ -218,18 +276,44 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
             <div className="arch relative mx-auto aspect-[4/5] w-[78%] overflow-hidden bg-sand shadow-[0_40px_80px_-40px_rgb(49_32_140/0.55)]">
               <AnimatePresence initial={false}>
                 <motion.div
-                  key={slide.image}
+                  key={slide.id}
                   className="absolute inset-0"
                   initial={{ opacity: 0, scale: reduce ? 1 : 1.06 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.9, ease: EASE_OUT }}
                 >
-                  <Image src={slide.image} alt={slide.title} fill priority sizes="(max-width: 1024px) 80vw, 420px" className="object-cover" />
+                  {slide.cutout ? (
+                    <ProductStage src={slide.cutout} alt={slide.title} reduce={!!reduce} />
+                  ) : (
+                    <Image src={slide.image} alt={slide.title} fill priority sizes="(max-width: 1024px) 80vw, 420px" className="object-cover" />
+                  )}
                 </motion.div>
               </AnimatePresence>
             </div>
           </motion.div>
+
+          {/* Satellite pieces drifting around the arch */}
+          <AnimatePresence>
+            {slide.satellites?.map((src, i) => (
+              <motion.div
+                key={`${slide.id}-${src}`}
+                aria-hidden
+                className={cn(
+                  'pointer-events-none absolute z-[1] h-[27%] w-[24%] drop-shadow-[0_18px_22px_rgb(49_32_140/0.28)]',
+                  i === 0 ? 'right-[-1%] top-[1%] sm:right-[-3%]' : 'bottom-[14%] left-[-2%] sm:left-[-5%]',
+                )}
+                initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.8, y: 16, filter: 'blur(8px)' }}
+                animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
+                exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.9, filter: 'blur(6px)' }}
+                transition={{ duration: 0.7, delay: 0.35 + i * 0.12, ease: EASE_OUT }}
+              >
+                <div className={cn('relative h-full w-full', !reduce && 'float-slow')} style={{ animationDelay: `${-i * 3}s`, animationDuration: `${8 + i * 2}s` }}>
+                  <Image src={src} alt="" fill sizes="160px" className="object-contain" />
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
 
           {/* Rotating badge */}
           <div className="absolute left-0 top-[8%] hidden h-28 w-28 sm:block">
@@ -251,7 +335,7 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
               initial={reduce ? { opacity: 0 } : { opacity: 0, y: 24, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ delay: 0.45, duration: 0.6, ease: EASE_OUT }}
-              className="absolute -right-2 bottom-[6%] hidden w-[210px] rounded-3xl sm:block bg-card/95 p-3 shadow-[0_24px_60px_-28px_rgb(49_32_140/0.55)] ring-1 ring-border backdrop-blur sm:right-0 sm:w-[230px]"
+              className="absolute bottom-[-2%] right-[-4%] z-[2] hidden w-[180px] rounded-3xl bg-card/95 p-2.5 shadow-[0_24px_60px_-28px_rgb(49_32_140/0.55)] ring-1 ring-border backdrop-blur sm:block xl:right-[-8%]"
             >
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
@@ -262,8 +346,8 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
                   transition={{ duration: 0.3, ease: EASE_OUT }}
                 >
                   <Link href={`/product/${activePick.slug}`} className="group block">
-                    <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-sand">
-                      <Image src={activePick.images[0] ?? '/placeholder.svg'} alt={activePick.name} fill sizes="230px" className="zoom-img object-cover" />
+                    <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-sand">
+                      <Image src={activePick.images[0] ?? '/placeholder.svg'} alt={activePick.name} fill sizes="180px" className="zoom-img object-cover" />
                     </div>
                     <p className="mt-2.5 line-clamp-1 text-sm font-medium">{activePick.name}</p>
                     <p className="text-sm font-semibold text-primary">{formatPrice(activePick.price)}</p>

@@ -423,12 +423,17 @@
   @keyframes marquee { to { transform: translateX(-50%); } }
   /* Slow float for decorative shapes */
   .float-slow { animation: float-slow 9s ease-in-out infinite; }
+  /* Hero product "film": a slow Ken Burns breathe plus a light sweep across the stage */
+  .stage-breathe { animation: stage-breathe 7s ease-in-out infinite; transform-origin: 50% 90%; }
+  @keyframes stage-breathe { 0%, 100% { transform: translateY(0) scale(1) rotate(0deg); } 50% { transform: translateY(-8px) scale(1.035) rotate(-1deg); } }
+  .stage-sheen { background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.45) 50%, transparent 65%); background-size: 250% 100%; animation: stage-sheen 6.5s var(--ease-out) infinite; mix-blend-mode: soft-light; }
+  @keyframes stage-sheen { 0% { background-position: 130% 0; } 60%, 100% { background-position: -30% 0; } }
   @keyframes float-slow { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-10px) rotate(2deg); } }
   /* Arch-shaped image mask (Lumora hero) */
   .arch { border-radius: 999px 999px 1.75rem 1.75rem; }
   .grain::after { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.05; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
   @media (prefers-reduced-motion: reduce) {
-    .marquee, .float-slow { animation: none; }
+    .marquee, .float-slow, .stage-breathe, .stage-sheen { animation: none; }
     .zoom-img, .lift { transition: none; }
   }
 }
