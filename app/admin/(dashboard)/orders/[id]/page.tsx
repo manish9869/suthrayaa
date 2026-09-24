@@ -26,6 +26,7 @@ import {
   Truck,
   History,
   Send,
+  Sparkles,
 } from 'lucide-react'
 import {
   getAdminOrder,
@@ -205,12 +206,12 @@ export default function AdminOrderDetailPage() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-2xl font-serif font-bold flex items-center gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
             {order.orderNumber}
             {order.isCustomOrder && (
-              <Badge variant="secondary" className="text-xs">
-                Custom Order
-              </Badge>
+              <span className="inline-flex items-center gap-1 rounded-full bg-violet/10 px-2.5 py-0.5 text-xs font-semibold text-violet">
+                <Sparkles className="h-3 w-3" /> Custom Order
+              </span>
             )}
           </h1>
           <p className="text-muted-foreground text-sm">Placed {order.placedAt ? new Date(order.placedAt).toLocaleString('en-IN') : '—'}</p>
@@ -223,13 +224,13 @@ export default function AdminOrderDetailPage() {
         <StatCard
           icon={CreditCard}
           label="Payment"
-          value={<StatusDot label={order.paymentStatus} tone={PAYMENT_DOT[order.paymentStatus] ?? 'muted'} className="text-lg font-bold" />}
+          value={<StatusDot label={order.paymentStatus} tone={PAYMENT_DOT[order.paymentStatus] ?? 'muted'} className="text-sm font-semibold px-3 py-1" />}
           tone={PAYMENT_DOT[order.paymentStatus] === 'destructive' ? 'destructive' : PAYMENT_DOT[order.paymentStatus] === 'mint' ? 'mint' : 'gold'}
         />
         <StatCard
           icon={Truck}
           label="Fulfilment"
-          value={<StatusDot label={STATUS_LABELS[order.status] ?? order.status.replace(/_/g, ' ')} tone={STATUS_DOT[order.status] ?? 'muted'} className="text-lg font-bold" />}
+          value={<StatusDot label={STATUS_LABELS[order.status] ?? order.status.replace(/_/g, ' ')} tone={STATUS_DOT[order.status] ?? 'muted'} className="text-sm font-semibold px-3 py-1" />}
           tone="violet"
         />
       </div>
@@ -339,7 +340,7 @@ export default function AdminOrderDetailPage() {
             <CardContent className="space-y-3">
               {order.statusHistory?.map((h, i) => (
                 <div key={i} className="flex items-start gap-3 text-sm">
-                  <div className="w-2 h-2 rounded-full bg-secondary mt-1.5 flex-shrink-0" />
+                  <div className="w-2 h-2 rounded-full bg-primary mt-1.5 flex-shrink-0" />
                   <div>
                     <p className="font-medium capitalize">{STATUS_LABELS[h.status] ?? h.status.replace(/_/g, ' ')}</p>
                     {h.note && <p className="text-muted-foreground text-xs">{h.note}</p>}

@@ -62,10 +62,12 @@ export function SettingsGroupForm({ group, catalog, values, onSaved, editPermiss
         </div>
       )}
       {dirty && (
-        <div className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
-          <p className="text-sm text-muted-foreground">You have unsaved changes.</p>
+        <div className="sticky bottom-4 z-10 flex items-center justify-between gap-3 rounded-2xl border bg-foreground px-4 py-3 text-background shadow-xl">
+          <p className="flex items-center gap-2 text-sm">
+            <span className="h-2 w-2 rounded-full bg-gold" /> You have unsaved changes.
+          </p>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleDiscard} disabled={saving}>
+            <Button variant="ghost" size="sm" className="text-background hover:bg-background/10 hover:text-background" onClick={handleDiscard} disabled={saving}>
               Discard
             </Button>
             <Can permission={editPermission ?? 'settings.update'}>

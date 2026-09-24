@@ -94,7 +94,7 @@ function RoleDetailContent() {
               {readOnly ? <Lock className="h-5 w-5" /> : <ShieldCheck className="h-5 w-5" />}
             </div>
             <div>
-              <h1 className="text-xl font-serif font-bold">{role.name} Permissions</h1>
+              <h1 className="text-xl font-semibold tracking-tight">{role.name} Permissions</h1>
               <p className="text-sm text-muted-foreground">
                 {permissions.length} permission{permissions.length === 1 ? '' : 's'} granted
                 {readOnly && ' · Built-in role, can’t be changed'}

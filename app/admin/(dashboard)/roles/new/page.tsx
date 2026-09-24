@@ -12,6 +12,7 @@ import { GLASS_PANEL } from '@/lib/admin-ui'
 import { ProtectedRoute } from '@/components/admin/protected-route'
 import { PermissionGroupEditor } from '@/components/admin/permission-group-editor'
 import { createAdminRole, getPermissionCatalog, type PermissionDef } from '@/lib/api/rbac'
+import { PageHeader } from '@/components/admin/page-header'
 
 function NewRoleContent() {
   const router = useRouter()
@@ -44,16 +45,17 @@ function NewRoleContent() {
 
   return (
     <div className="space-y-6">
-      <Button variant="ghost" size="sm" onClick={() => router.push('/admin/roles')} className="-ml-2">
-        <ArrowLeft className="h-4 w-4 mr-1" /> Back to Roles
-      </Button>
-
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-2xl font-serif font-bold">Create Role</h1>
-        <Button onClick={handleCreate} disabled={saving}>
-          {saving ? 'Creating...' : 'Create Role'}
-        </Button>
-      </div>
+      <PageHeader
+        title="Create Role"
+        description="Name the role, then pick exactly which areas it can view, edit or delete."
+        backHref="/admin/roles"
+        backLabel="Roles"
+        actions={
+          <Button onClick={handleCreate} disabled={saving}>
+            {saving ? 'Creating...' : 'Create Role'}
+          </Button>
+        }
+      />
 
       <div className={`${GLASS_PANEL} p-6 space-y-6`}>
         <div className="grid gap-4 sm:grid-cols-2">

@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Pencil, Trash2, RotateCcw, ChevronRight, Package, ChevronUp, ChevronDown } from 'lucide-react'
+import { Plus, Pencil, Trash2, RotateCcw, ChevronRight, Package, ChevronUp, ChevronDown, FolderTree, Star } from 'lucide-react'
 import {
   getAdminCategories,
   createCategory,
@@ -25,6 +25,8 @@ import {
 import { ApiError } from '@/lib/api/http'
 import { toast } from 'sonner'
 import { Can } from '@/components/admin/can'
+import { StatusDot } from '@/components/admin/status-dot'
+import { cn } from '@/lib/utils'
 
 const levelNames = ['Category', 'Subcategory', 'Sub-subcategory']
 function depthOf(categories: AdminCategory[], id: string | null): number {
@@ -264,7 +266,7 @@ export function CategoryManager({ nodeId }: { nodeId: string | null }) {
 
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-serif font-bold">{current ? current.name : 'Categories'}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{current ? current.name : 'Categories'}</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {current
               ? `${levelNames[Math.min(childDepth, 2)] ?? 'Sub-subcategories'} within ${current.name}`
@@ -281,7 +283,7 @@ export function CategoryManager({ nodeId }: { nodeId: string | null }) {
           <Can permission="categories.create">
             <DialogTrigger asChild>
               <Button onClick={openCreate}>
-                <Plus className="h-4 w-4 mr-2" /> {addLabel}
+                <Plus className="h-4 w-4" /> {addLabel}
               </Button>
             </DialogTrigger>
           </Can>
@@ -350,28 +352,40 @@ export function CategoryManager({ nodeId }: { nodeId: string | null }) {
       </div>
 
       {children.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {children.map((c, i) => (
-            <Card key={c.id} className={!c.isActive ? 'opacity-50' : undefined}>
-              <CardContent className="p-4 flex flex-col gap-3">
-                <Link href={`/admin/categories/${c.id}`} className="block">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="font-semibold hover:text-primary transition-colors">{c.name}</h3>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      {c.isFeatured && (
-                        <Badge variant="secondary" className="text-xs">
-                          Featured
-                        </Badge>
-                      )}
-                      <Badge variant={c.isActive ? 'secondary' : 'outline'} className="text-xs">
-                        {c.isActive ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </div>
+            <Card key={c.id} className={cn('group gap-0 overflow-hidden py-0 transition-shadow hover:shadow-md', !c.isActive && 'opacity-60')}>
+              <Link href={`/admin/categories/${c.id}`} className="relative block h-32 overflow-hidden bg-muted">
+                {c.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={c.imageUrl} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" />
+                ) : (
+                  <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/10 via-gold/10 to-violet/10">
+                    <FolderTree className="h-8 w-8 text-muted-foreground/40" />
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">{c.slug}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{productCount(c)} products</p>
+                )}
+                <div className="absolute left-3 top-3 flex items-center gap-1">
+                  {c.isFeatured && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-card/95 px-2 py-0.5 text-[11px] font-semibold text-gold shadow-sm">
+                      <Star className="h-3 w-3 fill-gold" /> Featured
+                    </span>
+                  )}
+                </div>
+              </Link>
+              <CardContent className="flex flex-col gap-3 p-4">
+                <Link href={`/admin/categories/${c.id}`} className="block">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <h3 className="truncate font-semibold transition-colors group-hover:text-primary">{c.name}</h3>
+                      <p className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">/{c.slug}</p>
+                    </div>
+                    <StatusDot label={c.isActive ? 'Active' : 'Inactive'} tone={c.isActive ? 'mint' : 'muted'} />
+                  </div>
                 </Link>
-                <div className="flex items-center gap-1 justify-end -mb-1 -mr-1">
+                <div className="-mb-1 -mr-1 flex items-center gap-1 border-t pt-3">
+                  <span className="mr-auto flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Package className="h-3.5 w-3.5" /> {productCount(c)} product{productCount(c) === 1 ? '' : 's'}
+                  </span>
                   <Can permission="categories.update">
                     <Button
                       variant="ghost"
@@ -399,8 +413,8 @@ export function CategoryManager({ nodeId }: { nodeId: string | null }) {
                   </Can>
                   {c.isActive ? (
                     <Can permission="categories.delete">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" title="Deactivate" onClick={() => requestDelete(c)}>
-                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" title="Deactivate" onClick={() => requestDelete(c)}>
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </Can>
                   ) : (

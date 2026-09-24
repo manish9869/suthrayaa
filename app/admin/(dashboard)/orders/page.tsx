@@ -23,6 +23,9 @@ import { useSortableData } from '@/lib/hooks/use-sortable-data'
 import { usePaginated } from '@/lib/hooks/use-paginated'
 import { ProtectedRoute } from '@/components/admin/protected-route'
 import { Can } from '@/components/admin/can'
+import { OrderPreviewSheet } from '@/components/admin/order-preview-sheet'
+import { cn } from '@/lib/utils'
+import { PageHeader } from '@/components/admin/page-header'
 
 const STATUS_DOT: Record<string, DotTone> = {
   pending_payment: 'muted',
@@ -41,6 +44,16 @@ const PAYMENT_DOT: Record<string, DotTone> = {
   failed: 'destructive',
   refunded: 'muted',
   partially_refunded: 'muted',
+}
+const STATUS_LABELS: Record<string, string> = { pending_payment: 'Pending Payment', in_production: 'Making' }
+const statusLabel = (s: string) => STATUS_LABELS[s] ?? s.replace(/_/g, ' ')
+function initialsOf(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase())
+    .join('')
 }
 const ALL_TIME: DateRangeValue = { days: 3650, label: 'Any time' }
 
@@ -122,6 +135,7 @@ export default function AdminOrdersPage() {
   }, [filtered])
 
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null)
+  const [previewId, setPreviewId] = useState<string | null>(null)
   const handleDownloadInvoice = async (orderId: string) => {
     setBusyOrderId(orderId)
     try {
@@ -188,22 +202,20 @@ export default function AdminOrdersPage() {
   return (
     <ProtectedRoute permission="orders.view">
     <div className="space-y-6">
-      <div className="flex items-start justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-serif font-bold">Orders</h1>
-          <p className="text-muted-foreground text-sm">
-            {filtered.length} of {orders.length} orders
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeader
+        title="Orders"
+        description={`${filtered.length} of ${orders.length} orders · click a row for a quick look`}
+        actions={
+          <>
           <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-            <RefreshCw className={`h-3.5 w-3.5 mr-2 ${loading ? 'animate-spin' : ''}`} /> Refresh
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
           </Button>
           <Button variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0}>
-            <FileDown className="h-3.5 w-3.5 mr-2" /> Export
+            <FileDown className="h-3.5 w-3.5" /> Export
           </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={ShoppingCart} label={`Shown of ${orders.length}`} value={filtered.length} tone="primary" />
@@ -215,11 +227,11 @@ export default function AdminOrdersPage() {
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative max-w-sm flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search order #, customer, tracking..." className="pl-10 rounded-full" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input placeholder="Search order #, customer, tracking..." className="pl-10 h-10 rounded-xl" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
 
         <Select value={custom} onValueChange={setCustom}>
-          <SelectTrigger className="rounded-full w-36">
+          <SelectTrigger className="h-10 rounded-xl w-36">
             <span className={`h-2 w-2 rounded-full flex-shrink-0 ${custom === 'all' ? DOT_CLASSES.muted : DOT_CLASSES.primary}`} />
             <SelectValue />
           </SelectTrigger>
@@ -231,7 +243,7 @@ export default function AdminOrdersPage() {
         </Select>
 
         <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger className="rounded-full w-40">
+          <SelectTrigger className="h-10 rounded-xl w-40">
             <span className={`h-2 w-2 rounded-full flex-shrink-0 ${status === 'all' ? DOT_CLASSES.muted : DOT_CLASSES[STATUS_DOT[status] ?? 'muted']}`} />
             <SelectValue />
           </SelectTrigger>
@@ -240,14 +252,14 @@ export default function AdminOrdersPage() {
             {(Object.keys(STATUS_DOT) as (keyof typeof STATUS_DOT)[]).map((s) => (
               <SelectItem key={s} value={s}>
                 <span className={`h-2 w-2 rounded-full ${DOT_CLASSES[STATUS_DOT[s]]}`} />
-                {s === 'pending_payment' ? 'Pending Payment' : s === 'in_production' ? 'Making' : s.replace(/_/g, ' ')}
+                {statusLabel(s)}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
 
         <Select value={paymentStatus} onValueChange={setPaymentStatus}>
-          <SelectTrigger className="rounded-full w-40">
+          <SelectTrigger className="h-10 rounded-xl w-40">
             <span className={`h-2 w-2 rounded-full flex-shrink-0 ${paymentStatus === 'all' ? DOT_CLASSES.muted : DOT_CLASSES[PAYMENT_DOT[paymentStatus] ?? 'muted']}`} />
             <SelectValue />
           </SelectTrigger>
@@ -266,7 +278,7 @@ export default function AdminOrdersPage() {
 
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="rounded-full font-normal">
+            <Button variant="outline" className="h-10 rounded-xl font-normal">
               <SlidersHorizontal className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
               {totalRange[0] > 0 || totalRange[1] < maxTotal ? `${formatPrice(totalRange[0])} – ${formatPrice(totalRange[1])}` : 'Any total'}
             </Button>
@@ -292,7 +304,8 @@ export default function AdminOrdersPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <SortableTh label="Order" sortKey="order" activeKey={sortKey} direction={direction} onSort={toggleSort} />
+              <SortableTh label="Order" sortKey="order" activeKey={sortKey} direction={direction} onSort={toggleSort} className="pl-5" />
+              <SortableTh label="Customer" sortKey="customer" activeKey={sortKey} direction={direction} onSort={toggleSort} />
               <SortableTh label="Items" sortKey="items" activeKey={sortKey} direction={direction} onSort={toggleSort} />
               <SortableTh label="Total" sortKey="total" activeKey={sortKey} direction={direction} onSort={toggleSort} />
               <SortableTh label="Payment" sortKey="payment" activeKey={sortKey} direction={direction} onSort={toggleSort} />
@@ -304,34 +317,49 @@ export default function AdminOrdersPage() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableLoadingRow colSpan={8} />
+              <TableLoadingRow colSpan={9} />
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                   No orders match these filters
                 </TableCell>
               </TableRow>
             ) : (
               pageItems.map((o) => (
-                <TableRow key={o.id} className="hover:bg-muted/50">
-                  <TableCell>
-                    <Link href={`/admin/orders/${o.id}`} className="font-medium text-primary hover:underline flex items-center gap-1.5">
+                <TableRow
+                  key={o.id}
+                  onClick={(e) => {
+                    // Row click opens the quick-look drawer; links/buttons inside keep their own behavior
+                    if ((e.target as HTMLElement).closest('a,button')) return
+                    setPreviewId(o.id)
+                  }}
+                  className={cn('cursor-pointer hover:bg-muted/50', previewId === o.id && 'bg-primary/5 hover:bg-primary/5')}
+                >
+                  <TableCell className="pl-5">
+                    <Link href={`/admin/orders/${o.id}`} className="font-semibold hover:text-primary flex items-center gap-1.5">
                       {o.orderNumber}
                       {o.isCustomOrder && (
                         <span title="Custom order">
-                          <Sparkles className="h-3.5 w-3.5 text-secondary" />
+                          <Sparkles className="h-3.5 w-3.5 text-violet" />
                         </span>
                       )}
                     </Link>
-                    <span className="text-xs text-muted-foreground">{o.customerName ?? 'Guest'}</span>
-                  </TableCell>
-                  <TableCell>{o.itemCount}</TableCell>
-                  <TableCell>{formatPrice(o.total)}</TableCell>
-                  <TableCell>
-                    <StatusDot label={o.paymentStatus} tone={PAYMENT_DOT[o.paymentStatus] ?? 'muted'} />
                   </TableCell>
                   <TableCell>
-                    <StatusDot label={o.status.replace(/_/g, ' ')} tone={STATUS_DOT[o.status] ?? 'muted'} />
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-semibold text-muted-foreground">
+                        {initialsOf(o.customerName ?? 'Guest') || '?'}
+                      </span>
+                      <span className={cn('max-w-[180px] truncate', !o.customerName && 'text-muted-foreground')}>{o.customerName ?? 'Guest'}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{o.itemCount}</TableCell>
+                  <TableCell className="font-medium">{formatPrice(o.total)}</TableCell>
+                  <TableCell>
+                    <StatusDot label={o.paymentStatus.replace(/_/g, ' ')} tone={PAYMENT_DOT[o.paymentStatus] ?? 'muted'} />
+                  </TableCell>
+                  <TableCell>
+                    <StatusDot label={statusLabel(o.status)} tone={STATUS_DOT[o.status] ?? 'muted'} />
                   </TableCell>
                   <TableCell className="text-muted-foreground text-xs">{o.trackingNumber ?? '—'}</TableCell>
                   <TableCell className="text-muted-foreground text-sm">
@@ -364,6 +392,16 @@ export default function AdminOrdersPage() {
         </Table>
         <DataTablePagination page={page} pageCount={pageCount} total={pageTotal} pageSize={15} onPageChange={setPage} />
       </div>
+
+      <OrderPreviewSheet
+        orderId={previewId}
+        onOpenChange={(open) => !open && setPreviewId(null)}
+        statusDot={STATUS_DOT}
+        paymentDot={PAYMENT_DOT}
+        statusLabel={statusLabel}
+        onDownloadInvoice={handleDownloadInvoice}
+        busy={busyOrderId === previewId}
+      />
     </div>
     </ProtectedRoute>
   )

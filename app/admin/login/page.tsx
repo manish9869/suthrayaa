@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent } from '@/components/ui/card'
-import { Lock } from 'lucide-react'
+import { Lock, ArrowRight } from 'lucide-react'
+import { AuthShell } from '@/components/admin/auth-shell'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 
@@ -31,32 +31,26 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <main className="dark min-h-screen flex items-center justify-center bg-background px-4">
-      <Card className="w-full max-w-sm shadow-soft">
-        <CardContent className="p-8">
-          <div className="flex justify-center mb-4">
-            <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
-              <Lock className="h-5 w-5" />
-            </div>
-          </div>
-          <h1 className="text-xl font-serif font-bold text-center mb-1">Admin Sign In</h1>
-          <p className="text-sm text-muted-foreground text-center mb-6">Suthrayaa staff access only</p>
+    <AuthShell>
+      <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
+      <p className="mt-1 text-sm text-muted-foreground">Sign in to the Suthrayaa admin console.</p>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
-            </div>
-            <Button type="submit" size="lg" className="w-full" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign In'}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    </main>
+      <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input id="email" type="email" autoComplete="email" placeholder="you@suthrayaa.in" required className="h-11 rounded-xl" value={email} onChange={(e) => setEmail(e.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="password">Password</Label>
+          <Input id="password" type="password" autoComplete="current-password" placeholder="••••••••" required className="h-11 rounded-xl" value={password} onChange={(e) => setPassword(e.target.value)} />
+        </div>
+        <Button type="submit" size="lg" className="h-11 w-full rounded-xl" disabled={loading}>
+          {loading ? 'Signing in...' : 'Sign In'} {!loading && <ArrowRight className="h-4 w-4" />}
+        </Button>
+      </form>
+      <p className="mt-6 flex items-center gap-2 text-xs text-muted-foreground">
+        <Lock className="h-3.5 w-3.5" /> Staff access only. Ask the store owner for an invite.
+      </p>
+    </AuthShell>
   )
 }
