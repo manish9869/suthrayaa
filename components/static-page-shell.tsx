@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import Image from 'next/image'
+import { YarnDivider } from '@/components/motion/yarn-thread'
 import Link from 'next/link'
 import { Navbar } from '@/components/navbar'
 import { Footer } from '@/components/footer'
@@ -39,6 +40,7 @@ export function StaticPageShell({ categories, eyebrow, title, description, image
               <h1 className="display mx-auto max-w-4xl text-balance text-[2.6rem] sm:text-6xl lg:text-7xl">{title}</h1>
               {description && <p className="mx-auto mt-5 max-w-2xl text-pretty text-[16px] leading-relaxed text-muted-foreground">{description}</p>}
             </Reveal>
+            <YarnDivider tone="peach" className="mt-8 max-w-xl" />
           </div>
           {image && (
             <Reveal delay={0.1} className="container mx-auto px-4">

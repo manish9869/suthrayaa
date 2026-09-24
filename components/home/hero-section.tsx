@@ -13,20 +13,7 @@ import { toast } from 'sonner'
 import { EASE_OUT } from '@/components/motion/reveal'
 import { STOREFRONT_IMAGES } from '@/lib/storefront-images'
 import { HeroBackdrop } from './hero-backdrop'
-import { HandmadeSeal } from './handmade-seal'
-
-/** Real Suthrayaa pieces, cut out so they sit on the brand stage. */
-const SHOWCASE = {
-  marigold: '/showcase/garland-marigold.webp',
-  hibiscusGarland: '/showcase/garland-hibiscus.webp',
-  ring: '/showcase/ring-flower.webp',
-  toran: '/showcase/peacock-toran.webp',
-  star: '/showcase/star-hanging.webp',
-  hibiscusVase: '/showcase/hibiscus-vase.webp',
-  sunflowerPot: '/showcase/sunflower-pot.webp',
-  sunflowers: '/showcase/sunflower-stems.webp',
-  hairTie: '/showcase/hair-tie-white.webp',
-}
+import { StitchedArch } from './stitched-arch'
 
 type Slide = {
   id: string
@@ -36,8 +23,6 @@ type Slide = {
   image: string
   cta: string
   href: string
-  /** Smaller cut-outs that drift around the arch. */
-  satellites?: string[]
 }
 
 const fallbackSlides: Slide[] = [
@@ -47,7 +32,6 @@ const fallbackSlides: Slide[] = [
     subtitle: 'Pooja & devghar collection',
     description: 'Marigold and hibiscus garlands, flower rings and chowki covers — handmade in crochet so they stay fresh for every puja.',
     image: STOREFRONT_IMAGES.heroGarland,
-    satellites: [SHOWCASE.hibiscusGarland, SHOWCASE.ring],
     cta: 'Shop Devghar Collection',
     href: '/shop?category=devghar-collection-v2',
   },
@@ -57,7 +41,6 @@ const fallbackSlides: Slide[] = [
     subtitle: 'Crochet flowers & bouquets',
     description: 'Hibiscus in a glass vase, sunflower stems and potted blooms — every petal hooked by hand, bright all year.',
     image: STOREFRONT_IMAGES.heroFlowers,
-    satellites: [SHOWCASE.sunflowers, SHOWCASE.sunflowerPot],
     cta: 'Shop Flowers',
     href: '/shop?category=flowers-floral',
   },
@@ -67,7 +50,6 @@ const fallbackSlides: Slide[] = [
     subtitle: 'Torans & home décor',
     description: 'Rose-and-bell torans, peacock doilies, star hangings and coasters that bring colour to every doorway and corner.',
     image: STOREFRONT_IMAGES.heroDecor,
-    satellites: [SHOWCASE.toran, SHOWCASE.star],
     cta: 'Shop Home Décor',
     href: '/shop?category=home-and-decor',
   },
@@ -77,7 +59,6 @@ const fallbackSlides: Slide[] = [
     subtitle: 'Gajra · hair ties · clips',
     description: 'Crochet mogra gajra, flower hair ties and rose clips — soft on hair, lovely for every occasion.',
     image: STOREFRONT_IMAGES.heroHair,
-    satellites: [SHOWCASE.hairTie],
     cta: 'Shop Hair Accessories',
     href: '/shop?search=hair',
   },
@@ -279,39 +260,26 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
                 </motion.div>
               </AnimatePresence>
             </div>
+            {/* running stitch sewn around the arch — doubles as the slide timer */}
+            <StitchedArch key={`${slide.id}-${paused}`} duration={6.5} complete={paused || !!reduce} className="pointer-events-none absolute left-1/2 top-0 aspect-[4/5] w-[78%] -translate-x-1/2" />
           </motion.div>
 
-          {/* Satellite pieces drifting around the arch */}
-          <AnimatePresence>
-            {slide.satellites?.map((src, i) => (
-              <motion.div
-                key={`${slide.id}-${src}`}
-                aria-hidden
-                className={cn(
-                  'pointer-events-none absolute z-[1] h-[27%] w-[24%] drop-shadow-[0_18px_22px_rgb(49_32_140/0.28)]',
-                  i === 0 ? 'right-[-1%] top-[1%] sm:right-[-3%]' : 'bottom-[14%] left-[-2%] sm:left-[-5%]',
-                )}
-                initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.8, y: 16, filter: 'blur(8px)' }}
-                animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
-                exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.9, filter: 'blur(6px)' }}
-                transition={{ duration: 0.7, delay: 0.35 + i * 0.12, ease: EASE_OUT }}
+          {/* Slide counter */}
+          <div className="absolute bottom-[12%] left-0 z-[2] hidden items-baseline gap-1.5 rounded-2xl bg-card/80 px-4 py-2.5 shadow-[0_18px_40px_-24px_rgb(49_32_140/0.5)] ring-1 ring-white/70 backdrop-blur-md sm:flex sm:left-[-4%]">
+            <AnimatePresence mode="popLayout" initial={false}>
+              <motion.span
+                key={current}
+                initial={reduce ? { opacity: 0 } : { opacity: 0, y: 12, filter: 'blur(4px)' }}
+                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                exit={reduce ? { opacity: 0 } : { opacity: 0, y: -12, filter: 'blur(4px)' }}
+                transition={{ duration: 0.45, ease: EASE_OUT }}
+                className="font-serif text-3xl leading-none text-primary tabular-nums"
               >
-                <div className={cn('relative h-full w-full', !reduce && 'float-slow')} style={{ animationDelay: `${-i * 3}s`, animationDuration: `${8 + i * 2}s` }}>
-                  <Image src={src} alt="" fill sizes="160px" className="object-contain" />
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-
-          {/* Handmade seal */}
-          <motion.div
-            className="absolute left-[-6%] top-[5%] z-[2] hidden sm:block"
-            initial={reduce ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.96, filter: 'blur(6px)' }}
-            animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-            transition={{ delay: 0.3, duration: 0.7, ease: EASE_OUT }}
-          >
-            <HandmadeSeal />
-          </motion.div>
+                {String(current + 1).padStart(2, '0')}
+              </motion.span>
+            </AnimatePresence>
+            <span className="font-serif text-sm text-muted-foreground">/ {String(slides.length).padStart(2, '0')}</span>
+          </div>
 
           {/* Floating product card */}
           {activePick && (

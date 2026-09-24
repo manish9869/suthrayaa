@@ -496,6 +496,7 @@
   @keyframes marquee { to { transform: translateX(-50%); } }
   /* Slow float for decorative shapes */
   .float-slow { animation: float-slow 9s ease-in-out infinite; }
+  @keyframes reel-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
   /* Hero product "film": a slow Ken Burns breathe plus a light sweep across the stage */
   .ken-burns { animation: ken-burns 14s ease-in-out infinite alternate; transform-origin: 50% 40%; }
   @keyframes ken-burns { from { transform: scale(1) translate(0, 0); } to { transform: scale(1.09) translate(-1.5%, -1%); } }
