@@ -372,6 +372,7 @@ export const deleteHeroSlide = (id: string) => adminFetch<void>(`/admin/hero-sli
 export interface AdminOrderSummary {
   id: string
   orderNumber: string
+  customerId: string | null
   customerName: string | null
   status: string
   paymentStatus: string
@@ -416,8 +417,10 @@ export interface AdminOrderDetail extends AdminOrderSummary {
   shippingCost: number
   giftWrapCost: number
   shippingAddress: Record<string, string>
+  billingAddress: Record<string, string> | null
   shippingMethod: string
   guestEmail: string | null
+  customerEmail: string | null
   guestPhone: string | null
   razorpayOrderId: string | null
   razorpayPaymentId: string | null
@@ -636,6 +639,8 @@ export interface AdminCustomerAddress {
   state: string
   pincode: string
   is_default: boolean
+  is_default_billing?: boolean
+  landmark?: string | null
 }
 export interface AdminCustomerDetail {
   id: string

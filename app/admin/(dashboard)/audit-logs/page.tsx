@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { format, subDays } from 'date-fns'
-import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { GLASS_PANEL } from '@/lib/admin-ui'

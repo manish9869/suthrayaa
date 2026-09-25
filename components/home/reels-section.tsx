@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { motion, useReducedMotion } from 'framer-motion'
 import { ArrowUpRight, Pause, Play } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { EASE_OUT } from '@/components/motion/reveal'
 import { SectionHeading } from './section-heading'
 

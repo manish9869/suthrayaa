@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
+import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -24,7 +24,6 @@ import {
   Package,
   CreditCard,
   Truck,
-  History,
   Send,
   Sparkles,
 } from 'lucide-react'
@@ -275,21 +274,36 @@ export default function AdminOrderDetailPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Shipping Address</CardTitle>
+              <CardTitle className="text-base">Customer &amp; Addresses</CardTitle>
             </CardHeader>
-            <CardContent className="text-sm space-y-1">
-              <p className="font-medium">
-                {order.shippingAddress?.firstName} {order.shippingAddress?.lastName}
-              </p>
-              <p>{order.shippingAddress?.addressLine1}</p>
-              {order.shippingAddress?.addressLine2 && <p>{order.shippingAddress.addressLine2}</p>}
-              <p>
-                {order.shippingAddress?.city}, {order.shippingAddress?.state} {order.shippingAddress?.pincode}
-              </p>
-              <p className="text-muted-foreground">{order.shippingAddress?.phone}</p>
-              <p className="text-muted-foreground">{order.guestEmail}</p>
+            <CardContent className="text-sm space-y-4">
+              <div className="space-y-0.5">
+                <p className="font-medium">
+                  {order.shippingAddress?.firstName} {order.shippingAddress?.lastName}
+                  {!order.customerId && <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-[11px] font-normal text-muted-foreground">Guest</span>}
+                </p>
+                {(order.customerEmail ?? order.guestEmail) && (
+                  <a href={`mailto:${order.customerEmail ?? order.guestEmail}`} className="block text-muted-foreground hover:text-primary">
+                    {order.customerEmail ?? order.guestEmail}
+                  </a>
+                )}
+                {order.shippingAddress?.phone && (
+                  <a href={`tel:${order.shippingAddress.phone}`} className="block text-muted-foreground hover:text-primary">
+                    {order.shippingAddress.phone}
+                  </a>
+                )}
+                {order.customerId && (
+                  <Link href={`/admin/customers/${order.customerId}`} className="inline-block pt-1 text-xs font-medium text-primary hover:underline">
+                    View customer profile →
+                  </Link>
+                )}
+              </div>
+              <div className="grid grid-cols-1 gap-4 border-t pt-4 sm:grid-cols-2">
+                <AddressBlock title="Ship to" address={order.shippingAddress} />
+                <AddressBlock title="Bill to" address={order.billingAddress} fallback="Same as shipping address" />
+              </div>
               {order.customerNotes && (
-                <p className="text-muted-foreground pt-2 border-t mt-2">
+                <p className="text-muted-foreground pt-3 border-t">
                   <span className="font-medium text-foreground">Customer note:</span> {order.customerNotes}
                 </p>
               )}
@@ -491,5 +505,29 @@ export default function AdminOrderDetailPage() {
       </div>
     </div>
     </ProtectedRoute>
+  )
+}
+
+function AddressBlock({ title, address, fallback }: { title: string; address: Record<string, string> | null | undefined; fallback?: string }) {
+  return (
+    <div className="space-y-0.5">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</p>
+      {address ? (
+        <>
+          <p className="font-medium">
+            {address.firstName} {address.lastName}
+          </p>
+          <p>{address.addressLine1}</p>
+          {address.addressLine2 && <p>{address.addressLine2}</p>}
+          {address.landmark && <p className="text-muted-foreground">Landmark: {address.landmark}</p>}
+          <p>
+            {address.city}, {address.state} {address.pincode}
+          </p>
+          {address.phone && <p className="text-muted-foreground">{address.phone}</p>}
+        </>
+      ) : (
+        <p className="text-muted-foreground">{fallback ?? '—'}</p>
+      )}
+    </div>
   )
 }

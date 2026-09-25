@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils'
 /** Live password-rule checklist shown when creating or resetting a password. */
 function PasswordRules({ password }: { password: string }) {
   return (
-    <ul className="grid grid-cols-1 gap-1 pt-1 text-xs min-[380px]:grid-cols-3" aria-label="Password requirements">
+    <ul className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-xs" aria-label="Password requirements">
       {passwordChecks(password).map((c) => (
         <li key={c.label} className={cn('flex items-center gap-1.5 transition-colors', c.ok ? 'text-emerald-600' : 'text-muted-foreground')}>
           {c.ok ? <Check className="h-3.5 w-3.5" /> : <Circle className="h-3 w-3" />}
@@ -267,7 +267,9 @@ export default function LoginPage() {
                   {authMode === 'signin' ? 'Welcome Back' : 'Create Your Account'}
                 </h1>
                 <p className="text-sm text-muted-foreground text-center mb-6">
-                  Sign in to track orders, save favorites, and check out faster.
+                  {authMode === 'signin'
+                    ? 'Sign in to track orders, save favorites, and check out faster.'
+                    : 'Join to track orders, save favorites, and check out faster.'}
                 </p>
 
                 <Tabs value={loginMethod} onValueChange={(v) => setLoginMethod(v as 'email' | 'mobile')}>
