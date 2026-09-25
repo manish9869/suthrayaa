@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { downloadInvoice, type OrderSummary } from '@/lib/api/account'
 import { formatPrice } from '@/lib/data'
+import { cn } from '@/lib/utils'
 import { OrderStatusBadge, STATUS_META } from './order-status'
 
 export const orderDate = (o: { placedAt: string | null; createdAt: string }) =>
@@ -46,12 +47,17 @@ export function OrderCard({ order, onPay }: { order: OrderSummary; onPay?: (o: O
       <Link href={`/account/orders/${order.id}`} className="group flex items-center gap-4 px-4 py-4 sm:px-5">
         <div className="flex shrink-0 -space-x-3">
           {order.previewItems.slice(0, 3).map((it, i) => (
-            <span key={i} className="relative h-14 w-14 overflow-hidden rounded-2xl bg-sand ring-2 ring-card sm:h-16 sm:w-16">
+            <span key={i} className={cn('relative h-14 w-14 overflow-hidden rounded-2xl bg-sand ring-2 ring-card sm:h-16 sm:w-16', i > 0 && 'hidden sm:block')}>
               {it.image ? <Image src={it.image} alt={it.name} fill sizes="64px" className="object-cover" /> : null}
             </span>
           ))}
+          {order.itemCount > 1 && (
+            <span className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-xs font-semibold text-muted-foreground ring-2 ring-card sm:hidden">
+              +{order.itemCount - 1}
+            </span>
+          )}
           {order.itemCount > 3 && (
-            <span className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-xs font-semibold text-muted-foreground ring-2 ring-card sm:h-16 sm:w-16">
+            <span className="relative hidden h-16 w-16 items-center justify-center rounded-2xl bg-muted text-xs font-semibold text-muted-foreground ring-2 ring-card sm:flex">
               +{order.itemCount - 3}
             </span>
           )}

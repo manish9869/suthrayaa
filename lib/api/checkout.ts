@@ -41,11 +41,45 @@ export interface PricedCart {
   shippingCost: number
   giftWrapCost: number
   total: number
+  taxAmount?: number
+  shippingEstimate?: { min: number; max: number }
+  /** Delivery options for the chosen state (newer backends). */
+  shipping?: {
+    method: 'standard' | 'express'
+    fee: number
+    standardFee: number
+    expressFee: number
+    freeShippingApplied: boolean
+    estimateDays: { min: number; max: number }
+    zoneName: string
+    codAvailable: boolean
+  }
+  giftWrapFee?: number
+}
+
+export interface CheckoutOptions {
+  payment: { razorpayEnabled: boolean; codEnabled: boolean; codMin: number; codMax: number }
+  order: { min: number; max: number }
+  giftWrap: { fee: number }
+  freeShipping?: { enabled: boolean; threshold: number }
+}
+export const getCheckoutOptions = () => apiFetch<CheckoutOptions>('/checkout/options', { revalidate: false })
+
+export interface CartLineIssue {
+  index: number
+  productId: string
+  message: string
+  kind: 'unavailable' | 'options' | 'quantity'
+}
+/** Checks every cart line independently — returns all problems at once. */
+export async function checkCart(items: CartItemInput[]) {
+  const token = await getBrowserToken()
+  return apiFetch<{ issues: CartLineIssue[] }>('/checkout/check-cart', { method: 'POST', token, revalidate: false, body: JSON.stringify({ items }) })
 }
 
 export async function validateCart(
   items: CartItemInput[],
-  opts: { shippingMethod?: string; couponCode?: string; giftWrap?: boolean } = {}
+  opts: { shippingMethod?: string; couponCode?: string; giftWrap?: boolean; shippingState?: string } = {}
 ) {
   const token = await getBrowserToken()
   return apiFetch<PricedCart>('/checkout/validate-cart', {
@@ -86,6 +120,7 @@ export interface ShippingAddressInput {
 export interface PlaceOrderInput {
   items: CartItemInput[]
   shippingAddress: ShippingAddressInput
+  billingAddress?: Omit<ShippingAddressInput, 'email'>
   shippingMethod: 'standard' | 'express'
   paymentMethod: 'cod' | 'razorpay'
   couponCode?: string
@@ -96,6 +131,19 @@ export interface PlaceOrderInput {
 export interface PlaceOrderResult {
   order: { id: string; orderNumber: string; status: string; paymentStatus: string; total: number }
   razorpay: { orderId: string; amount: number; currency: string; keyId: string } | null
+}
+
+/** Cart lines in the shape the checkout API expects. */
+export function toCartItemInputs(
+  items: { product: { id: string }; quantity: number; selectedColor?: string; customText?: string; customizations?: { customizationId: string; valueId?: string; textValue?: string }[] }[]
+): CartItemInput[] {
+  return items.map((item) => ({
+    productId: item.product.id,
+    quantity: item.quantity,
+    selectedColor: item.selectedColor || undefined,
+    customText: item.customText,
+    customizations: item.customizations?.map((c) => ({ customizationId: c.customizationId, valueId: c.valueId, textValue: c.textValue })),
+  }))
 }
 
 export async function placeOrder(input: PlaceOrderInput) {

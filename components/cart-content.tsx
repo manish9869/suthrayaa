@@ -19,13 +19,14 @@ import {
   Truck,
   ShieldCheck,
   ChevronRight,
+  AlertTriangle,
 } from 'lucide-react'
 import { useCartStore } from '@/lib/store'
 import { useHydrated } from '@/lib/hooks/use-hydrated'
 import { formatPrice, type Category } from '@/lib/data'
-import { validateCoupon } from '@/lib/api/checkout'
+import { checkCart, getCheckoutOptions, toCartItemInputs, validateCart, validateCoupon, type CartLineIssue, type CheckoutOptions, type PricedCart } from '@/lib/api/checkout'
 import { toast } from 'sonner'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 export function CartContent({ categories }: { categories: Category[] }) {
   const { items, updateQuantity, removeItem, getTotalPrice, getItemUnitPrice, clearCart } = useCartStore()
@@ -35,11 +36,53 @@ export function CartContent({ categories }: { categories: Category[] }) {
   const [checkingCoupon, setCheckingCoupon] = useState(false)
 
   const subtotal = getTotalPrice()
-  const shippingThreshold = 999
-  const freeShipping = subtotal >= shippingThreshold
-  const shippingCost = freeShipping ? 0 : 49
-  const discount = appliedCoupon?.discount ?? 0
-  const total = subtotal - discount + shippingCost
+  const [options, setOptions] = useState<CheckoutOptions | null>(null)
+  const [priced, setPriced] = useState<PricedCart | null>(null)
+  const [issues, setIssues] = useState<CartLineIssue[]>([])
+  const [checking, setChecking] = useState(false)
+  const cartInputs = useMemo(() => toCartItemInputs(items), [items])
+  const cartKey = JSON.stringify(cartInputs)
+
+  useEffect(() => {
+    getCheckoutOptions().then(setOptions).catch(() => {})
+  }, [])
+
+  // Check every line (missing required options, sold out, too many) as soon as the cart
+  // changes, and price it on the server — the customer sees problems here, not at payment.
+  useEffect(() => {
+    if (!hydrated || !items.length) return
+    let cancelled = false
+    setChecking(true)
+    const t = setTimeout(async () => {
+      try {
+        const { issues: found } = await checkCart(cartInputs)
+        if (cancelled) return
+        setIssues(found)
+        if (!found.length) {
+          const res = await validateCart(cartInputs, { couponCode: appliedCoupon?.code }).catch(() => null)
+          if (!cancelled) setPriced(res)
+        }
+      } catch {
+        if (!cancelled) setIssues([])
+      } finally {
+        if (!cancelled) setChecking(false)
+      }
+    }, 350)
+    return () => {
+      cancelled = true
+      clearTimeout(t)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, cartKey, appliedCoupon?.code])
+
+  const shippingThreshold = options?.freeShipping?.enabled ? options.freeShipping.threshold : 0
+  const freeShipping = priced?.shipping?.freeShippingApplied ?? (shippingThreshold > 0 && subtotal >= shippingThreshold)
+  const shippingCost = priced ? priced.shippingCost : null
+  const discount = priced?.discount ?? appliedCoupon?.discount ?? 0
+  const total = priced?.total ?? subtotal - discount + (shippingCost ?? 0)
+  const issueFor = (index: number) => issues.find((i) => i.index === index)
+  const maxQtyFor = (p: (typeof items)[number]['product']) =>
+    p.trackInventory !== false && !p.allowBackorders && !p.continueSellingWhenOutOfStock ? Math.max(1, Math.min(p.stock, 20)) : 20
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return
@@ -122,7 +165,7 @@ export function CartContent({ categories }: { categories: Category[] }) {
             {/* Cart Items */}
             <div className="lg:col-span-2 space-y-4">
               {/* Free Shipping Progress */}
-              {!freeShipping && (
+              {!freeShipping && shippingThreshold > 0 && (
                 <Card className="bg-blush/50 border-transparent">
                   <CardContent className="py-4">
                     <div className="flex items-center justify-between mb-2">
@@ -157,7 +200,9 @@ export function CartContent({ categories }: { categories: Category[] }) {
               <Card>
                 <CardContent className="divide-y">
                   <AnimatePresence initial={false}>
-                  {items.map((item) => {
+                  {items.map((item, index) => {
+                    const issue = issueFor(index)
+                    const maxQty = maxQtyFor(item.product)
                     const itemKey = `${item.product.id}-${item.selectedColor}-${item.customText || ''}-${(item.customizations ?? []).map((c) => c.valueId ?? c.textValue).join(',')}`
                     const unitPrice = getItemUnitPrice(item)
                     return (
@@ -202,6 +247,27 @@ export function CartContent({ categories }: { categories: Category[] }) {
                               </div>
                             )}
 
+                            {issue && (
+                              <div role="alert" className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-destructive/[0.06] px-3 py-2 text-[13px] font-medium text-destructive">
+                                <span className="flex items-center gap-1.5">
+                                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> {issue.message}
+                                </span>
+                                {issue.kind === 'options' && (
+                                  <Link href={`/product/${item.product.slug}`} className="font-semibold text-primary hover:underline">
+                                    Choose options
+                                  </Link>
+                                )}
+                                {issue.kind === 'quantity' && item.quantity > maxQty && (
+                                  <button type="button" className="font-semibold text-primary hover:underline" onClick={() => updateQuantity(item.product.id, item.selectedColor, maxQty, item.customText, item.customizations)}>
+                                    Set to {maxQty}
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                            {!issue && item.quantity >= maxQty && maxQty < 20 && (
+                              <p className="mt-2 text-xs text-muted-foreground">Only {maxQty} available</p>
+                            )}
+
                             <div className="mt-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
                               <div className="flex items-center border rounded-full bg-card">
                                 <Button
@@ -221,8 +287,9 @@ export function CartContent({ categories }: { categories: Category[] }) {
                                   size="icon"
                                   className="h-8 w-8 tap-bounce"
                                   aria-label={`Increase quantity of ${item.product.name}`}
+                                  disabled={item.quantity >= maxQty}
                                   onClick={() =>
-                                    updateQuantity(item.product.id, item.selectedColor, item.quantity + 1, item.customText, item.customizations)
+                                    updateQuantity(item.product.id, item.selectedColor, Math.min(maxQty, item.quantity + 1), item.customText, item.customizations)
                                   }
                                 >
                                   <Plus className="h-3 w-3" />
@@ -304,7 +371,6 @@ export function CartContent({ categories }: { categories: Category[] }) {
                         </Button>
                       </div>
                     )}
-                    <p className="text-xs text-muted-foreground mt-2">Try &quot;WELCOME10&quot; for 10% off</p>
                   </div>
 
                   <Separator />
@@ -315,15 +381,15 @@ export function CartContent({ categories }: { categories: Category[] }) {
                       <span className="text-muted-foreground">Subtotal</span>
                       <span>{formatPrice(subtotal)}</span>
                     </div>
-                    {appliedCoupon && (
-                      <div className="flex justify-between text-sm text-primary">
+                    {discount > 0 && (
+                      <div className="flex justify-between text-sm text-emerald-700">
                         <span>Discount</span>
                         <span>-{formatPrice(discount)}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Shipping</span>
-                      <span>{freeShipping ? 'FREE' : formatPrice(shippingCost)}</span>
+                      <span>{shippingCost === null ? <span className="text-muted-foreground">{checking ? '…' : 'At checkout'}</span> : shippingCost === 0 ? 'Free' : formatPrice(shippingCost)}</span>
                     </div>
                     <Separator />
                     <div className="flex justify-between font-semibold text-lg">
@@ -333,12 +399,25 @@ export function CartContent({ categories }: { categories: Category[] }) {
                   </div>
 
                   {/* Checkout Button */}
-                  <Button size="lg" className="w-full" asChild>
-                    <Link href={appliedCoupon ? `/checkout?coupon=${appliedCoupon.code}` : '/checkout'}>
-                      Proceed to Checkout
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
+                  <p className="-mt-1 text-xs text-muted-foreground">Shipping is confirmed for your address at checkout. Prices include GST.</p>
+                  {issues.length > 0 ? (
+                    <>
+                      <Button size="lg" className="w-full" disabled>
+                        Proceed to checkout
+                      </Button>
+                      <p role="alert" className="flex items-start gap-1.5 text-[13px] font-medium text-destructive">
+                        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        {issues.length === 1 ? 'Fix the item flagged above to continue.' : `Fix the ${issues.length} items flagged above to continue.`}
+                      </p>
+                    </>
+                  ) : (
+                    <Button size="lg" className="w-full" asChild>
+                      <Link href={appliedCoupon ? `/checkout?coupon=${appliedCoupon.code}` : '/checkout'}>
+                        Proceed to checkout
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Link>
+                    </Button>
+                  )}
 
                   {/* Trust Badges */}
                   <div className="flex items-center justify-center gap-4 pt-4 border-t">

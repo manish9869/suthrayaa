@@ -89,10 +89,10 @@ export function AddressForm({
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="First name" htmlFor={id('firstName')} error={errors.firstName}>
-          {text('firstName', { autoComplete: 'given-name', placeholder: 'Priya' })}
+          {text('firstName', { autoComplete: 'given-name' })}
         </Field>
         <Field label="Last name" htmlFor={id('lastName')} error={errors.lastName}>
-          {text('lastName', { autoComplete: 'family-name', placeholder: 'Sharma' })}
+          {text('lastName', { autoComplete: 'family-name' })}
         </Field>
       </div>
       <Field label="Mobile number" htmlFor={id('phone')} error={errors.phone} hint="For delivery updates from the courier">

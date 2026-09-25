@@ -33,7 +33,7 @@ export function AddressLines({ a, className, compact = false }: { a: AddressLike
       <p className="text-muted-foreground">
         {a.addressLine1}
         {a.addressLine2 ? `, ${a.addressLine2}` : ''}
-        {!compact && a.landmark ? `, near ${a.landmark}` : ''}
+        {!compact && a.landmark ? `, ${a.landmark}` : ''}
       </p>
       <p className="text-muted-foreground">
         {a.city}, {a.state} {a.pincode}
