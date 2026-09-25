@@ -32,6 +32,7 @@ import { cn } from '@/lib/utils'
 import { useCartStore, useWishlistStore } from '@/lib/store'
 import { useHydrated } from '@/lib/hooks/use-hydrated'
 import { formatPrice, type Product, type Review, type Category } from '@/lib/data'
+import { ReviewForm } from '@/components/review-form'
 import { customizationGroupId, ProductCustomizer, type ResolvedCustomization } from '@/components/product-customizer'
 import { YarnColorPicker } from '@/components/yarn-color-picker'
 import { toast } from 'sonner'
@@ -583,6 +584,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                         ))}
                       </div>
                     )}
+                    {reviews.length > 0 && <ReviewForm productId={product.id} productName={product.name} className="mt-6 w-full" />}
                   </div>
                   {reviews.length > 0 ? (
                     <div className="space-y-4">
@@ -614,8 +616,8 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                                   <Star key={i} className={cn('h-3.5 w-3.5', i < review.rating ? 'fill-gold text-gold' : 'text-muted-foreground/30')} />
                                 ))}
                               </div>
-                              <h4 className="mt-3 font-medium">{review.title}</h4>
-                              <p className="mt-1 text-sm leading-relaxed text-foreground/70">{review.content}</p>
+                              {review.title && <h4 className="mt-3 font-medium">{review.title}</h4>}
+                              <p className={cn('text-sm leading-relaxed text-foreground/70', review.title ? 'mt-1' : 'mt-3')}>{review.content}</p>
                             </div>
                           </div>
                         </article>
@@ -624,9 +626,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                   ) : (
                     <div className="rounded-[1.5rem] bg-card p-10 text-center ring-1 ring-border">
                       <p className="text-muted-foreground">No reviews yet. Be the first to review!</p>
-                      <Button variant="outline" className="mt-4">
-                        Write a review
-                      </Button>
+                      <ReviewForm productId={product.id} productName={product.name} className="mt-4" />
                     </div>
                   )}
                 </div>

@@ -1,5 +1,6 @@
 import { apiFetch, ApiError } from './http'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
+import type { Product } from '@/lib/data'
 
 async function token(): Promise<string | undefined> {
   const supabase = createSupabaseBrowserClient()
@@ -183,3 +184,49 @@ export function fieldErrorsFrom(err: unknown): Record<string, string> {
   const fe = (err.details as { fieldErrors?: Record<string, string[]> } | undefined)?.fieldErrors ?? {}
   return Object.fromEntries(Object.entries(fe).map(([k, v]) => [k, v?.[0] ?? 'Invalid value']))
 }
+
+// ---- Reviews ----
+export interface ReviewInput {
+  productId: string
+  rating: number
+  title?: string
+  content: string
+}
+/** Submits a product review; it's held for admin moderation before appearing publicly. */
+export const submitReview = async (input: ReviewInput) =>
+  apiFetch<{ id: string; pendingModeration: boolean }>('/reviews', {
+    method: 'POST',
+    body: JSON.stringify(input),
+    token: await token(),
+    revalidate: false,
+  })
+
+// ---- Cart & wishlist sync (signed-in customers; see components/account-sync.tsx) ----
+export interface ServerCartItem {
+  id: string
+  product: Product
+  quantity: number
+  selectedColor?: string
+  customText?: string
+  customizations: {
+    customizationId: string
+    valueId?: string
+    label: string
+    valueLabel?: string
+    textValue?: string
+    priceAdjustment: number
+  }[]
+}
+export interface CartSyncLine {
+  productId: string
+  quantity: number
+  selectedColor?: string
+  customText?: string
+  customizations?: { customizationId: string; valueId?: string; textValue?: string }[]
+}
+export const getServerCart = () => meFetch<ServerCartItem[]>('/cart')
+export const replaceServerCart = (items: CartSyncLine[]) =>
+  meFetch<ServerCartItem[]>('/cart', { method: 'PUT', body: JSON.stringify({ items, mode: 'replace' }) })
+export const getServerWishlist = () => meFetch<Product[]>('/wishlist')
+export const replaceServerWishlist = (productIds: string[]) =>
+  meFetch<void>('/wishlist', { method: 'PUT', body: JSON.stringify({ productIds }) })

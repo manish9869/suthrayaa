@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
-import { Plus, Trash2, Search, Ticket } from 'lucide-react'
-import { getAdminCoupons, createCoupon, deleteCoupon, type AdminCoupon } from '@/lib/api/admin'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Switch } from '@/components/ui/switch'
+import { Plus, Trash2, Search, Ticket, Pencil } from 'lucide-react'
+import { getAdminCoupons, createCoupon, updateCoupon, deleteCoupon, type AdminCoupon, type CouponInput } from '@/lib/api/admin'
 import { formatPrice } from '@/lib/data'
 import { toast } from 'sonner'
 import { GLASS_PANEL } from '@/lib/admin-ui'
@@ -21,33 +22,86 @@ import { Can } from '@/components/admin/can'
 import { PageHeader } from '@/components/admin/page-header'
 import { StatusDot } from '@/components/admin/status-dot'
 
+// Coupon windows are whole days in IST: starts at 00:00, expires at 23:59:59.
+const toIsoStart = (d: string) => (d ? new Date(`${d}T00:00:00+05:30`).toISOString() : null)
+const toIsoEnd = (d: string) => (d ? new Date(`${d}T23:59:59+05:30`).toISOString() : null)
+const toDateInput = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }) : '')
+const optionalInt = (v: string) => (v.trim() === '' ? null : Math.max(1, Math.floor(Number(v))))
+
+const EMPTY_FORM = {
+  code: '',
+  type: 'percent' as 'percent' | 'flat',
+  value: 10,
+  minSubtotal: 0,
+  maxUses: '',
+  maxUsesPerCustomer: '',
+  startsAt: '',
+  expiresAt: '',
+  isActive: true,
+}
+
 export default function AdminCouponsPage() {
   const [coupons, setCoupons] = useState<AdminCoupon[]>([])
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [open, setOpen] = useState(false)
-  const [code, setCode] = useState('')
-  const [type, setType] = useState<'percent' | 'flat'>('percent')
-  const [value, setValue] = useState(10)
-  const [minSubtotal, setMinSubtotal] = useState(0)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
+  const set = <K extends keyof typeof EMPTY_FORM>(key: K, v: (typeof EMPTY_FORM)[K]) => setForm((f) => ({ ...f, [key]: v }))
 
   const load = () => getAdminCoupons().then(setCoupons)
   useEffect(() => {
     load()
   }, [])
 
-  const handleCreate = async () => {
-    if (!code.trim()) return
+  const openCreate = () => {
+    setEditingId(null)
+    setForm(EMPTY_FORM)
+    setOpen(true)
+  }
+
+  const openEdit = (c: AdminCoupon) => {
+    setEditingId(c.id)
+    setForm({
+      code: c.code,
+      type: c.type,
+      value: Number(c.value),
+      minSubtotal: Number(c.min_subtotal),
+      maxUses: c.max_uses ? String(c.max_uses) : '',
+      maxUsesPerCustomer: c.max_uses_per_customer ? String(c.max_uses_per_customer) : '',
+      startsAt: toDateInput(c.starts_at),
+      expiresAt: toDateInput(c.expires_at),
+      isActive: c.is_active,
+    })
+    setOpen(true)
+  }
+
+  const handleSave = async () => {
+    if (form.code.trim().length < 3) return toast.error('Code must be at least 3 characters')
+    if (!(form.value > 0)) return toast.error('Discount value must be greater than 0')
+    if (form.type === 'percent' && form.value > 100) return toast.error('A percent discount can’t exceed 100%')
+    if (form.startsAt && form.expiresAt && form.expiresAt < form.startsAt) return toast.error('Expiry date must be after the start date')
+    const input: CouponInput = {
+      code: form.code.trim(),
+      type: form.type,
+      value: form.value,
+      minSubtotal: form.minSubtotal || 0,
+      maxUses: optionalInt(form.maxUses),
+      maxUsesPerCustomer: optionalInt(form.maxUsesPerCustomer),
+      startsAt: toIsoStart(form.startsAt),
+      expiresAt: toIsoEnd(form.expiresAt),
+      isActive: form.isActive,
+    }
     setSaving(true)
     try {
-      await createCoupon({ code, type, value, minSubtotal })
-      toast.success('Coupon created')
-      setCode('')
+      if (editingId) await updateCoupon(editingId, input)
+      else await createCoupon(input)
+      toast.success(editingId ? 'Coupon updated' : 'Coupon created')
       setOpen(false)
       load()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to create coupon')
+      toast.error(err instanceof Error ? err.message : editingId ? 'Failed to update coupon' : 'Failed to create coupon')
     } finally {
       setSaving(false)
     }
@@ -85,27 +139,25 @@ export default function AdminCouponsPage() {
         description={`${filtered.length} of ${coupons.length} coupons · ${coupons.filter((c) => c.is_active).length} active`}
         actions={
           <>
+        <Can permission="coupons.create">
+          <Button onClick={openCreate}>
+            <Plus className="h-4 w-4" /> Add Coupon
+          </Button>
+        </Can>
         <Dialog open={open} onOpenChange={setOpen}>
-          <Can permission="coupons.create">
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4" /> Add Coupon
-              </Button>
-            </DialogTrigger>
-          </Can>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>New Coupon</DialogTitle>
+              <DialogTitle>{editingId ? 'Edit Coupon' : 'New Coupon'}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Code</Label>
-                <Input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="WELCOME10" />
+                <Input value={form.code} onChange={(e) => set('code', e.target.value.toUpperCase())} placeholder="WELCOME10" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Type</Label>
-                  <Select value={type} onValueChange={(v) => setType(v as 'percent' | 'flat')}>
+                  <Select value={form.type} onValueChange={(v) => set('type', v as 'percent' | 'flat')}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -116,18 +168,45 @@ export default function AdminCouponsPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Value {type === 'percent' ? '(%)' : '(₹)'}</Label>
-                  <Input type="number" value={value} onChange={(e) => setValue(Number(e.target.value))} />
+                  <Label>Value {form.type === 'percent' ? '(%)' : '(₹)'}</Label>
+                  <Input type="number" min={0} value={form.value} onChange={(e) => set('value', Number(e.target.value))} />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label>Minimum Order Value (₹)</Label>
-                <Input type="number" value={minSubtotal} onChange={(e) => setMinSubtotal(Number(e.target.value))} />
+                <Input type="number" min={0} value={form.minSubtotal} onChange={(e) => set('minSubtotal', Number(e.target.value))} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Total uses</Label>
+                  <Input type="number" min={1} placeholder="Unlimited" value={form.maxUses} onChange={(e) => set('maxUses', e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Uses per customer</Label>
+                  <Input type="number" min={1} placeholder="Unlimited" value={form.maxUsesPerCustomer} onChange={(e) => set('maxUsesPerCustomer', e.target.value)} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Starts on</Label>
+                  <Input type="date" value={form.startsAt} onChange={(e) => set('startsAt', e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Expires on</Label>
+                  <Input type="date" value={form.expiresAt} onChange={(e) => set('expiresAt', e.target.value)} />
+                </div>
+              </div>
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div>
+                  <Label>Active</Label>
+                  <p className="text-xs text-muted-foreground">Inactive coupons are rejected at checkout.</p>
+                </div>
+                <Switch checked={form.isActive} onCheckedChange={(v) => set('isActive', v)} />
               </div>
             </div>
             <DialogFooter>
-              <Button onClick={handleCreate} disabled={saving}>
-                {saving ? 'Saving...' : 'Create'}
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? 'Saving...' : editingId ? 'Save changes' : 'Create'}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -197,8 +276,19 @@ export default function AdminCouponsPage() {
                   </TableCell>
                   <TableCell>
                     <StatusDot label={c.is_active ? 'Active' : 'Inactive'} tone={c.is_active ? 'mint' : 'muted'} />
+                    {c.expires_at && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {new Date(c.expires_at) < new Date() ? 'Expired' : 'Expires'}{' '}
+                        {new Date(c.expires_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </p>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
+                    <Can permission="coupons.update">
+                      <Button variant="ghost" size="icon" title="Edit coupon" onClick={() => openEdit(c)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </Can>
                     <Can permission="coupons.delete">
                       <Button variant="ghost" size="icon" onClick={() => handleDelete(c.id, c.code)}>
                         <Trash2 className="h-4 w-4 text-destructive" />

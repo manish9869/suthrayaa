@@ -35,7 +35,7 @@ const sortOptions: { value: SortOption; label: string }[] = [
   { value: 'rating', label: 'Top Rated' },
 ]
 
-export function ShopContent({ products, categories }: { products: Product[]; categories: Category[] }) {
+export function ShopContent({ products, categories, bannerImage }: { products: Product[]; categories: Category[]; bannerImage?: string }) {
   const searchParams = useSearchParams()
   const categoryParam = searchParams.get('category')
   const tagParam = searchParams.get('tag')
@@ -328,7 +328,7 @@ export function ShopContent({ products, categories }: { products: Product[]; cat
           <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-blush/60 blur-3xl" />
           <div className="pointer-events-none absolute right-0 top-0 h-80 w-80 rounded-full bg-sage/20 blur-3xl" />
           <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[46%] lg:block">
-            <Image src={STOREFRONT_IMAGES.shopBanner} alt="" fill priority sizes="46vw" className="object-cover object-right opacity-90" />
+            <Image src={bannerImage || STOREFRONT_IMAGES.shopBanner} alt="" fill priority sizes="46vw" className="object-cover object-right opacity-90" />
             <div className="absolute inset-0 bg-gradient-to-r from-background via-background/40 to-transparent" />
             <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background to-transparent" />
           </div>

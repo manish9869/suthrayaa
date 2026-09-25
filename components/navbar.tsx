@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
-import { Menu, X, ShoppingBag, Heart, Search, User, ChevronDown, ArrowRight, Truck, RotateCcw, ShieldCheck, Sparkles, Package, MapPin, LogOut } from 'lucide-react'
+import { Menu, X, ShoppingBag, Heart, Search, User, ChevronDown, ArrowRight, Package, MapPin, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -18,6 +18,8 @@ import { CartDrawer } from './cart-drawer'
 import { getPublicNavItems, getPublicSiteSettings } from '@/lib/api/settings'
 import { STOREFRONT_IMAGES } from '@/lib/storefront-images'
 import { EASE_OUT } from '@/components/motion/reveal'
+import { ContentIcon } from '@/components/content-text'
+import { getContentBlock, type SiteContent } from '@/lib/content'
 
 interface NavLinkItem {
   href: string
@@ -32,12 +34,18 @@ const FALLBACK_NAV_LINKS: NavLinkItem[] = [
   { href: '/contact', label: 'Contact' },
 ]
 
-const PERKS = [
-  { icon: Truck, text: 'Free shipping on orders over ₹999' },
-  { icon: RotateCcw, text: 'Easy 7-day returns' },
-  { icon: ShieldCheck, text: 'Secure & safe payments' },
-  { icon: Sparkles, text: 'Handmade to order in India' },
-]
+// Built-in copy/images, used only if the content API is unreachable (Admin → Storefront Content → Site-wide)
+const FALLBACK_CHROME: SiteContent['site.chrome'] = {
+  perks: [
+    { icon: 'truck', text: 'Free shipping on orders over ₹999' },
+    { icon: 'rotate-ccw', text: 'Easy 7-day returns' },
+    { icon: 'shield-check', text: 'Secure & safe payments' },
+    { icon: 'sparkles', text: 'Handmade to order in India' },
+  ],
+  megaMenuImage: STOREFRONT_IMAGES.megaMenu,
+  shopBannerImage: STOREFRONT_IMAGES.shopBanner,
+  authImage: STOREFRONT_IMAGES.authSide,
+}
 
 interface AnnouncementState {
   text: string
@@ -99,6 +107,12 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
         // Keep the hardcoded fallback nav so the header is never empty.
       })
   }, [])
+
+  const [chrome, setChrome] = useState<SiteContent['site.chrome']>(FALLBACK_CHROME)
+  useEffect(() => {
+    getContentBlock('site.chrome').then((c) => c && setChrome(c))
+  }, [])
+  const PERKS = chrome.perks
 
   useEffect(() => {
     getPublicSiteSettings()
@@ -225,9 +239,9 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
           ) : (
             <>
               <div className="hidden h-9 items-center justify-between px-8 text-[12.5px] font-medium tracking-wide lg:flex container mx-auto">
-                {PERKS.map((p) => (
-                  <span key={p.text} className="flex items-center gap-2 opacity-90">
-                    <p.icon className="h-3.5 w-3.5" /> {p.text}
+                {PERKS.map((p, i) => (
+                  <span key={`${p.text}-${i}`} className="flex items-center gap-2 opacity-90">
+                    <ContentIcon name={p.icon} className="h-3.5 w-3.5" /> {p.text}
                   </span>
                 ))}
               </div>
@@ -235,7 +249,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
                 <div className="marquee gap-10 pr-10 text-[12px] font-medium">
                   {[...PERKS, ...PERKS].map((p, i) => (
                     <span key={i} className="flex shrink-0 items-center gap-2">
-                      <p.icon className="h-3.5 w-3.5" /> {p.text}
+                      <ContentIcon name={p.icon} className="h-3.5 w-3.5" /> {p.text}
                     </span>
                   ))}
                 </div>
@@ -554,7 +568,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
                     </div>
                   </div>
                   <Link href="/shop?sort=newest" className="group relative block overflow-hidden rounded-3xl bg-primary text-primary-foreground">
-                    <Image src={STOREFRONT_IMAGES.megaMenu} alt="" fill sizes="320px" className="zoom-img object-cover object-top opacity-70" />
+                    <Image src={chrome.megaMenuImage || STOREFRONT_IMAGES.megaMenu} alt="" fill sizes="320px" className="zoom-img object-cover object-top opacity-70" />
                     <div className="absolute inset-0 bg-gradient-to-t from-primary via-primary/40 to-transparent" />
                     <div className="relative flex h-full min-h-[220px] flex-col justify-end p-6">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-foreground/75">New season</p>

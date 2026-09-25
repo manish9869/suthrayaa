@@ -9,6 +9,7 @@ import { Lock, ArrowRight } from 'lucide-react'
 import { AuthShell } from '@/components/admin/auth-shell'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import { safeRedirectPath } from '@/lib/utils'
 
 export default function AdminLoginPage() {
   const router = useRouter()
@@ -26,7 +27,9 @@ export default function AdminLoginPage() {
       setLoading(false)
       return
     }
-    router.push('/admin')
+    // Return to the admin page that bounced here (e.g. after a session expiry), admin paths only
+    const target = safeRedirectPath(new URLSearchParams(window.location.search).get('redirect'), '/admin')
+    router.push(target.startsWith('/admin') ? target : '/admin')
     router.refresh()
   }
 

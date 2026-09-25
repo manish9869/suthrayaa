@@ -17,6 +17,10 @@ import {
   Tags,
   Users,
   MessageSquareQuote,
+  Star,
+  Layers,
+  LayoutTemplate,
+  Send,
   Image as ImageIcon,
   Mail,
   History,
@@ -74,6 +78,7 @@ const navGroups: NavGroup[] = [
       { href: '/admin/products', label: 'Products', icon: Package, permission: 'products.view' },
       { href: '/admin/categories', label: 'Categories', icon: FolderTree, permission: 'categories.view' },
       { href: '/admin/colors', label: 'Colors', icon: Palette, permission: 'colors.view' },
+      { href: '/admin/customization-templates', label: 'Option Templates', icon: Layers, permission: 'products.view' },
     ],
   },
   {
@@ -87,6 +92,8 @@ const navGroups: NavGroup[] = [
   {
     title: 'Content',
     items: [
+      { href: '/admin/storefront-content', label: 'Storefront Content', icon: LayoutTemplate, permission: 'content.view' },
+      { href: '/admin/reviews', label: 'Product Reviews', icon: Star, permission: 'reviews.view' },
       { href: '/admin/testimonials', label: 'Testimonials', icon: MessageSquareQuote, permission: 'content.view' },
       { href: '/admin/hero-slides', label: 'Hero Slides', icon: ImageIcon, permission: 'banners.view' },
     ],
@@ -96,6 +103,7 @@ const navGroups: NavGroup[] = [
     items: [
       { href: '/admin/emails/templates', label: 'Email Templates', icon: Mail, permission: 'emails.view' },
       { href: '/admin/emails/logs', label: 'Email Logs', icon: History, permission: 'emails.view' },
+      { href: '/admin/newsletter', label: 'Newsletter', icon: Send, permission: 'customers.view' },
     ],
   },
   {
@@ -537,7 +545,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     if (authLoading) return
-    if (!user) router.replace(`/admin/login?redirect=${pathname}`)
+    if (!user) router.replace(`/admin/login?redirect=${encodeURIComponent(pathname)}`)
   }, [user, authLoading, pathname, router])
 
   if (authLoading || !user) {

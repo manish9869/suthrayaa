@@ -100,11 +100,11 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
       ? cmsSlides.map((s, i) => ({
           id: s.id,
           title: s.title,
-          subtitle: s.subtitle ?? 'New season collection',
+          subtitle: s.subtitle || 'New season collection',
           description: s.description ?? '',
-          image: s.image ?? fallbackSlides[i % fallbackSlides.length].image,
-          cta: s.ctaLabel ?? 'Shop Collection',
-          href: s.ctaHref ?? '/shop',
+          image: s.image || fallbackSlides[i % fallbackSlides.length].image,
+          cta: s.ctaLabel || 'Shop Collection',
+          href: s.ctaHref || '/shop',
         }))
       : fallbackSlides
 

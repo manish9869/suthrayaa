@@ -15,8 +15,9 @@ import { Mail, Lock, Eye, EyeOff, Phone, Sparkles, User, Loader2, Check, Circle 
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { STOREFRONT_IMAGES } from '@/lib/storefront-images'
+import { getContentBlock } from '@/lib/content'
 import { isStrongPassword, passwordChecks, validateEmail } from '@/lib/validation'
-import { cn } from '@/lib/utils'
+import { cn, safeRedirectPath } from '@/lib/utils'
 
 /** Live password-rule checklist shown when creating or resetting a password. */
 function PasswordRules({ password }: { password: string }) {
@@ -35,9 +36,13 @@ function PasswordRules({ password }: { password: string }) {
 export default function LoginPage() {
   const router = useRouter()
   const [redirectTo, setRedirectTo] = useState('/')
+  const [sideImage, setSideImage] = useState<string>(STOREFRONT_IMAGES.authSide)
+  useEffect(() => {
+    getContentBlock('site.chrome').then((c) => c?.authImage && setSideImage(c.authImage))
+  }, [])
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
-    setRedirectTo(params.get('redirect') || '/')
+    setRedirectTo(safeRedirectPath(params.get('redirect')))
   }, [])
 
   // Landing here from a "reset password" email puts Supabase into a recovery session —
@@ -196,7 +201,7 @@ export default function LoginPage() {
     <main className="grid grid-cols-1 min-h-screen lg:grid-cols-2">
       {/* Editorial side */}
       <aside className="relative hidden overflow-hidden bg-sand lg:block">
-        <Image src={STOREFRONT_IMAGES.authSide} alt="" fill priority sizes="50vw" className="object-cover" />
+        <Image src={sideImage} alt="" fill priority sizes="50vw" className="object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-primary/85 via-primary/10 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 p-12 text-primary-foreground">
           <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-primary-foreground/75">The Suthrayaa circle</p>

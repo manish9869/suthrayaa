@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
-import { Plus, Trash2, Star, Quote, MessageSquareQuote } from 'lucide-react'
-import { getAdminTestimonials, createTestimonial, deleteTestimonial, type AdminTestimonial } from '@/lib/api/admin'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Switch } from '@/components/ui/switch'
+import { Plus, Trash2, Star, Quote, MessageSquareQuote, Pencil } from 'lucide-react'
+import { getAdminTestimonials, createTestimonial, updateTestimonial, deleteTestimonial, type AdminTestimonial } from '@/lib/api/admin'
 import { toast } from 'sonner'
 import { ProtectedRoute } from '@/components/admin/protected-route'
 import { Can } from '@/components/admin/can'
@@ -17,10 +18,13 @@ import { InitialsAvatar, EmptyState } from '@/components/admin/admin-bits'
 import { StatusDot } from '@/components/admin/status-dot'
 import { PageLoader } from '@/components/admin/loading-state'
 
+const EMPTY_FORM = { customerName: '', location: '', content: '', rating: 5, productPurchased: '', isPublished: true }
+
 export default function AdminTestimonialsPage() {
   const [testimonials, setTestimonials] = useState<AdminTestimonial[]>([])
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({ customerName: '', location: '', content: '', rating: 5, productPurchased: '' })
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -29,17 +33,36 @@ export default function AdminTestimonialsPage() {
     load()
   }, [])
 
-  const handleCreate = async () => {
-    if (!form.customerName.trim() || !form.content.trim()) return
+  const openCreate = () => {
+    setEditingId(null)
+    setForm(EMPTY_FORM)
+    setOpen(true)
+  }
+
+  const openEdit = (t: AdminTestimonial) => {
+    setEditingId(t.id)
+    setForm({
+      customerName: t.customer_name,
+      location: t.location ?? '',
+      content: t.content,
+      rating: t.rating,
+      productPurchased: t.product_purchased ?? '',
+      isPublished: t.is_published,
+    })
+    setOpen(true)
+  }
+
+  const handleSave = async () => {
+    if (!form.customerName.trim() || !form.content.trim()) return toast.error('Name and content are required')
     setSaving(true)
     try {
-      await createTestimonial(form)
-      toast.success('Testimonial added')
-      setForm({ customerName: '', location: '', content: '', rating: 5, productPurchased: '' })
+      if (editingId) await updateTestimonial(editingId, form)
+      else await createTestimonial(form)
+      toast.success(editingId ? 'Testimonial updated' : 'Testimonial added')
       setOpen(false)
       load()
     } catch {
-      toast.error('Failed to add testimonial')
+      toast.error(editingId ? 'Failed to update testimonial' : 'Failed to add testimonial')
     } finally {
       setSaving(false)
     }
@@ -58,15 +81,13 @@ export default function AdminTestimonialsPage() {
   const addDialog = (
     <Dialog open={open} onOpenChange={setOpen}>
       <Can permission="content.create">
-        <DialogTrigger asChild>
-          <Button>
-            <Plus className="h-4 w-4" /> Add Testimonial
-          </Button>
-        </DialogTrigger>
+        <Button onClick={openCreate}>
+          <Plus className="h-4 w-4" /> Add Testimonial
+        </Button>
       </Can>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>New Testimonial</DialogTitle>
+          <DialogTitle>{editingId ? 'Edit Testimonial' : 'New Testimonial'}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -99,10 +120,17 @@ export default function AdminTestimonialsPage() {
               <Input value={form.productPurchased} onChange={(e) => setForm((f) => ({ ...f, productPurchased: e.target.value }))} />
             </div>
           </div>
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div>
+              <Label>Published</Label>
+              <p className="text-xs text-muted-foreground">Hidden testimonials stay here but don’t appear on the storefront.</p>
+            </div>
+            <Switch checked={form.isPublished} onCheckedChange={(v) => setForm((f) => ({ ...f, isPublished: v }))} />
+          </div>
         </div>
         <DialogFooter>
-          <Button onClick={handleCreate} disabled={saving}>
-            {saving ? 'Saving...' : 'Create'}
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving...' : editingId ? 'Save changes' : 'Create'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -151,6 +179,11 @@ export default function AdminTestimonialsPage() {
                       {[t.location, t.product_purchased].filter(Boolean).join(' · ') || 'Verified buyer'}
                     </p>
                   </div>
+                  <Can permission="content.update">
+                    <Button variant="ghost" size="icon" className="text-muted-foreground" title="Edit testimonial" onClick={() => openEdit(t)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </Can>
                   <Can permission="content.delete">
                     <Button
                       variant="ghost"

@@ -205,18 +205,32 @@ export const deleteProduct = (id: string) => adminFetch<void>(`/admin/products/$
 export const duplicateProduct = (id: string) =>
   adminFetch<AdminProductListItem>(`/admin/products/${id}/duplicate`, { method: 'POST' })
 
-export async function uploadProductImage(productId: string, file: File) {
+/** Must match the backend's MAX_IMAGE_UPLOAD_BYTES (kept under Vercel's 4.5 MB body cap). */
+export const MAX_IMAGE_UPLOAD_BYTES = 4 * 1024 * 1024
+
+/** Multipart image upload to an admin endpoint (JSON apiFetch can't send files). */
+async function uploadAdminImage<T>(path: string, file: File): Promise<T> {
+  if (file.size > MAX_IMAGE_UPLOAD_BYTES) throw new Error('Image is too large — please use one under 4 MB')
   const form = new FormData()
   form.append('image', file)
   const t = await token()
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/products/${productId}/images`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${path}`, {
     method: 'POST',
     headers: t ? { Authorization: `Bearer ${t}` } : {},
     body: form,
   })
-  if (!res.ok) throw new Error('Image upload failed')
-  return res.json() as Promise<{ id: string; url: string; thumbnailUrl: string; sortOrder: number; isPrimary: boolean }>
+  if (!res.ok) {
+    const body = await res.json().catch(() => null)
+    throw new Error(res.status === 413 ? 'Image is too large — please use one under 4 MB' : body?.error?.message ?? 'Image upload failed')
+  }
+  return res.json() as Promise<T>
 }
+
+export const uploadProductImage = (productId: string, file: File) =>
+  uploadAdminImage<{ id: string; url: string; thumbnailUrl: string; sortOrder: number; isPrimary: boolean }>(
+    `/admin/products/${productId}/images`,
+    file
+  )
 export const deleteProductImage = (productId: string, imageId: string) =>
   adminFetch<void>(`/admin/products/${productId}/images/${imageId}`, { method: 'DELETE' })
 
@@ -342,14 +356,19 @@ export interface AdminTestimonial {
   is_published: boolean
   sort_order: number
 }
-export const getAdminTestimonials = () => adminFetch<AdminTestimonial[]>('/admin/testimonials')
-export const createTestimonial = (input: {
+export interface TestimonialInput {
   customerName: string
   location?: string
   content: string
   rating: number
   productPurchased?: string
-}) => adminFetch<AdminTestimonial>('/admin/testimonials', { method: 'POST', body: JSON.stringify(input) })
+  isPublished?: boolean
+}
+export const getAdminTestimonials = () => adminFetch<AdminTestimonial[]>('/admin/testimonials')
+export const createTestimonial = (input: TestimonialInput) =>
+  adminFetch<AdminTestimonial>('/admin/testimonials', { method: 'POST', body: JSON.stringify(input) })
+export const updateTestimonial = (id: string, input: Partial<TestimonialInput>) =>
+  adminFetch<AdminTestimonial>(`/admin/testimonials/${id}`, { method: 'PATCH', body: JSON.stringify(input) })
 export const deleteTestimonial = (id: string) => adminFetch<void>(`/admin/testimonials/${id}`, { method: 'DELETE' })
 
 export interface AdminHeroSlide {
@@ -363,9 +382,23 @@ export interface AdminHeroSlide {
   sort_order: number
   is_active: boolean
 }
+/** Request body shape (camelCase) — the list endpoint returns raw snake_case rows (AdminHeroSlide). */
+export interface HeroSlideInput {
+  title: string
+  subtitle?: string
+  description?: string
+  imageUrl?: string
+  ctaLabel?: string
+  ctaHref?: string
+  sortOrder?: number
+  isActive?: boolean
+}
 export const getAdminHeroSlides = () => adminFetch<AdminHeroSlide[]>('/admin/hero-slides')
-export const createHeroSlide = (input: Partial<AdminHeroSlide> & { title: string }) =>
+export const createHeroSlide = (input: HeroSlideInput) =>
   adminFetch<AdminHeroSlide>('/admin/hero-slides', { method: 'POST', body: JSON.stringify(input) })
+export const updateHeroSlide = (id: string, input: Partial<HeroSlideInput>) =>
+  adminFetch<AdminHeroSlide>(`/admin/hero-slides/${id}`, { method: 'PATCH', body: JSON.stringify(input) })
+export const uploadHeroSlideImage = (file: File) => uploadAdminImage<{ url: string }>('/admin/hero-slides/upload-image', file)
 export const deleteHeroSlide = (id: string) => adminFetch<void>(`/admin/hero-slides/${id}`, { method: 'DELETE' })
 
 // ---- Orders ----
@@ -587,17 +620,28 @@ export interface AdminCoupon {
   value: number
   min_subtotal: number
   max_uses: number | null
+  max_uses_per_customer?: number | null
   uses_count: number
+  starts_at?: string | null
+  expires_at?: string | null
   is_active: boolean
 }
-export const getAdminCoupons = () => adminFetch<AdminCoupon[]>('/admin/coupons')
-export const createCoupon = (input: {
+export interface CouponInput {
   code: string
   type: 'percent' | 'flat'
   value: number
   minSubtotal?: number
-  maxUses?: number
-}) => adminFetch<AdminCoupon>('/admin/coupons', { method: 'POST', body: JSON.stringify(input) })
+  maxUses?: number | null
+  maxUsesPerCustomer?: number | null
+  startsAt?: string | null
+  expiresAt?: string | null
+  isActive?: boolean
+}
+export const getAdminCoupons = () => adminFetch<AdminCoupon[]>('/admin/coupons')
+export const createCoupon = (input: CouponInput) =>
+  adminFetch<AdminCoupon>('/admin/coupons', { method: 'POST', body: JSON.stringify(input) })
+export const updateCoupon = (id: string, input: Partial<CouponInput>) =>
+  adminFetch<AdminCoupon>(`/admin/coupons/${id}`, { method: 'PATCH', body: JSON.stringify(input) })
 export const deleteCoupon = (id: string) => adminFetch<void>(`/admin/coupons/${id}`, { method: 'DELETE' })
 
 // ---- Customers ----
@@ -670,8 +714,115 @@ export const getCustomerEmails = (id: string) => adminFetch<AdminEmailLog[]>(`/a
 export const sendCustomerWelcomeEmail = (id: string) =>
   adminFetch<{ ok: boolean }>(`/admin/customers/${id}/send-welcome-email`, { method: 'POST' })
 
+// ---- Customization templates (reusable option groups, cloned into a product on use) ----
+export interface CustomizationTemplateValue {
+  id?: string
+  label: string
+  value: string
+  priceAdjustment: number
+}
+export interface CustomizationTemplate {
+  id: string
+  name: string
+  type: CustomizationGroupInput['type']
+  values: CustomizationTemplateValue[]
+}
+export interface CustomizationTemplateInput {
+  name: string
+  type: CustomizationGroupInput['type']
+  values: Omit<CustomizationTemplateValue, 'id'>[]
+}
+export const getCustomizationTemplates = () => adminFetch<CustomizationTemplate[]>('/admin/customization-templates')
+export const createCustomizationTemplate = (input: CustomizationTemplateInput) =>
+  adminFetch<{ id: string }>('/admin/customization-templates', { method: 'POST', body: JSON.stringify(input) })
+export const updateCustomizationTemplate = (id: string, input: Partial<CustomizationTemplateInput>) =>
+  adminFetch<{ id: string }>(`/admin/customization-templates/${id}`, { method: 'PATCH', body: JSON.stringify(input) })
+export const deleteCustomizationTemplate = (id: string) =>
+  adminFetch<void>(`/admin/customization-templates/${id}`, { method: 'DELETE' })
+/** Copies a template into a product as a new, independently editable option group. */
+export const applyCustomizationTemplate = (templateId: string, productId: string) =>
+  adminFetch<{ ok: boolean; customizationId: string }>(`/admin/customization-templates/${templateId}/clone`, {
+    method: 'POST',
+    body: JSON.stringify({ productId }),
+  })
+
 // ---- Reviews ----
-export const getAdminReviews = (status: 'pending' | 'published' = 'pending') =>
-  adminFetch<any[]>(`/admin/reviews?status=${status}`)
+export interface AdminReview {
+  id: string
+  productId: string
+  productName: string | null
+  productSlug: string | null
+  customerName: string
+  rating: number
+  title: string
+  content: string
+  images: string[]
+  verified: boolean
+  isPublished: boolean
+  createdAt: string
+}
+export const getAdminReviews = (status: 'pending' | 'published' | 'all' = 'pending') =>
+  adminFetch<AdminReview[]>(`/admin/reviews?status=${status}`)
 export const moderateReview = (id: string, isPublished: boolean) =>
-  adminFetch<any>(`/admin/reviews/${id}`, { method: 'PATCH', body: JSON.stringify({ isPublished }) })
+  adminFetch<AdminReview>(`/admin/reviews/${id}`, { method: 'PATCH', body: JSON.stringify({ isPublished }) })
+export const deleteReview = (id: string) => adminFetch<void>(`/admin/reviews/${id}`, { method: 'DELETE' })
+
+// ---- Storefront content (CMS blocks — see suthrayaa-backend/src/modules/content/content.catalog.ts) ----
+export type ContentFieldType = 'text' | 'textarea' | 'markdown' | 'url' | 'image' | 'video' | 'icon' | 'list'
+export interface ContentField {
+  name: string
+  label: string
+  type: ContentFieldType
+  help?: string
+  fields?: ContentField[]
+  itemLabel?: string
+  max?: number
+}
+export interface ContentBlockAdmin {
+  key: string
+  group: string
+  label: string
+  description: string
+  previewPath: string
+  fields: ContentField[]
+  default: Record<string, unknown>
+  value: Record<string, unknown>
+  customized: boolean
+  updatedAt: string | null
+}
+export const getAdminContent = () => adminFetch<{ blocks: ContentBlockAdmin[]; icons: string[] }>('/admin/content')
+export const saveAdminContent = (key: string, value: Record<string, unknown>) =>
+  adminFetch<{ key: string; value: Record<string, unknown>; customized: boolean }>(`/admin/content/${key}`, {
+    method: 'PUT',
+    body: JSON.stringify({ value }),
+  })
+export const resetAdminContent = (key: string) =>
+  adminFetch<{ key: string; value: Record<string, unknown>; customized: boolean }>(`/admin/content/${key}`, { method: 'DELETE' })
+export const uploadContentImage = (file: File) => uploadAdminImage<{ url: string }>('/admin/content/upload-image', file)
+
+// ---- Newsletter subscribers ----
+export interface NewsletterSubscriber {
+  id: string
+  email: string
+  source: string | null
+  status: 'subscribed' | 'unsubscribed'
+  createdAt: string
+}
+export const getNewsletterSubscribers = () => adminFetch<NewsletterSubscriber[]>('/admin/newsletter')
+export const updateNewsletterSubscriber = (id: string, status: NewsletterSubscriber['status']) =>
+  adminFetch<NewsletterSubscriber>(`/admin/newsletter/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) })
+export const deleteNewsletterSubscriber = (id: string) => adminFetch<void>(`/admin/newsletter/${id}`, { method: 'DELETE' })
+/** Downloads subscribed addresses as CSV. */
+export async function exportNewsletterCsv() {
+  const t = await token()
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/newsletter/export`, { headers: t ? { Authorization: `Bearer ${t}` } : {} })
+  if (!res.ok) throw new Error('Export failed')
+  const url = URL.createObjectURL(await res.blob())
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'newsletter-subscribers.csv'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 2000)
+}

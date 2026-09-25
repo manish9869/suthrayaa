@@ -3,14 +3,14 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Instagram, Facebook, Mail, Phone, MapPin, Check, ArrowRight, ShieldCheck, Award, Headphones, Heart, Leaf } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { Instagram, Facebook, Mail, Phone, MapPin, ShieldCheck } from 'lucide-react'
 import { Reveal } from '@/components/motion/reveal'
 import { STOREFRONT_IMAGES } from '@/lib/storefront-images'
-import { toast } from 'sonner'
 import { getPublicFooterLinks, getPublicSiteSettings } from '@/lib/api/settings'
+import { getContentBlock, type SiteContent } from '@/lib/content'
+import { ContentIcon } from '@/components/content-text'
+import { NewsletterSignup, NEWSLETTER_DEFAULTS } from '@/components/newsletter-signup'
+import { resolveStoreContact, telHref, type StoreContact } from '@/lib/store-contact'
 
 interface FooterLinkItem {
   label: string
@@ -34,13 +34,12 @@ const FALLBACK_FOOTER_LINKS: Record<string, FooterLinkItem[]> = {
     { label: 'FAQs', href: '/faqs' },
     { label: 'Shipping Info', href: '/shipping' },
     { label: 'Returns & Refunds', href: '/returns' },
-    { label: 'Track Order', href: '/track-order' },
+    { label: 'Track Order', href: '/account/orders' },
   ],
   about: [
     { label: 'Our Story', href: '/about' },
     { label: 'Behind the Yarn', href: '/about#process' },
-    { label: 'Testimonials', href: '/testimonials' },
-    { label: 'Blog', href: '/blog' },
+    { label: 'Testimonials', href: '/#testimonials' },
   ],
   policies: [
     { label: 'Privacy Policy', href: '/privacy' },
@@ -51,18 +50,22 @@ const FALLBACK_FOOTER_LINKS: Record<string, FooterLinkItem[]> = {
 
 const FALLBACK_LOGO_URL: string = STOREFRONT_IMAGES.logo
 
-const PROMISES = [
-  { icon: Award, title: 'Quality you can trust', text: 'Premium cotton yarn, finished by hand.' },
-  { icon: Headphones, title: 'Real human support', text: 'We reply within a day, every day.' },
-  { icon: Heart, title: 'Loved by thousands', text: '500+ happy customers across India.' },
-  { icon: Leaf, title: 'Slow & sustainable', text: 'Made to order — no waste, no mass stock.' },
-]
+// Promise strip, newsletter copy and payment chips — edited in Admin → Storefront Content
+const FALLBACK_EXTRAS: SiteContent['footer.content'] = {
+  promises: [
+    { icon: 'award', title: 'Quality you can trust', text: 'Premium cotton yarn, finished by hand.' },
+    { icon: 'headphones', title: 'Real human support', text: 'We reply within a day, every day.' },
+    { icon: 'heart', title: 'Loved by thousands', text: '500+ happy customers across India.' },
+    { icon: 'leaf', title: 'Slow & sustainable', text: 'Made to order — no waste, no mass stock.' },
+  ],
+  newsletterTitle: NEWSLETTER_DEFAULTS.title,
+  newsletterText: NEWSLETTER_DEFAULTS.text,
+  newsletterSuccess: NEWSLETTER_DEFAULTS.success,
+  paymentMethods: ['UPI', 'Visa', 'Mastercard', 'RuPay', 'Net Banking'].map((label) => ({ label })),
+}
 
 const FALLBACK_DESCRIPTION =
   'Telling stories through yarn. Each piece is handcrafted with love, care, and attention to detail.'
-const FALLBACK_EMAIL = 'hello@suthrayaa.com'
-const FALLBACK_PHONE = '+91 98765 43210'
-const FALLBACK_ADDRESS = 'Mumbai, Maharashtra, India'
 
 interface SocialLinks {
   instagram?: string
@@ -74,18 +77,14 @@ function asString(value: unknown): string | undefined {
 }
 
 export function Footer() {
-  const [email, setEmail] = useState('')
-  const [subscribed, setSubscribed] = useState(false)
-
+  const [extras, setExtras] = useState<SiteContent['footer.content']>(FALLBACK_EXTRAS)
   const [footerColumns, setFooterColumns] = useState<Record<string, FooterLinkItem[]>>(FALLBACK_FOOTER_LINKS)
   const [logoUrl, setLogoUrl] = useState(FALLBACK_LOGO_URL)
   const [description, setDescription] = useState(FALLBACK_DESCRIPTION)
   const [copyrightText, setCopyrightText] = useState<string | null>(null)
   const [newsletterEnabled, setNewsletterEnabled] = useState(true)
   const [social, setSocial] = useState<SocialLinks>({})
-  const [contactEmail, setContactEmail] = useState(FALLBACK_EMAIL)
-  const [contactPhone, setContactPhone] = useState(FALLBACK_PHONE)
-  const [contactAddress, setContactAddress] = useState(FALLBACK_ADDRESS)
+  const [contact, setContact] = useState<StoreContact>(() => resolveStoreContact())
 
   useEffect(() => {
     getPublicFooterLinks()
@@ -110,13 +109,17 @@ export function Footer() {
   }, [])
 
   useEffect(() => {
+    getContentBlock('footer.content').then((c) => c && setExtras(c))
+  }, [])
+
+  useEffect(() => {
     getPublicSiteSettings()
       .then((settings) => {
         const branding = settings.branding ?? {}
-        const logo = asString(branding['branding.logo_url'])
+        const footer = settings.footer ?? {}
+        const logo = asString(footer['footer.logo_url']) ?? asString(branding['branding.logo_url'])
         if (logo) setLogoUrl(logo)
 
-        const footer = settings.footer ?? {}
         const desc = asString(footer['footer.description'])
         if (desc) setDescription(desc)
         const copyright = asString(footer['footer.copyright_text'])
@@ -131,39 +134,12 @@ export function Footer() {
           facebook: socialGroup['social.facebook_enabled'] ? asString(socialGroup['social.facebook_url']) : undefined,
         })
 
-        const contact = settings.contact ?? {}
-        const general = settings.general ?? {}
-        const business = settings.business ?? {}
-
-        const resolvedEmail = asString(contact['contact.business_email']) ?? asString(general['store.email'])
-        if (resolvedEmail) setContactEmail(resolvedEmail)
-
-        const resolvedPhone = asString(contact['contact.phone']) ?? asString(general['store.support_phone'])
-        if (resolvedPhone) setContactPhone(resolvedPhone)
-
-        // `business.*` (GST-adjacent) is intentionally private in most configurations — only
-        // switch away from the hardcoded address if it's actually present in the public payload.
-        const addressLine1 = asString(business['business.address_line1'])
-        const city = asString(business['business.city'])
-        const state = asString(business['business.state'])
-        const resolvedAddress = [addressLine1, city, state].filter(Boolean).join(', ')
-        if (resolvedAddress) setContactAddress(resolvedAddress)
+        setContact(resolveStoreContact(settings))
       })
       .catch(() => {
         // Keep all the hardcoded fallbacks above so the footer is never broken.
       })
   }, [])
-
-  const handleSubscribe = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!/^\S+@\S+\.\S+$/.test(email)) {
-      toast.error('Please enter a valid email address')
-      return
-    }
-    setSubscribed(true)
-    toast.success("You're on the list! Welcome to the yarn family.")
-    setEmail('')
-  }
 
   const shopLinks = footerColumns.shop ?? []
   const supportLinks = footerColumns.support ?? []
@@ -181,56 +157,17 @@ export function Footer() {
       {/* Newsletter */}
       {newsletterEnabled && (
         <div className="container mx-auto px-4">
-          <Reveal className="relative overflow-hidden rounded-[2rem] bg-blush px-6 py-10 sm:px-10 lg:px-14">
-            <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-rose/20 blur-2xl" />
-            <div className="pointer-events-none absolute -bottom-24 left-1/3 h-56 w-56 rounded-full bg-sage/25 blur-2xl" />
-            <div className="relative grid grid-cols-1 items-center gap-8 lg:grid-cols-[1.1fr_1fr]">
-              <div className="flex items-start gap-5">
-                <span className="hidden h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground sm:flex">
-                  <Mail className="h-6 w-6" />
-                </span>
-                <div>
-                  <h3 className="display text-3xl sm:text-4xl">Join the Suthrayaa circle</h3>
-                  <p className="mt-2 max-w-md text-[15px] text-foreground/70">
-                    New drops, maker stories and member-only offers — straight from our studio to your inbox. Get 10% off your first order.
-                  </p>
-                </div>
-              </div>
-              <form onSubmit={handleSubscribe} className="flex w-full flex-col gap-2 rounded-full sm:flex-row sm:bg-card sm:p-1.5 sm:shadow-sm">
-                <Input
-                  type="email"
-                  placeholder="Enter your email address"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-12 flex-1 border-0 px-5 shadow-none focus-visible:ring-0 sm:bg-transparent"
-                  aria-label="Email address"
-                />
-                <Button type="submit" size="lg" className="h-12 px-7">
-                  <AnimatePresence mode="wait" initial={false}>
-                    {subscribed ? (
-                      <motion.span key="ok" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="flex items-center gap-1.5">
-                        <Check className="h-4 w-4" /> Subscribed
-                      </motion.span>
-                    ) : (
-                      <motion.span key="go" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="flex items-center gap-1.5">
-                        Subscribe <ArrowRight className="h-4 w-4" />
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
-                </Button>
-              </form>
-            </div>
-          </Reveal>
+          <NewsletterSignup title={extras.newsletterTitle || undefined} text={extras.newsletterText} successMessage={extras.newsletterSuccess || undefined} />
         </div>
       )}
 
       {/* Promise strip */}
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 gap-5 min-[420px]:grid-cols-2 min-[420px]:gap-6 lg:grid-cols-4 lg:divide-x lg:divide-border">
-          {PROMISES.map((p, i) => (
-            <Reveal key={p.title} delay={i * 0.05} className="flex items-start gap-3.5 lg:px-6 lg:first:pl-0">
+          {extras.promises.map((p, i) => (
+            <Reveal key={`${p.title}-${i}`} delay={i * 0.05} className="flex items-start gap-3.5 lg:px-6 lg:first:pl-0">
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-primary/20 text-primary">
-                <p.icon className="h-5 w-5" />
+                <ContentIcon name={p.icon} className="h-5 w-5" />
               </span>
               <div>
                 <p className="text-sm font-semibold">{p.title}</p>
@@ -257,7 +194,7 @@ export function Footer() {
                 {[
                   { href: social.instagram, icon: Instagram, label: 'Instagram' },
                   { href: social.facebook, icon: Facebook, label: 'Facebook' },
-                  { href: `mailto:${contactEmail}`, icon: Mail, label: 'Email' },
+                  { href: `mailto:${contact.email}`, icon: Mail, label: 'Email' },
                 ]
                   .filter((s) => s.href)
                   .map((s) => (
@@ -296,22 +233,24 @@ export function Footer() {
               <h4 className="text-[12px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/55">Get in touch</h4>
               <ul className="mt-4 space-y-3 text-sm text-primary-foreground/85">
                 <li className="flex items-start gap-2.5">
-                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 opacity-70" /> {contactAddress}
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 opacity-70" /> {contact.address}
                 </li>
+                {contact.phone && (
+                  <li>
+                    <a href={telHref(contact.phone)} className="flex items-center gap-2.5 hover:text-primary-foreground">
+                      <Phone className="h-4 w-4 shrink-0 opacity-70" /> {contact.phone}
+                    </a>
+                  </li>
+                )}
                 <li>
-                  <a href={`tel:${contactPhone.replace(/\s/g, '')}`} className="flex items-center gap-2.5 hover:text-primary-foreground">
-                    <Phone className="h-4 w-4 shrink-0 opacity-70" /> {contactPhone}
-                  </a>
-                </li>
-                <li>
-                  <a href={`mailto:${contactEmail}`} className="flex items-center gap-2.5 hover:text-primary-foreground">
-                    <Mail className="h-4 w-4 shrink-0 opacity-70" /> {contactEmail}
+                  <a href={`mailto:${contact.email}`} className="flex items-center gap-2.5 hover:text-primary-foreground">
+                    <Mail className="h-4 w-4 shrink-0 opacity-70" /> {contact.email}
                   </a>
                 </li>
               </ul>
               <h4 className="mt-8 text-[12px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/55">We accept</h4>
               <div className="mt-3 flex flex-wrap gap-2">
-                {['UPI', 'Visa', 'Mastercard', 'RuPay', 'Net Banking'].map((m) => (
+                {extras.paymentMethods.map(({ label: m }) => (
                   <span key={m} className="rounded-md bg-primary-foreground/10 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-primary-foreground/90">
                     {m}
                   </span>

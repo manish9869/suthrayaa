@@ -7,8 +7,9 @@ import type { Product } from '@/lib/data'
 import { Stagger, StaggerItem } from '@/components/motion/reveal'
 import { SectionHeading } from './section-heading'
 import { cn } from '@/lib/utils'
+import type { SectionHeadingContent } from '@/lib/content'
 
-export function BestSellers({ products: bestSellers }: { products: Product[] }) {
+export function BestSellers({ products: bestSellers, heading }: { products: Product[]; heading?: SectionHeadingContent | null }) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [edges, setEdges] = useState({ start: true, end: false })
 
@@ -31,7 +32,7 @@ export function BestSellers({ products: bestSellers }: { products: Product[] }) 
     <section className="bg-sand/60 py-20 lg:py-28">
       <div className="container mx-auto px-4">
         <div className="relative">
-          <SectionHeading eyebrow="Customer favourites" title="Best" accent="sellers" href="/shop?sort=bestselling" linkLabel="View all best sellers" />
+          <SectionHeading eyebrow="Customer favourites" title="Best" accent="sellers" href="/shop?sort=bestselling" linkLabel="View all best sellers" content={heading} />
         </div>
         <div className="relative">
           <div ref={scrollRef} onScroll={update} className="-mx-4 flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-px-4 px-4 pb-2 scrollbar-hide">

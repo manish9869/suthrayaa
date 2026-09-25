@@ -8,11 +8,21 @@ import { ArrowRight, Repeat2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { EASE_OUT, Reveal } from '@/components/motion/reveal'
+import { AccentText } from '@/components/content-text'
+import type { SiteContent } from '@/lib/content'
 
-const STAGES = [
-  { key: 'hanging', src: '/editorial/scene-staropen.webp', label: 'Mini bag hanging', note: 'Hang it on a hook, a bag strap or your doorway.' },
-  { key: 'bottle', src: '/editorial/scene-bottleopen.webp', label: 'Bottle holder', note: 'Open the star and the net slips over any bottle.' },
-] as const
+// Built-in copy, used only if the content API is unreachable (edit in Admin → Storefront Content)
+const FALLBACK: SiteContent['home.convertible'] = {
+  eyebrow: 'Two pieces in one',
+  title: 'A star that *opens into* a bottle holder.',
+  text: 'Our convertible mini bag hanging folds into a cheerful crochet star. Open it up and the net stretches around your water bottle, with the star as a sturdy base.',
+  stages: [
+    { image: '/editorial/scene-staropen.webp', label: 'Mini bag hanging', note: 'Hang it on a hook, a bag strap or your doorway.' },
+    { image: '/editorial/scene-bottleopen.webp', label: 'Bottle holder', note: 'Open the star and the net slips over any bottle.' },
+  ],
+  ctaLabel: 'Shop the bottle holder',
+  ctaHref: '/shop?search=bottle',
+} as const
 
 const HOLD = 3200
 
@@ -21,7 +31,9 @@ const HOLD = 3200
  * studio frames morph into each other on a loop (blur + scale cross-dissolve with a
  * yarn-thread wipe), like a short product clip — but crisp, lightweight and free.
  */
-export function ConvertibleShowcase() {
+export function ConvertibleShowcase({ content }: { content?: SiteContent['home.convertible'] }) {
+  const c = content ?? FALLBACK
+  const STAGES = c.stages.filter((st) => st.image).map((st, i) => ({ key: `${i}`, src: st.image, label: st.label, note: st.note }))
   const reduce = useReducedMotion()
   const ref = useRef<HTMLDivElement>(null)
   const inView = useInView(ref, { amount: 0.4 })
@@ -29,12 +41,13 @@ export function ConvertibleShowcase() {
   const [paused, setPaused] = useState(false)
 
   useEffect(() => {
-    if (!inView || paused) return
+    if (!inView || paused || STAGES.length < 2) return
     const t = setInterval(() => setStage((s) => (s + 1) % STAGES.length), HOLD)
     return () => clearInterval(t)
-  }, [inView, paused])
+  }, [inView, paused, STAGES.length])
 
-  const current = STAGES[stage]
+  const current = STAGES[stage % Math.max(1, STAGES.length)]
+  if (!current) return null
 
   return (
     <section className="py-16 lg:py-24">
@@ -101,15 +114,15 @@ export function ConvertibleShowcase() {
         </div>
 
         <Reveal>
-          <p className="eyebrow flex items-center gap-2">
-            <span className="h-px w-8 bg-rose" /> Two pieces in one
-          </p>
+          {c.eyebrow && (
+            <p className="eyebrow flex items-center gap-2">
+              <span className="h-px w-8 bg-rose" /> {c.eyebrow}
+            </p>
+          )}
           <h2 className="display mt-4 text-4xl leading-[1.05] sm:text-5xl">
-            A star that <em className="font-normal italic text-primary">opens into</em> a bottle holder.
+            <AccentText text={c.title} />
           </h2>
-          <p className="mt-5 max-w-md text-[17px] leading-relaxed text-foreground/70">
-            Our convertible mini bag hanging folds into a cheerful crochet star. Open it up and the net stretches around your water bottle, with the star as a sturdy base.
-          </p>
+          {c.text && <p className="mt-5 max-w-md text-[17px] leading-relaxed text-foreground/70">{c.text}</p>}
           <AnimatePresence mode="wait">
             <motion.p
               key={current.key}
@@ -122,12 +135,14 @@ export function ConvertibleShowcase() {
               <Repeat2 className="h-4 w-4" /> {current.note}
             </motion.p>
           </AnimatePresence>
+          {c.ctaLabel && c.ctaHref && (
           <Button size="lg" asChild className="group mt-8 h-[52px] px-7">
-            <Link href="/shop?search=bottle">
-              Shop the bottle holder
+            <Link href={c.ctaHref}>
+              {c.ctaLabel}
               <ArrowRight className="h-4 w-4 transition-transform duration-300 ease-[var(--ease-out)] group-hover:translate-x-1" />
             </Link>
           </Button>
+          )}
         </Reveal>
       </div>
     </section>

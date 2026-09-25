@@ -74,7 +74,7 @@ function AuditLogsContent() {
               'USER_CREATED', 'USER_UPDATED', 'USER_DEACTIVATED', 'USER_DELETED',
               'ROLE_CREATED', 'ROLE_UPDATED', 'ROLE_DELETED', 'PERMISSIONS_CHANGED',
               'PRODUCT_CREATED', 'PRODUCT_UPDATED', 'PRODUCT_DELETED',
-              'ORDER_UPDATED', 'ORDER_CANCELLED', 'ORDER_REFUNDED', 'SETTINGS_UPDATED',
+              'ORDER_UPDATED', 'ORDER_CANCELLED', 'ORDER_REFUNDED', 'SETTINGS_UPDATED', 'CONTENT_UPDATED',
             ].map((a) => (
               <SelectItem key={a} value={a}>
                 {actionLabel(a)}

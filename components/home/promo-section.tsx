@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Reveal } from '@/components/motion/reveal'
 import { formatPrice, type Product } from '@/lib/data'
 import { STOREFRONT_IMAGES } from '@/lib/storefront-images'
-import { STOREFRONT_PROMO } from '@/lib/storefront-content'
+import type { SiteContent } from '@/lib/content'
 import { toast } from 'sonner'
 
 function useCountdownToMidnight() {
@@ -54,7 +54,29 @@ function TimeUnit({ value, label }: { value: number | undefined; label: string }
   )
 }
 
-export function PromoSection({ products = [] }: { products?: Product[] }) {
+// Built-in copy, used only if the content API is unreachable (edit in Admin → Storefront Content).
+// The coupon code must exist (and be active) in Admin → Coupons for it to work at checkout.
+const FALLBACK: SiteContent['home.promo'] = {
+  saleEyebrow: 'Limited time offer',
+  saleTitle: 'The festive edit is live',
+  saleText: 'Up to 25% off hand-picked gifts, décor and keepsakes — while they last.',
+  saleBadge: 'Up to 25% off',
+  saleButtonLabel: 'Explore deals',
+  saleHref: '/shop?tag=clearance',
+  saleImage: STOREFRONT_IMAGES.promoBanner,
+  couponEyebrow: 'Exclusive for you',
+  couponCode: 'WELCOME10',
+  couponTitle: '10% off your first order',
+  couponText: 'Use this code at checkout on your first Suthrayaa order.',
+  dealEyebrow: 'Deal of the day',
+  dealNote: 'Hurry — ends at midnight',
+  dealButtonLabel: 'Shop the deal',
+  dealFallbackImage: STOREFRONT_IMAGES.dealOfDay,
+}
+
+export function PromoSection({ products = [], content }: { products?: Product[]; content?: SiteContent['home.promo'] }) {
+  const STOREFRONT_PROMO = content ?? FALLBACK
+  const badgePercent = STOREFRONT_PROMO.saleBadge.replace(/\D+/g, '')
   const left = useCountdownToMidnight()
   const [copied, setCopied] = useState(false)
   const deal = products.find((p) => p.comparePrice && p.comparePrice > p.price) ?? products[0]
@@ -84,16 +106,16 @@ export function PromoSection({ products = [] }: { products?: Product[] }) {
             <p className="max-w-sm text-[15px] text-primary-foreground/75">{STOREFRONT_PROMO.saleText}</p>
             <Button asChild size="lg" className="group/btn h-12 w-fit bg-blush px-6 text-foreground hover:bg-blush/90">
               <Link href={STOREFRONT_PROMO.saleHref}>
-                Explore deals <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover/btn:translate-x-1" />
+                {STOREFRONT_PROMO.saleButtonLabel} <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover/btn:translate-x-1" />
               </Link>
             </Button>
           </div>
           <div className="relative min-h-[240px] lg:min-h-[340px]">
-            <Image src={STOREFRONT_IMAGES.promoBanner} alt="" fill sizes="(max-width: 1024px) 100vw, 55vw" className="zoom-img object-cover" />
+            <Image src={STOREFRONT_PROMO.saleImage || STOREFRONT_IMAGES.promoBanner} alt="" fill sizes="(max-width: 1024px) 100vw, 55vw" className="zoom-img object-cover" />
             <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/10 to-transparent lg:via-transparent" />
             <div className="absolute left-6 top-1/2 flex h-32 w-32 -translate-y-1/2 flex-col items-center justify-center rounded-full bg-rose text-center text-white shadow-xl lg:-left-16 lg:h-36 lg:w-36">
               <span className="text-[11px] font-semibold uppercase tracking-[0.14em] opacity-90">Up to</span>
-              <span className="display text-4xl">{STOREFRONT_PROMO.saleBadge.replace(/\D+/g, '')}%</span>
+              <span className="display text-4xl">{badgePercent}%</span>
               <span className="text-[11px] font-semibold uppercase tracking-[0.14em] opacity-90">off</span>
             </div>
           </div>
@@ -105,7 +127,7 @@ export function PromoSection({ products = [] }: { products?: Product[] }) {
             <div className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-rose/20 blur-2xl" />
             <div className="relative flex items-start justify-between gap-6">
               <div>
-                <p className="eyebrow">Exclusive for you</p>
+                <p className="eyebrow">{STOREFRONT_PROMO.couponEyebrow}</p>
                 <h3 className="display mt-3 text-3xl sm:text-4xl">{STOREFRONT_PROMO.couponTitle}</h3>
                 <p className="mt-2 max-w-xs text-sm text-foreground/70">{STOREFRONT_PROMO.couponText}</p>
               </div>
@@ -132,7 +154,7 @@ export function PromoSection({ products = [] }: { products?: Product[] }) {
           <Reveal delay={0.1} className="relative overflow-hidden rounded-[2rem] bg-accent p-8 sm:p-10">
             <div className="grid grid-cols-1 items-center gap-6 sm:grid-cols-[1fr_190px]">
               <div>
-                <p className="eyebrow !text-primary">Deal of the day</p>
+                <p className="eyebrow !text-primary">{STOREFRONT_PROMO.dealEyebrow}</p>
                 <h3 className="display mt-3 text-3xl sm:text-4xl">{deal ? deal.name : 'Today’s pick'}</h3>
                 {deal && (
                   <p className="mt-2 flex items-baseline gap-2">
@@ -141,7 +163,7 @@ export function PromoSection({ products = [] }: { products?: Product[] }) {
                     {dealDiscount > 0 && <span className="rounded-full bg-rose px-2 py-0.5 text-[11px] font-semibold text-white">−{dealDiscount}%</span>}
                   </p>
                 )}
-                <p className="mt-4 text-xs font-medium text-muted-foreground">Hurry — ends at midnight</p>
+                <p className="mt-4 text-xs font-medium text-muted-foreground">{STOREFRONT_PROMO.dealNote}</p>
                 <div className="mt-2 flex gap-2">
                   <TimeUnit value={left?.h} label="Hrs" />
                   <TimeUnit value={left?.m} label="Mins" />
@@ -149,12 +171,12 @@ export function PromoSection({ products = [] }: { products?: Product[] }) {
                 </div>
                 <Button asChild className="group/btn mt-6 h-11 px-6">
                   <Link href={deal ? `/product/${deal.slug}` : '/shop'}>
-                    Shop the deal <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover/btn:translate-x-1" />
+                    {STOREFRONT_PROMO.dealButtonLabel} <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover/btn:translate-x-1" />
                   </Link>
                 </Button>
               </div>
               <Link href={deal ? `/product/${deal.slug}` : '/shop'} className="group relative mx-auto block aspect-square w-full max-w-[220px] overflow-hidden rounded-full bg-card ring-8 ring-card/60">
-                <Image src={deal?.images[0] ?? STOREFRONT_IMAGES.dealOfDay} alt={deal?.name ?? ''} fill sizes="220px" className="zoom-img object-cover" />
+                <Image src={deal?.images[0] ?? (STOREFRONT_PROMO.dealFallbackImage || STOREFRONT_IMAGES.dealOfDay)} alt={deal?.name ?? ''} fill sizes="220px" className="zoom-img object-cover" />
               </Link>
             </div>
           </Reveal>

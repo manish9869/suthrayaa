@@ -9,9 +9,21 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog'
-import { Plus, Pencil, Trash2, GripVertical } from 'lucide-react'
+import { Plus, Pencil, Trash2, GripVertical, Layers } from 'lucide-react'
+import Link from 'next/link'
 import { toast } from 'sonner'
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  getCustomizationTemplates,
+  applyCustomizationTemplate,
+  type CustomizationTemplate,
   createCustomizationGroup,
   updateCustomizationGroup,
   deleteCustomizationGroup,
@@ -60,6 +72,31 @@ export function CustomizationEditor({ productId, customizations, colors, onChang
   const [valueForm, setValueForm] = useState({ label: '', value: '', priceAdjustment: 0, sku: '', enabled: true })
   const [saving, setSaving] = useState(false)
   const [quickAddingLabel, setQuickAddingLabel] = useState<string | null>(null)
+  const [templates, setTemplates] = useState<CustomizationTemplate[] | null>(null)
+  const [applyingTemplate, setApplyingTemplate] = useState(false)
+
+  const loadTemplates = () => {
+    getCustomizationTemplates()
+      .then(setTemplates)
+      .catch(() => {
+        setTemplates([])
+        toast.error('Failed to load templates')
+      })
+  }
+
+  const applyTemplate = async (t: CustomizationTemplate) => {
+    if (!productId) return
+    setApplyingTemplate(true)
+    try {
+      await applyCustomizationTemplate(t.id, productId)
+      toast.success(`Added “${t.name}” — edit it below if this product needs changes`)
+      onChange()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to add template')
+    } finally {
+      setApplyingTemplate(false)
+    }
+  }
 
   if (!productId) {
     return <p className="text-sm text-muted-foreground">Save the product first, then configure customization options.</p>
@@ -208,11 +245,44 @@ export function CustomizationEditor({ productId, customizations, colors, onChang
             if (!v) resetGroupForm()
           }}
         >
-          <DialogTrigger asChild>
-            <Button size="sm" variant="outline" onClick={openCreateGroup}>
-              <Plus className="h-4 w-4 mr-1.5" /> Add Option Group
-            </Button>
-          </DialogTrigger>
+          <div className="flex shrink-0 items-center gap-2">
+            {productId && (
+              <DropdownMenu onOpenChange={(o) => o && loadTemplates()}>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" disabled={applyingTemplate}>
+                    <Layers className="h-4 w-4 mr-1.5" /> {applyingTemplate ? 'Adding…' : 'From template'}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64">
+                  <DropdownMenuLabel>Add a saved option group</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {templates === null ? (
+                    <DropdownMenuItem disabled>Loading…</DropdownMenuItem>
+                  ) : templates.length === 0 ? (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin/customization-templates">No templates yet — create one</Link>
+                    </DropdownMenuItem>
+                  ) : (
+                    templates.map((t) => (
+                      <DropdownMenuItem key={t.id} onSelect={() => applyTemplate(t)}>
+                        <span className="truncate">{t.name}</span>
+                        <span className="ml-auto text-xs text-muted-foreground">{t.values.length || t.type}</span>
+                      </DropdownMenuItem>
+                    ))
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin/customization-templates">Manage templates</Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            <DialogTrigger asChild>
+              <Button size="sm" variant="outline" onClick={openCreateGroup}>
+                <Plus className="h-4 w-4 mr-1.5" /> Add Option Group
+              </Button>
+            </DialogTrigger>
+          </div>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{editingGroup ? 'Edit Option Group' : 'New Option Group'}</DialogTitle>
