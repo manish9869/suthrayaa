@@ -8,6 +8,20 @@ import { cn } from '@/lib/utils'
  * the container width. Unlike an <iframe>, this works on phones and never shows browser PDF
  * chrome — used for the invoice design preview.
  */
+/** pdf.js 4 relies on Promise.withResolvers, missing in Safari < 17.4 and older Chromium. */
+function ensureWithResolvers() {
+  if (typeof Promise.withResolvers === 'function') return
+  Promise.withResolvers = function <T>(): PromiseWithResolvers<T> {
+    let resolve!: PromiseWithResolvers<T>['resolve']
+    let reject!: PromiseWithResolvers<T>['reject']
+    const promise = new Promise<T>((res, rej) => {
+      resolve = res
+      reject = rej
+    })
+    return { promise, resolve, reject }
+  }
+}
+
 export function PdfCanvasPreview({ url, className, onError }: { url: string | null; className?: string; onError?: () => void }) {
   const hostRef = useRef<HTMLDivElement>(null)
   const [pages, setPages] = useState(0)
@@ -19,6 +33,7 @@ export function PdfCanvasPreview({ url, className, onError }: { url: string | nu
 
     ;(async () => {
       try {
+        ensureWithResolvers()
         const pdfjs = await import('pdfjs-dist')
         pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
         const doc = await pdfjs.getDocument(url).promise
@@ -44,11 +59,8 @@ export function PdfCanvasPreview({ url, className, onError }: { url: string | nu
         host.replaceChildren(...canvases)
         setPages(doc.numPages)
         doc.destroy()
-      } catch (err) {
-        if (!cancelled) {
-          console.error(err)
-          onError?.()
-        }
+      } catch {
+        if (!cancelled) onError?.()
       }
     })()
 

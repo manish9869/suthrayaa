@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { toast } from 'sonner'
-import { Check, ExternalLink, FileText, Loader2, RefreshCw, ShieldCheck, ShieldAlert } from 'lucide-react'
+import { Check, Download, FileText, Loader2, RefreshCw, ShieldCheck, ShieldAlert } from 'lucide-react'
 import {
   fetchInvoicePreviewBlob,
   getInvoiceSettings,
@@ -444,13 +444,26 @@ export default function InvoiceSettingsPage() {
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setPreviewNonce((n) => n + 1)} title="Refresh preview" aria-label="Refresh preview">
                     <RefreshCw className={cn('h-4 w-4', previewState === 'loading' && 'animate-spin')} />
                   </Button>
-                  {previewUrl && (
-                    <Button asChild variant="ghost" size="icon" className="h-8 w-8" title="Open PDF in a new tab" aria-label="Open PDF in a new tab">
-                      <a href={previewUrl} target="_blank" rel="noreferrer">
-                        <ExternalLink className="h-4 w-4" />
+                  <Button
+                    asChild={Boolean(previewUrl)}
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5 px-3"
+                    disabled={!previewUrl}
+                    title="Download the sample invoice PDF"
+                  >
+                    {previewUrl ? (
+                      <a href={previewUrl} download="invoice-preview.pdf">
+                        <Download className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Download PDF</span>
                       </a>
-                    </Button>
-                  )}
+                    ) : (
+                      <span>
+                        <Download className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Download PDF</span>
+                      </span>
+                    )}
+                  </Button>
                 </div>
               </div>
               <div className="relative bg-muted/50 p-3">
