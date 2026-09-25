@@ -129,7 +129,7 @@ export default function AdminTestimonialsPage() {
           <EmptyState icon={MessageSquareQuote} title="No testimonials yet" description="Add a customer quote to feature it on the homepage." />
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
           {testimonials.map((t) => (
             <Card key={t.id} className="group relative gap-0 py-0 transition-shadow hover:shadow-md">
               <CardContent className="flex h-full flex-col p-5">

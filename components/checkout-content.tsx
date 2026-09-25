@@ -324,7 +324,7 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
             </div>
           </div>
 
-          <div className="grid lg:grid-cols-5 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
             <div className="lg:col-span-3">
               <Accordion
                 type="single"
@@ -351,7 +351,7 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
                     <div className="space-y-6">
                       <div>
                         <h3 className="font-medium mb-4">Contact Information</h3>
-                        <div className="grid sm:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <Label htmlFor="email">Email</Label>
                             <Input id="email" name="email" type="email" placeholder="your@email.com" value={formData.email} onChange={handleInputChange} />
@@ -366,7 +366,7 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
                       <div>
                         <h3 className="font-medium mb-4">Shipping Address</h3>
                         <div className="space-y-4">
-                          <div className="grid sm:grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                               <Label htmlFor="firstName">First Name</Label>
                               <Input id="firstName" name="firstName" placeholder="First name" value={formData.firstName} onChange={handleInputChange} />
@@ -388,7 +388,7 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
                             <Label htmlFor="landmark">Landmark (optional)</Label>
                             <Input id="landmark" name="landmark" placeholder="Nearby landmark" value={formData.landmark} onChange={handleInputChange} />
                           </div>
-                          <div className="grid sm:grid-cols-3 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div className="space-y-2">
                               <Label htmlFor="city">City</Label>
                               <Input id="city" name="city" placeholder="City" value={formData.city} onChange={handleInputChange} />

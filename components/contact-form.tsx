@@ -58,7 +58,7 @@ export function ContactForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="name">Your Name</Label>
           <Input id="name" name="name" value={form.name} onChange={handleChange} placeholder="Jane Doe" />

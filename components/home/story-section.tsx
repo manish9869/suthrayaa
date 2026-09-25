@@ -24,7 +24,7 @@ export function StorySection() {
 
   return (
     <section ref={ref} className="relative overflow-hidden py-20 lg:py-32">
-      <div className="container mx-auto grid items-center gap-16 px-4 lg:grid-cols-2 lg:gap-20">
+      <div className="container mx-auto grid grid-cols-1 items-center gap-16 px-4 lg:grid-cols-2 lg:gap-20">
         {/* Images */}
         <div className="relative mx-auto w-full max-w-[520px]">
           <motion.div style={{ y: yBig }} className="arch relative aspect-[4/5] w-[78%] overflow-hidden bg-sand">
@@ -63,7 +63,7 @@ export function StorySection() {
           <Reveal delay={0.14} className="mt-10 grid max-w-md grid-cols-3 gap-4 border-y py-6">
             {STATS.map((s) => (
               <div key={s.label}>
-                <p className="display text-4xl text-primary">{s.value}</p>
+                <p className="display text-[1.9rem] text-primary min-[400px]:text-4xl">{s.value}</p>
                 <p className="mt-1 text-[13px] text-muted-foreground">{s.label}</p>
               </div>
             ))}

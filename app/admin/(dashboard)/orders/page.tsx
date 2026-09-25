@@ -225,13 +225,13 @@ export default function AdminOrdersPage() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative max-w-sm flex-1 min-w-[200px]">
+        <div className="relative w-full sm:max-w-sm sm:flex-1 sm:min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search order #, customer, tracking..." className="pl-10 h-10 rounded-xl" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
 
         <Select value={custom} onValueChange={setCustom}>
-          <SelectTrigger className="h-10 rounded-xl w-36">
+          <SelectTrigger className="h-10 rounded-xl w-[calc(50%-0.25rem)] sm:w-36">
             <span className={`h-2 w-2 rounded-full flex-shrink-0 ${custom === 'all' ? DOT_CLASSES.muted : DOT_CLASSES.primary}`} />
             <SelectValue />
           </SelectTrigger>
@@ -243,7 +243,7 @@ export default function AdminOrdersPage() {
         </Select>
 
         <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger className="h-10 rounded-xl w-40">
+          <SelectTrigger className="h-10 rounded-xl w-[calc(50%-0.25rem)] sm:w-40">
             <span className={`h-2 w-2 rounded-full flex-shrink-0 ${status === 'all' ? DOT_CLASSES.muted : DOT_CLASSES[STATUS_DOT[status] ?? 'muted']}`} />
             <SelectValue />
           </SelectTrigger>
@@ -259,7 +259,7 @@ export default function AdminOrdersPage() {
         </Select>
 
         <Select value={paymentStatus} onValueChange={setPaymentStatus}>
-          <SelectTrigger className="h-10 rounded-xl w-40">
+          <SelectTrigger className="h-10 rounded-xl w-[calc(50%-0.25rem)] sm:w-40">
             <span className={`h-2 w-2 rounded-full flex-shrink-0 ${paymentStatus === 'all' ? DOT_CLASSES.muted : DOT_CLASSES[PAYMENT_DOT[paymentStatus] ?? 'muted']}`} />
             <SelectValue />
           </SelectTrigger>

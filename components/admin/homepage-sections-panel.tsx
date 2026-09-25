@@ -91,7 +91,7 @@ function SectionEditForm({ section, onSave }: { section: HomepageSection; onSave
   const [title, setTitle] = useState(section.title ?? '')
   const [subtitle, setSubtitle] = useState(section.subtitle ?? '')
   return (
-    <div className="mt-3 grid gap-3 rounded-md border p-3 sm:grid-cols-2">
+    <div className="mt-3 grid grid-cols-1 gap-3 rounded-md border p-3 sm:grid-cols-2">
       <div className="space-y-1.5">
         <Label className="text-xs">Title</Label>
         <Input value={title} onChange={(e) => setTitle(e.target.value)} />

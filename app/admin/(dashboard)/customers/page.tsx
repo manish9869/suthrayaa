@@ -194,13 +194,13 @@ export default function AdminCustomersPage() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative max-w-sm flex-1 min-w-[200px]">
+        <div className="relative w-full sm:max-w-sm sm:flex-1 sm:min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search name, email, or phone..." className="pl-10 h-10 rounded-xl" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
 
         <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
-          <SelectTrigger className="h-10 rounded-xl w-44">
+          <SelectTrigger className="h-10 rounded-xl w-[calc(50%-0.25rem)] sm:w-44">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -215,7 +215,7 @@ export default function AdminCustomersPage() {
         <DateRangeFilter value={joinedRange} onChange={setJoinedRange} />
 
         <Select value={minOrders} onValueChange={setMinOrders}>
-          <SelectTrigger className="h-10 rounded-xl w-40">
+          <SelectTrigger className="h-10 rounded-xl w-[calc(50%-0.25rem)] sm:w-40">
             <SlidersHorizontal className="h-3.5 w-3.5 mr-1 text-muted-foreground flex-shrink-0" />
             <SelectValue />
           </SelectTrigger>

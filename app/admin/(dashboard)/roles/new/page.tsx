@@ -58,7 +58,7 @@ function NewRoleContent() {
       />
 
       <div className={`${GLASS_PANEL} p-6 space-y-6`}>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label>Role Name</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Warehouse Staff" />
