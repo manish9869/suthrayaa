@@ -19,7 +19,11 @@ export function useAuth() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
+      // Supabase re-emits the session (SIGNED_IN / TOKEN_REFRESHED) whenever the tab regains
+      // focus, each time with a fresh user object. Keep the existing reference while it's the
+      // same account, so consumers don't treat a token refresh as a new sign-in and reload.
+      const next = session?.user ?? null
+      setUser((prev) => (prev && next && prev.id === next.id ? prev : next))
     })
 
     return () => subscription.unsubscribe()

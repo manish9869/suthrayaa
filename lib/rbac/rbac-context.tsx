@@ -43,16 +43,19 @@ export function RbacProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // Keyed on the account id, not the user object, so a background token refresh (e.g. on tab
+  // focus) never re-fetches the profile or flips the console back into its loading splash.
+  const userId = user?.id ?? null
   useEffect(() => {
     if (authLoading) return
-    if (!user) {
+    if (!userId) {
       setAdmin(null)
       setProfileLoading(false)
       return
     }
     setProfileLoading(true)
     load()
-  }, [user, authLoading, load])
+  }, [userId, authLoading, load])
 
   const permissions = new Set(admin?.permissions ?? [])
   const isSuperAdmin = admin?.isSuperAdmin ?? false
