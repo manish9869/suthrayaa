@@ -28,7 +28,7 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
   return (
     <section className="py-20 lg:py-28" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
       <div className="container mx-auto px-4">
-        <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
           <Reveal className="flex flex-col justify-between">
             <div>
               <p className="eyebrow">Kind words</p>

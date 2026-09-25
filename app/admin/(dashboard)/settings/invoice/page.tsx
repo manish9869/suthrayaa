@@ -67,7 +67,7 @@ export default function InvoiceSettingsPage() {
             <Label>Address</Label>
             <Textarea rows={2} value={settings.address} onChange={(e) => set('address', e.target.value)} />
           </div>
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Email</Label>
               <Input value={settings.email} onChange={(e) => set('email', e.target.value)} />
@@ -89,7 +89,7 @@ export default function InvoiceSettingsPage() {
           <CardTitle className="text-base">Numbering &amp; Currency</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Invoice Prefix</Label>
               <Input value={settings.invoicePrefix} onChange={(e) => set('invoicePrefix', e.target.value)} />

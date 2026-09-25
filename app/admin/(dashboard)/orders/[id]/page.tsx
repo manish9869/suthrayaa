@@ -205,11 +205,11 @@ export default function AdminOrderDetailPage() {
         <Button variant="ghost" size="icon" onClick={() => router.push('/admin/orders')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-            {order.orderNumber}
+        <div className="min-w-0">
+          <h1 className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xl font-semibold tracking-tight sm:text-2xl">
+            <span className="whitespace-nowrap">{order.orderNumber}</span>
             {order.isCustomOrder && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-violet/10 px-2.5 py-0.5 text-xs font-semibold text-violet">
+              <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-violet/10 px-2.5 py-0.5 text-xs font-semibold text-violet">
                 <Sparkles className="h-3 w-3" /> Custom Order
               </span>
             )}
@@ -235,7 +235,7 @@ export default function AdminOrderDetailPage() {
         />
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
@@ -301,7 +301,7 @@ export default function AdminOrderDetailPage() {
               <CardTitle className="text-base">Shipping Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="grid sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs">Courier</Label>
                   <Input value={courier} onChange={(e) => setCourier(e.target.value)} placeholder="e.g. Delhivery" />

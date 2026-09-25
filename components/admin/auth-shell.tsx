@@ -11,7 +11,7 @@ const HIGHLIGHTS = [
  * ink-dark brand panel on the left (hidden on small screens) and the form on the right. */
 export function AuthShell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="admin grid min-h-screen bg-background text-foreground lg:grid-cols-[1.05fr_1fr]">
+    <main className="admin grid grid-cols-1 min-h-screen bg-background text-foreground lg:grid-cols-[1.05fr_1fr]">
       <aside className="relative hidden overflow-hidden bg-sidebar p-12 text-sidebar-foreground lg:flex lg:flex-col">
         <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-primary/30 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-40 -left-20 h-96 w-96 rounded-full bg-peach/20 blur-3xl" />

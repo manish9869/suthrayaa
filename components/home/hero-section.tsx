@@ -164,7 +164,7 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
       <div className="pointer-events-none absolute right-[-10%] top-[-20%] h-[520px] w-[520px] rounded-full bg-sage/20 blur-3xl" />
       <HeroBackdrop />
 
-      <div className="container relative mx-auto grid items-center gap-10 px-4 pb-16 pt-6 lg:min-h-[640px] lg:grid-cols-[1.05fr_1fr] lg:gap-8 lg:pb-20 lg:pt-6">
+      <div className="container relative mx-auto grid grid-cols-1 items-center gap-10 px-4 pb-16 pt-6 lg:min-h-[640px] lg:grid-cols-[1.05fr_1fr] lg:gap-8 lg:pb-20 lg:pt-6">
         {/* Copy */}
         <div className="relative z-10">
           <AnimatePresence mode="wait">
@@ -182,7 +182,7 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
                 )}
               </h1>
               {slide.description && <p className="mt-6 max-w-md text-[17px] leading-relaxed text-foreground/70">{slide.description}</p>}
-              <div className="mt-8 flex flex-wrap items-center gap-3">
+              <div className="mt-8 flex flex-col gap-2 min-[400px]:flex-row min-[400px]:flex-wrap min-[400px]:items-center min-[400px]:gap-3">
                 <Button size="lg" asChild className="group h-[52px] px-7 text-[15px]">
                   <Link href={slide.href}>
                     {slide.cta}

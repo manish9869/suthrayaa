@@ -84,12 +84,12 @@ export default function EmailLogsPage() {
       <PageHeader title="Email Logs" description={`${filtered.length} of ${logs.length} emails`} />
 
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative max-w-sm flex-1 min-w-[200px]">
+        <div className="relative w-full sm:max-w-sm sm:flex-1 sm:min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search recipient or subject..." className="pl-10 h-10 rounded-xl" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <Select value={type} onValueChange={setType}>
-          <SelectTrigger className="h-10 rounded-xl w-44">
+          <SelectTrigger className="h-10 rounded-xl w-[calc(50%-0.25rem)] sm:w-44">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -102,7 +102,7 @@ export default function EmailLogsPage() {
           </SelectContent>
         </Select>
         <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger className="h-10 rounded-xl w-40">
+          <SelectTrigger className="h-10 rounded-xl w-[calc(50%-0.25rem)] sm:w-40">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

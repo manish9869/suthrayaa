@@ -184,7 +184,7 @@ export function Footer() {
           <Reveal className="relative overflow-hidden rounded-[2rem] bg-blush px-6 py-10 sm:px-10 lg:px-14">
             <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-rose/20 blur-2xl" />
             <div className="pointer-events-none absolute -bottom-24 left-1/3 h-56 w-56 rounded-full bg-sage/25 blur-2xl" />
-            <div className="relative grid items-center gap-8 lg:grid-cols-[1.1fr_1fr]">
+            <div className="relative grid grid-cols-1 items-center gap-8 lg:grid-cols-[1.1fr_1fr]">
               <div className="flex items-start gap-5">
                 <span className="hidden h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground sm:flex">
                   <Mail className="h-6 w-6" />
@@ -226,7 +226,7 @@ export function Footer() {
 
       {/* Promise strip */}
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-2 gap-6 lg:grid-cols-4 lg:divide-x lg:divide-border">
+        <div className="grid grid-cols-1 gap-5 min-[420px]:grid-cols-2 min-[420px]:gap-6 lg:grid-cols-4 lg:divide-x lg:divide-border">
           {PROMISES.map((p, i) => (
             <Reveal key={p.title} delay={i * 0.05} className="flex items-start gap-3.5 lg:px-6 lg:first:pl-0">
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-primary/20 text-primary">
@@ -246,7 +246,7 @@ export function Footer() {
         <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-primary/40 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-32 left-10 h-72 w-72 rounded-full bg-secondary/25 blur-3xl" />
         <div className="container relative mx-auto px-4 pt-16 pb-8">
-          <div className="grid gap-12 lg:grid-cols-[1.3fr_2fr_1.2fr]">
+          <div className="grid grid-cols-1 gap-12 lg:grid-cols-[1.3fr_2fr_1.2fr]">
             <div>
               {/* Logo art is dark line-work on transparent — inverted to light so it reads on the ink footer */}
               <Link href="/" className="-ml-2 inline-flex items-center">

@@ -495,14 +495,14 @@ function AdminShell({ children }: { children: React.ReactNode }) {
             <Button variant="ghost" size="icon" className="lg:hidden -ml-1" onClick={() => setMobileNavOpen(true)} aria-label="Open navigation">
               <Menu className="h-5 w-5" />
             </Button>
-            <div className="hidden md:block min-w-0">
+            <div className="hidden md:block shrink-0">
               <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{currentGroup?.title ?? 'Admin'}</p>
               <p className="truncate text-sm font-semibold">{current?.label ?? 'Admin'}</p>
             </div>
 
             <button
               onClick={() => setSearchOpen(true)}
-              className="ml-auto md:ml-8 flex h-10 w-full max-w-md items-center gap-2.5 rounded-xl border bg-muted/60 px-3.5 text-sm text-muted-foreground transition-colors hover:bg-muted"
+              className="ml-auto md:ml-8 flex h-10 w-full min-w-0 max-w-md items-center gap-2.5 rounded-xl border bg-muted/60 px-3.5 text-sm text-muted-foreground transition-colors hover:bg-muted"
             >
               <Search className="h-4 w-4" />
               <span className="truncate">Search pages…</span>

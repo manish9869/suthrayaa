@@ -118,7 +118,7 @@ export function CartContent({ categories }: { categories: Category[] }) {
         <div className="container mx-auto px-4 py-8">
           <h1 className="display text-4xl sm:text-5xl mb-8">Shopping Cart ({items.length})</h1>
 
-          <div className="grid lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Cart Items */}
             <div className="lg:col-span-2 space-y-4">
               {/* Free Shipping Progress */}
@@ -170,10 +170,10 @@ export function CartContent({ categories }: { categories: Category[] }) {
                         transition={{ duration: 0.25 }}
                         className="py-6 first:pt-6"
                       >
-                        <div className="flex gap-4">
+                        <div className="flex gap-3 min-[360px]:gap-4">
                           <Link
                             href={`/product/${item.product.slug}`}
-                            className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-2xl overflow-hidden bg-sand flex-shrink-0"
+                            className="relative h-20 w-20 min-[360px]:h-24 min-[360px]:w-24 sm:h-32 sm:w-32 rounded-2xl overflow-hidden bg-sand flex-shrink-0"
                           >
                             <Image src={item.product.images[0]} alt={item.product.name} fill className="object-cover" />
                           </Link>
@@ -202,23 +202,25 @@ export function CartContent({ categories }: { categories: Category[] }) {
                               </div>
                             )}
 
-                            <div className="flex items-center justify-between mt-4">
+                            <div className="mt-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
                               <div className="flex items-center border rounded-full bg-card">
                                 <Button
                                   variant="ghost"
                                   size="icon"
                                   className="h-8 w-8 tap-bounce"
+                                  aria-label={`Decrease quantity of ${item.product.name}`}
                                   onClick={() =>
                                     updateQuantity(item.product.id, item.selectedColor, item.quantity - 1, item.customText, item.customizations)
                                   }
                                 >
                                   <Minus className="h-3 w-3" />
                                 </Button>
-                                <span className="w-10 text-center text-sm font-medium">{item.quantity}</span>
+                                <span className="w-8 text-center text-sm font-medium min-[360px]:w-10">{item.quantity}</span>
                                 <Button
                                   variant="ghost"
                                   size="icon"
                                   className="h-8 w-8 tap-bounce"
+                                  aria-label={`Increase quantity of ${item.product.name}`}
                                   onClick={() =>
                                     updateQuantity(item.product.id, item.selectedColor, item.quantity + 1, item.customText, item.customizations)
                                   }
@@ -227,12 +229,13 @@ export function CartContent({ categories }: { categories: Category[] }) {
                                 </Button>
                               </div>
 
-                              <div className="flex items-center gap-4">
+                              <div className="flex items-center gap-2 min-[360px]:gap-4">
                                 <span className="font-semibold">{formatPrice(unitPrice * item.quantity)}</span>
                                 <Button
                                   variant="ghost"
                                   size="icon"
                                   className="h-8 w-8 text-muted-foreground hover:text-destructive tap-bounce"
+                                  aria-label={`Remove ${item.product.name}`}
                                   onClick={() => {
                                     removeItem(item.product.id, item.selectedColor, item.customText, item.customizations)
                                     toast.info(`${item.product.name} removed from cart`)

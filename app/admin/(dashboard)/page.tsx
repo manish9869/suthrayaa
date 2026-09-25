@@ -191,7 +191,7 @@ function DashboardSkeleton() {
           <Skeleton key={i} className="h-[150px] rounded-[1.1rem]" />
         ))}
       </div>
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Skeleton className="h-[400px] rounded-[1.1rem] lg:col-span-2" />
         <Skeleton className="h-[400px] rounded-[1.1rem]" />
       </div>
@@ -356,7 +356,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Trend + top products */}
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="lg:col-span-2 gap-4">
             <CardHeader>
               <CardTitle className="text-base">Performance</CardTitle>
@@ -470,7 +470,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Recent orders + pipeline */}
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {canViewOrders && (
             <Card className="lg:col-span-2 gap-0 pb-0 overflow-hidden">
               <CardHeader className="pb-4">
@@ -576,7 +576,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Operational health */}
-        <div className="grid md:grid-cols-2 2xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-4 gap-6">
           {/* Payments */}
           <Card className="gap-4">
             <CardHeader>

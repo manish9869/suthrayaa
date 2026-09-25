@@ -167,7 +167,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="grid min-h-screen lg:grid-cols-2">
+    <main className="grid grid-cols-1 min-h-screen lg:grid-cols-2">
       {/* Editorial side */}
       <aside className="relative hidden overflow-hidden bg-sand lg:block">
         <Image src={STOREFRONT_IMAGES.authSide} alt="" fill priority sizes="50vw" className="object-cover" />
@@ -247,13 +247,13 @@ export default function LoginPage() {
                       value="email"
                       className="rounded-full py-2 gap-1.5 text-muted-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
                     >
-                      <Mail className="h-3.5 w-3.5" /> Email &amp; Password
+                      <Mail className="h-3.5 w-3.5 shrink-0" /> <span className="min-[380px]:hidden">Email</span><span className="hidden min-[380px]:inline">Email &amp; Password</span>
                     </TabsTrigger>
                     <TabsTrigger
                       value="mobile"
                       className="rounded-full py-2 gap-1.5 text-muted-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
                     >
-                      <Phone className="h-3.5 w-3.5" /> Mobile Number
+                      <Phone className="h-3.5 w-3.5 shrink-0" /> <span className="min-[380px]:hidden">Mobile</span><span className="hidden min-[380px]:inline">Mobile Number</span>
                     </TabsTrigger>
                   </TabsList>
 

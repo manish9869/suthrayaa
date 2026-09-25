@@ -93,7 +93,7 @@ function CascadingCategoryPicker({
   )
 
   return (
-    <div className="grid sm:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <div className="space-y-2">
         <Label className="text-xs">Main Category</Label>
         <Select value={mainId} onValueChange={onChange}>
@@ -403,7 +403,7 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
             <Label>Full Description</Label>
             <Textarea rows={4} value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
           </div>
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Status</Label>
               <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v as ProductStatus }))}>
@@ -436,7 +436,7 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
             </div>
           </div>
           {form.productType !== 'ready_to_ship' && (
-            <div className="grid sm:grid-cols-3 gap-4 pl-4 border-l-2 border-muted">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pl-4 border-l-2 border-muted">
               <div className="space-y-2">
                 <Label className="text-xs">Min Processing Days</Label>
                 <Input
@@ -581,7 +581,7 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
         <TabsContent value="pricing" className="pt-4">
         <Card>
         <CardContent className="p-6 space-y-4">
-          <div className="grid sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Base Price (₹)</Label>
               <Input type="number" value={form.price} onChange={(e) => setForm((f) => ({ ...f, price: Number(e.target.value) }))} />
@@ -629,7 +629,7 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
 
           <Separator />
           <p className="text-sm font-medium">Sale</p>
-          <div className="grid sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label className="text-xs">Sale Price (₹)</Label>
               <Input
@@ -694,7 +694,7 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
                     <Switch checked={allowText} onCheckedChange={setAllowText} />
                   </label>
                   {allowText && (
-                    <div className="grid sm:grid-cols-2 gap-4 pl-4 border-l-2 border-muted">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-4 border-l-2 border-muted">
                       <div className="space-y-2">
                         <Label className="text-xs">Max Characters</Label>
                         <Input type="number" value={maxTextLength} onChange={(e) => setMaxTextLength(Number(e.target.value))} />
@@ -756,7 +756,7 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
             <Switch checked={form.trackInventory} onCheckedChange={(v) => setForm((f) => ({ ...f, trackInventory: v }))} />
           </label>
           {form.trackInventory && (
-            <div className="grid sm:grid-cols-2 gap-4 pl-4 border-l-2 border-muted">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-4 border-l-2 border-muted">
               <div className="space-y-2">
                 <Label className="text-xs">Quantity Available</Label>
                 <Input type="number" value={form.stock} onChange={(e) => setForm((f) => ({ ...f, stock: Number(e.target.value) }))} />
@@ -801,7 +801,7 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
           </label>
           {form.isPhysical && (
             <>
-              <div className="grid sm:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label className="text-xs">Weight (g)</Label>
                   <Input type="number" value={form.weight ?? ''} onChange={(e) => setForm((f) => ({ ...f, weight: e.target.value ? Number(e.target.value) : undefined }))} />

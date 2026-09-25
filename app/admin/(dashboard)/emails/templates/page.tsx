@@ -189,7 +189,7 @@ export default function EmailTemplatesPage() {
           <EmptyState icon={Mail} title="No templates found" />
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
           {templates.map((t) => {
             const Icon = TYPE_ICONS[t.type] ?? Mail
             return (

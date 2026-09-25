@@ -118,7 +118,7 @@ export default function AdminHeroSlidesPage() {
           />
         </Card>
       ) : (
-        <div className="grid gap-5 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           {slides.map((s, i) => (
             <Card key={s.id} className="group gap-0 overflow-hidden py-0">
               <div className="relative aspect-[16/7] overflow-hidden bg-muted">

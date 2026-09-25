@@ -27,7 +27,7 @@ export default async function ContactPage() {
       description="Questions about an order, a custom piece in mind, or just want to say hi? We're one message away."
       wide
     >
-      <div className="grid lg:grid-cols-5 gap-10 max-w-5xl mx-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-10 max-w-5xl mx-auto">
         <div className="lg:col-span-2 space-y-4">
           {contactDetails.map((detail) => (
             <div key={detail.label} className="flex items-start gap-3 p-4 rounded-xl bg-card shadow-soft">

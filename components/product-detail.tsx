@@ -185,9 +185,9 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
             <span className="truncate font-medium text-foreground">{product.name}</span>
           </nav>
 
-          <div className="mt-6 grid gap-10 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
+          <div className="mt-6 grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-16">
             {/* Gallery */}
-            <div className="flex flex-col-reverse gap-3 lg:flex-row lg:gap-4">
+            <div className="mx-auto flex w-full max-w-[560px] flex-col-reverse gap-3 lg:mx-0 lg:max-w-none lg:flex-row lg:gap-4">
               {product.images.length > 1 && (
                 <div className="flex gap-3 overflow-x-auto scrollbar-hide lg:w-20 lg:flex-col lg:overflow-visible">
                   {product.images.map((image, index) => (
@@ -405,9 +405,16 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                 </div>
 
                 <div ref={buyRef} className="flex gap-2.5">
-                  <Button size="lg" className="h-[52px] flex-1 text-[15px]" onClick={handleAddToCart} disabled={outOfStock}>
-                    <ShoppingBag className="h-5 w-5" />
-                    {outOfStock ? 'Out of stock' : `Add to cart · ${formatPrice(displayUnitPrice * quantity)}`}
+                  <Button size="lg" className="h-[52px] min-w-0 flex-1 px-4 text-[15px]" onClick={handleAddToCart} disabled={outOfStock}>
+                    <ShoppingBag className="h-5 w-5 shrink-0" />
+                    {outOfStock ? (
+                      'Out of stock'
+                    ) : (
+                      <>
+                        <span className="min-[380px]:hidden">Add · {formatPrice(displayUnitPrice * quantity)}</span>
+                        <span className="hidden min-[380px]:inline">Add to cart · {formatPrice(displayUnitPrice * quantity)}</span>
+                      </>
+                    )}
                   </Button>
                   <Button
                     size="lg"
@@ -415,11 +422,11 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                     onClick={handleWishlistToggle}
                     aria-label={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
                     aria-pressed={inWishlist}
-                    className={cn('h-[52px] w-[52px] px-0', inWishlist && 'border-rose text-rose')}
+                    className={cn('h-[52px] w-[48px] shrink-0 px-0 min-[380px]:w-[52px]', inWishlist && 'border-rose text-rose')}
                   >
                     <Heart className={cn('h-5 w-5', inWishlist && 'fill-current animate-pop-in')} />
                   </Button>
-                  <Button size="lg" variant="outline" onClick={handleShare} aria-label="Share" className="h-[52px] w-[52px] px-0">
+                  <Button size="lg" variant="outline" onClick={handleShare} aria-label="Share" className="h-[52px] w-[48px] shrink-0 px-0 min-[380px]:w-[52px]">
                     <Share2 className="h-5 w-5" />
                   </Button>
                 </div>
@@ -454,7 +461,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
           {/* Details tabs */}
           <section id="details" className="mt-20 scroll-mt-32">
             <Tabs defaultValue="description" className="w-full">
-              <TabsList className="h-auto rounded-full bg-muted p-1">
+              <TabsList className="h-auto max-w-full justify-start overflow-x-auto rounded-full bg-muted p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {[
                   ['description', 'Description'],
                   ['details', 'Details & care'],
@@ -463,7 +470,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                   <TabsTrigger
                     key={value}
                     value={value}
-                    className="rounded-full px-5 py-2 text-sm data-[state=active]:bg-card data-[state=active]:shadow-sm"
+                    className="shrink-0 rounded-full px-4 py-2 text-sm data-[state=active]:bg-card data-[state=active]:shadow-sm sm:px-5"
                   >
                     {label}
                   </TabsTrigger>
@@ -475,7 +482,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
               </TabsContent>
 
               <TabsContent value="details" className="mt-8 animate-in fade-in-0 slide-in-from-bottom-1 duration-300">
-                <div className="grid gap-6 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                   <div className="rounded-[1.5rem] bg-card p-6 ring-1 ring-border">
                     <h3 className="font-serif text-xl">Product details</h3>
                     <dl className="mt-4 divide-y text-sm">
@@ -512,7 +519,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
               </TabsContent>
 
               <TabsContent value="reviews" className="mt-8 animate-in fade-in-0 slide-in-from-bottom-1 duration-300">
-                <div className="grid gap-8 lg:grid-cols-[300px_1fr]">
+                <div className="grid grid-cols-1 gap-8 lg:grid-cols-[300px_1fr]">
                   <div className="self-start rounded-[1.5rem] bg-card p-6 ring-1 ring-border">
                     <p className="display text-6xl">{reviewAvg.toFixed(1)}</p>
                     <div className="mt-2 flex">
@@ -591,7 +598,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
           </section>
 
           {/* FAQ */}
-          <section className="mt-20 grid gap-8 lg:grid-cols-[0.8fr_1.2fr]">
+          <section className="mt-20 grid grid-cols-1 gap-8 lg:grid-cols-[0.8fr_1.2fr]">
             <div>
               <p className="eyebrow">Good to know</p>
               <h2 className="display mt-3 text-4xl">

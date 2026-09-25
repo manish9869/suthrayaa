@@ -46,7 +46,7 @@ export default async function AboutPage() {
             Here&apos;s what happens between the moment you place an order and the moment it arrives at your door.
           </p>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 min-[420px]:grid-cols-2 md:grid-cols-4 gap-4 min-[420px]:gap-6">
           {processSteps.map((step, i) => (
             <div key={step.title} className="relative rounded-[1.75rem] bg-card p-6 text-center ring-1 ring-border lift">
               <div className="w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center mx-auto mb-4 shadow-soft">

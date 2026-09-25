@@ -75,7 +75,7 @@ export function PromoSection({ products = [] }: { products?: Product[] }) {
     <section className="py-8 lg:py-12">
       <div className="container mx-auto space-y-5 px-4">
         {/* Sale banner */}
-        <Reveal className="group relative grid overflow-hidden rounded-[2rem] bg-primary text-primary-foreground lg:grid-cols-[0.9fr_1.1fr]">
+        <Reveal className="group relative grid grid-cols-1 overflow-hidden rounded-[2rem] bg-primary text-primary-foreground lg:grid-cols-[0.9fr_1.1fr]">
           <div className="relative z-10 flex flex-col justify-center gap-5 p-8 sm:p-12">
             <p className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.18em] text-primary-foreground/70">
               <Sparkles className="h-4 w-4" /> {STOREFRONT_PROMO.saleEyebrow}
@@ -99,7 +99,7 @@ export function PromoSection({ products = [] }: { products?: Product[] }) {
           </div>
         </Reveal>
 
-        <div className="grid gap-5 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           {/* Coupon */}
           <Reveal delay={0.05} className="relative overflow-hidden rounded-[2rem] bg-blush p-8 sm:p-10">
             <div className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-rose/20 blur-2xl" />
@@ -130,7 +130,7 @@ export function PromoSection({ products = [] }: { products?: Product[] }) {
 
           {/* Deal of the day */}
           <Reveal delay={0.1} className="relative overflow-hidden rounded-[2rem] bg-accent p-8 sm:p-10">
-            <div className="grid items-center gap-6 sm:grid-cols-[1fr_190px]">
+            <div className="grid grid-cols-1 items-center gap-6 sm:grid-cols-[1fr_190px]">
               <div>
                 <p className="eyebrow !text-primary">Deal of the day</p>
                 <h3 className="display mt-3 text-3xl sm:text-4xl">{deal ? deal.name : 'Today’s pick'}</h3>

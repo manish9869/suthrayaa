@@ -66,7 +66,7 @@ function AuditLogsContent() {
 
       <div className="flex flex-wrap items-center gap-3">
         <Select value={action} onValueChange={(v) => { setAction(v); setPage(1) }}>
-          <SelectTrigger className="h-10 rounded-xl w-56">
+          <SelectTrigger className="h-10 rounded-xl w-[calc(50%-0.25rem)] sm:w-56">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
