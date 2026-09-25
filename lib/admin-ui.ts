@@ -3,7 +3,7 @@
  * the canvas. Reuse this across admin pages so all tables/panels share one surface language.
  * (The name is historical; the panels are no longer translucent.) */
 export const GLASS_PANEL =
-  'rounded-[1.1rem] border bg-card text-card-foreground shadow-[0_1px_2px_rgb(16_24_40/0.04),0_1px_3px_rgb(16_24_40/0.03)]'
+  'admin-panel rounded-[1.1rem] border bg-card text-card-foreground'
 
 /** Downloads `rows` as a CSV file named `filename`. Values are stringified and
  * comma/quote/newline-escaped per RFC 4180; a BOM is prepended so Excel opens

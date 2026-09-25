@@ -489,7 +489,7 @@ export default function AdminDashboardPage() {
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
-                    <thead className="bg-muted/60 text-[11px] uppercase tracking-wider text-muted-foreground">
+                    <thead className="border-y border-[color-mix(in_oklab,var(--primary)_12%,var(--border))] bg-[color-mix(in_oklab,var(--primary)_5%,var(--card))] text-[11px] uppercase tracking-[0.07em] text-muted-foreground">
                       <tr>
                         <th className="px-6 py-2.5 text-left font-semibold">Order</th>
                         <th className="px-3 py-2.5 text-left font-semibold">Customer</th>
@@ -502,7 +502,7 @@ export default function AdminDashboardPage() {
                       {recentOrders.map((o) => {
                         const name = o.customerName ?? 'Guest'
                         return (
-                          <tr key={o.id} className="group transition-colors hover:bg-muted/40">
+                          <tr key={o.id} className="group transition-colors hover:bg-primary/[0.035]">
                             <td className="px-6 py-3">
                               <Link href={`/admin/orders/${o.id}`} className="font-medium group-hover:text-primary">
                                 {o.orderNumber}

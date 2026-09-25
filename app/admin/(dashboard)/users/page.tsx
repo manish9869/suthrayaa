@@ -225,14 +225,14 @@ function UsersPageContent() {
             </TableHeader>
             <TableBody>
               {sorted.length === 0 ? (
-                <TableRow className="border-border">
+                <TableRow>
                   <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                     {users.length === 0 ? 'No admin users yet' : 'No users match this search'}
                   </TableCell>
                 </TableRow>
               ) : (
                 sorted.map((u) => (
-                  <TableRow key={u.id} className="border-border">
+                  <TableRow key={u.id}>
                     <TableCell className="pl-5">
                       <div className="flex items-center gap-3">
                         <InitialsAvatar name={u.displayName ?? u.email} tone={u.id === currentAdmin?.id ? 'brand' : 'neutral'} />

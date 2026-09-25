@@ -275,7 +275,7 @@ export default function AdminCustomersPage() {
               </TableRow>
             ) : (
               pageItems.map((c) => (
-                <TableRow key={c.id} className="hover:bg-muted/50">
+                <TableRow key={c.id}>
                   <TableCell className="font-medium">
                     <Link href={`/admin/customers/${c.id}`} className="text-primary hover:underline flex items-center gap-1.5">
                       {c.firstName || c.lastName ? `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() : 'Unnamed'}
