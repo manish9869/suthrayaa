@@ -573,7 +573,10 @@ export async function fetchInvoicePreviewBlob(draft: Partial<AdminInvoiceSetting
     signal,
   })
   if (!res.ok) throw new Error('Failed to render preview')
-  return res.blob()
+  // Arrives as base64 JSON (not application/pdf) so download managers don't intercept it.
+  const { pdf } = (await res.json()) as { pdf: string }
+  const bytes = Uint8Array.from(atob(pdf), (c) => c.charCodeAt(0))
+  return new Blob([bytes], { type: 'application/pdf' })
 }
 
 // ---- Coupons ----
