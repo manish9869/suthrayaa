@@ -269,6 +269,8 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
   const [issues, setIssues] = useState<CartLineIssue[]>([])
   const [checkingCart, setCheckingCart] = useState(true)
   const [placing, setPlacing] = useState(false)
+  // One key per checkout attempt: a double click or a retried request returns the same order
+  const idempotencyKey = useRef(typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : undefined)
   // Set once the order is placed: the page switches to a "confirming" screen *before* the
   // cart is cleared, so the customer never sees an empty cart on the way to the thank-you page.
   const [finishing, setFinishing] = useState<null | 'placing' | 'paid' | 'pending'>(null)
@@ -463,6 +465,7 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
         couponCode,
         giftWrap,
         giftMessage: giftWrap && giftMessage.trim() ? giftMessage.trim() : undefined,
+        idempotencyKey: idempotencyKey.current,
       })
 
       // Save a newly typed address to the address book (signed-in customers)

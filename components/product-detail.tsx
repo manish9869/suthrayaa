@@ -182,7 +182,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
   }))
   // Mirrors the backend: stock only limits purchases when it's tracked and backorders are off
   const stockLimited = product.trackInventory !== false && !product.allowBackorders && !product.continueSellingWhenOutOfStock
-  const outOfStock = stockLimited && product.stock <= 0
+  const outOfStock = product.status === 'out_of_stock' || (stockLimited && product.stock <= 0)
   const maxQty = stockLimited ? Math.max(1, Math.min(product.stock, 20)) : 20
   const lowStock = stockLimited && product.stock > 0 && product.stock < 10
 

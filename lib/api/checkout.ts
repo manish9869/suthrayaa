@@ -126,6 +126,7 @@ export interface PlaceOrderInput {
   couponCode?: string
   giftWrap?: boolean
   giftMessage?: string
+  idempotencyKey?: string
 }
 
 export interface PlaceOrderResult {

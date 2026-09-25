@@ -17,6 +17,7 @@ export function needsOptions(product: Product): boolean {
 
 /** Same stock rule as the backend: only limits when tracked and backorders are off. */
 export function isOutOfStock(product: Product): boolean {
+  if (product.status === 'out_of_stock') return true
   const limited = product.trackInventory !== false && !product.allowBackorders && !product.continueSellingWhenOutOfStock
   return limited && product.stock <= 0
 }
