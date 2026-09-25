@@ -537,6 +537,16 @@ export interface AdminInvoiceSettings {
   showSku: boolean
   showTax: boolean
   showCustomizationPricing: boolean
+  // Design options (older backends may omit them — treat as optional with defaults)
+  tagline?: string
+  headerStyle?: 'dark' | 'light'
+  accent?: 'peach' | 'violet' | 'rose' | 'teal'
+  showHsn?: boolean
+  showGstSummary?: boolean
+  showAmountInWords?: boolean
+  showPayment?: boolean
+  showSignature?: boolean
+  signatoryName?: string
   // GST identity fields — only present in the response for a caller with settings.tax;
   // absent (not just empty) for anyone else, so treat all of these as optional.
   isGstRegistered?: boolean
@@ -550,6 +560,18 @@ export interface AdminInvoiceSettings {
 export const getInvoiceSettings = () => adminFetch<AdminInvoiceSettings>('/admin/settings/invoice')
 export const updateInvoiceSettings = (input: Partial<AdminInvoiceSettings>) =>
   adminFetch<AdminInvoiceSettings>('/admin/settings/invoice', { method: 'PATCH', body: JSON.stringify(input) })
+/** Renders a sample invoice PDF from the saved settings overlaid with `draft` (unsaved). */
+export async function fetchInvoicePreviewBlob(draft: Partial<AdminInvoiceSettings>, signal?: AbortSignal): Promise<Blob> {
+  const t = await token()
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/settings/invoice/preview`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(t ? { Authorization: `Bearer ${t}` } : {}) },
+    body: JSON.stringify(draft),
+    signal,
+  })
+  if (!res.ok) throw new Error('Failed to render preview')
+  return res.blob()
+}
 
 // ---- Coupons ----
 export interface AdminCoupon {

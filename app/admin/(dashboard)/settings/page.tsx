@@ -331,14 +331,16 @@ function TaxCategoriesPanel({ categories, onChanged }: { categories: TaxCategory
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [rate, setRate] = useState(18)
+  const [hsn, setHsn] = useState('')
 
   const handleCreate = async () => {
     if (!name.trim()) return
     try {
-      await createTaxCategory({ name, rate })
+      await createTaxCategory({ name, rate, hsnCode: hsn.trim() || undefined })
       toast.success('Tax category created')
       setOpen(false)
       setName('')
+      setHsn('')
       onChanged()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to create')
@@ -358,13 +360,24 @@ function TaxCategoriesPanel({ categories, onChanged }: { categories: TaxCategory
     await updateTaxCategory(id, { isDefault: true })
     onChanged()
   }
+  const handleHsn = async (c: TaxCategory) => {
+    const next = prompt(`HSN code for "${c.name}" (4, 6 or 8 digits; leave empty to clear)`, c.hsn_code ?? '')
+    if (next === null) return
+    try {
+      await updateTaxCategory(c.id, { hsnCode: next.trim() })
+      toast.success('HSN code saved')
+      onChanged()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save HSN code')
+    }
+  }
 
   return (
     <div className={`${GLASS_PANEL} overflow-hidden`}>
       <div className="flex items-center justify-between border-b p-4">
         <div>
           <h3 className="font-medium">GST Rate Categories</h3>
-          <p className="text-xs text-muted-foreground">Applied per-product — different products can have different GST rates.</p>
+          <p className="text-xs text-muted-foreground">Applied per-product — different products can have different GST rates. The HSN code is printed on tax invoices.</p>
         </div>
         <Can permission="settings.tax">
           <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
@@ -377,6 +390,7 @@ function TaxCategoriesPanel({ categories, onChanged }: { categories: TaxCategory
           <TableRow>
             <TableHead>Name</TableHead>
             <TableHead>Rate</TableHead>
+            <TableHead>HSN</TableHead>
             <TableHead>Default</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -386,6 +400,18 @@ function TaxCategoriesPanel({ categories, onChanged }: { categories: TaxCategory
             <TableRow key={c.id}>
               <TableCell className="font-medium">{c.name}</TableCell>
               <TableCell>{c.rate}%</TableCell>
+              <TableCell>
+                <Can permission="settings.tax" fallback={<span className="text-muted-foreground">{c.hsn_code || '—'}</span>}>
+                  <button
+                    type="button"
+                    onClick={() => handleHsn(c)}
+                    className="rounded-md px-1.5 py-0.5 text-sm tabular-nums hover:bg-muted"
+                    title="Edit HSN code"
+                  >
+                    {c.hsn_code || <span className="text-muted-foreground">Add HSN</span>}
+                  </button>
+                </Can>
+              </TableCell>
               <TableCell>
                 {c.is_default ? (
                   <Badge variant="secondary">Default</Badge>
@@ -422,6 +448,11 @@ function TaxCategoriesPanel({ categories, onChanged }: { categories: TaxCategory
             <div className="space-y-2">
               <Label>Rate (%)</Label>
               <Input type="number" value={rate} onChange={(e) => setRate(Number(e.target.value))} min={0} max={100} />
+            </div>
+            <div className="space-y-2">
+              <Label>HSN code (optional)</Label>
+              <Input value={hsn} onChange={(e) => setHsn(e.target.value.replace(/\D/g, '').slice(0, 8))} placeholder="6117" inputMode="numeric" />
+              <p className="text-xs text-muted-foreground">Crocheted accessories are usually 6117; toys 9503. Printed per item on tax invoices.</p>
             </div>
           </div>
           <DialogFooter>
