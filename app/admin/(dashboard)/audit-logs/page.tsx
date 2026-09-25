@@ -104,14 +104,14 @@ function AuditLogsContent() {
               </TableHeader>
               <TableBody>
                 {logs.length === 0 ? (
-                  <TableRow className="border-border">
+                  <TableRow>
                     <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                       No audit events in this range
                     </TableCell>
                   </TableRow>
                 ) : (
                   logs.map((log) => (
-                    <TableRow key={log.id} className="border-border">
+                    <TableRow key={log.id}>
                       <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                         {new Date(log.createdAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                       </TableCell>

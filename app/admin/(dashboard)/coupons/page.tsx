@@ -168,14 +168,14 @@ export default function AdminCouponsPage() {
           </TableHeader>
           <TableBody>
             {pageItems.length === 0 ? (
-              <TableRow className="border-border">
+              <TableRow>
                 <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                   No coupons match these filters
                 </TableCell>
               </TableRow>
             ) : (
               pageItems.map((c) => (
-                <TableRow key={c.id} className="border-border">
+                <TableRow key={c.id}>
                   <TableCell>
                     <span className="inline-flex items-center gap-2 rounded-lg border border-dashed border-primary/40 bg-primary/5 px-2.5 py-1 font-mono text-[13px] font-semibold tracking-wide text-primary">
                       <Ticket className="h-3.5 w-3.5" /> {c.code}

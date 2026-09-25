@@ -92,7 +92,7 @@ function RolesPageContent() {
             </TableHeader>
             <TableBody>
               {sorted.map((r) => (
-                <TableRow key={r.id} className="border-border">
+                <TableRow key={r.id}>
                   <TableCell className="pl-5">
                     <div className="flex items-center gap-3">
                       <span
