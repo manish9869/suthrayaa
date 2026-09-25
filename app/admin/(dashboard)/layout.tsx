@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Image from 'next/image'
+import { LogoLoader } from '@/components/logo-loader'
 import Link from 'next/link'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { RbacProvider, useRbac } from '@/lib/rbac/rbac-context'
@@ -40,7 +41,6 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
 } from 'lucide-react'
-import { Spinner } from '@/components/ui/spinner'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import {
@@ -611,11 +611,8 @@ function AdminShell({ children }: { children: React.ReactNode }) {
 
 function AdminSplash() {
   return (
-    <div className="admin flex min-h-screen flex-col items-center justify-center gap-5 bg-background">
-      <span className="relative h-16 w-16 animate-pulse">
-        <Image src="/logo.png" alt="" fill sizes="64px" priority className="object-contain" />
-      </span>
-      <Spinner className="size-5 text-muted-foreground" />
+    <div className="admin bg-background">
+      <LogoLoader fullScreen label="Opening your workspace…" />
     </div>
   )
 }
