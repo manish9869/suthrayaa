@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
-import { Menu, X, ShoppingBag, Heart, Search, User, ChevronDown, ArrowRight, Truck, RotateCcw, ShieldCheck, Sparkles } from 'lucide-react'
+import { Menu, X, ShoppingBag, Heart, Search, User, ChevronDown, ArrowRight, Truck, RotateCcw, ShieldCheck, Sparkles, Package, MapPin, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -346,6 +346,20 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
                       </div>
                     )}
                   </div>
+                  {user && (
+                    <div className="grid grid-cols-2 gap-2 border-t px-4 pt-4">
+                      <Button variant="outline" asChild onClick={() => setIsMobileMenuOpen(false)}>
+                        <Link href="/account">
+                          <User className="h-4 w-4" /> My account
+                        </Link>
+                      </Button>
+                      <Button variant="outline" asChild onClick={() => setIsMobileMenuOpen(false)}>
+                        <Link href="/account/orders">
+                          <Package className="h-4 w-4" /> My orders
+                        </Link>
+                      </Button>
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 gap-2 border-t p-4">
                     <Button variant="outline" asChild onClick={() => setIsMobileMenuOpen(false)}>
                       <Link href="/wishlist">
@@ -354,7 +368,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
                     </Button>
                     {user ? (
                       <Button variant="outline" onClick={() => signOut()}>
-                        <User className="h-4 w-4" /> Sign out
+                        <LogOut className="h-4 w-4" /> Sign out
                       </Button>
                     ) : (
                       <Button asChild onClick={() => setIsMobileMenuOpen(false)}>
@@ -441,12 +455,28 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild className="rounded-xl">
+                      <Link href="/account">
+                        <User /> My account
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="rounded-xl">
+                      <Link href="/account/orders">
+                        <Package /> My orders
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="rounded-xl">
+                      <Link href="/account/addresses">
+                        <MapPin /> Addresses
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="rounded-xl">
                       <Link href="/wishlist">
                         <Heart /> Wishlist
                       </Link>
                     </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => signOut()} className="rounded-xl">
-                      <X /> Sign Out
+                      <LogOut /> Sign out
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
