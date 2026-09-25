@@ -92,7 +92,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
   // client-side (public, unauthenticated endpoints) with hardcoded fallbacks so the header is
   // never empty/broken if the settings API hiccups or hasn't been configured yet.
   const [navLinks, setNavLinks] = useState<NavLinkItem[]>(FALLBACK_NAV_LINKS)
-  const [logoUrl, setLogoUrl] = useState<string>(STOREFRONT_IMAGES.logo)
+  const [logoUrl, setLogoUrl] = useState<string>(STOREFRONT_IMAGES.logoMark)
   const [announcement, setAnnouncement] = useState<AnnouncementState | null>(null)
 
   useEffect(() => {
@@ -287,7 +287,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
                         setIsMobileMenuOpen(false)
                       }}
                     >
-                      <Image src={logoUrl} alt="Suthrayaa" width={96} height={51} className="h-11 w-auto" />
+                      <Image src={logoUrl} alt="Suthrayaa" width={48} height={48} className="h-12 w-12 object-contain" />
                     </Link>
                   </div>
                   <div className="flex-1 overflow-auto px-3 py-4">
@@ -396,9 +396,14 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
               </SheetContent>
             </Sheet>
 
-            {/* Logo */}
-            <Link href="/" className="flex shrink-0 items-center gap-2.5" onClick={handleHomeClick} aria-label="Suthrayaa home">
-              <Image src={logoUrl} alt="Suthrayaa" width={104} height={55} className="h-14 w-auto lg:h-[60px]" priority />
+            {/* Logo — centred between the menu and action buttons below lg, left-aligned on desktop */}
+            <Link
+              href="/"
+              className="flex shrink-0 items-center max-lg:absolute max-lg:left-1/2 max-lg:top-1/2 max-lg:-translate-x-1/2 max-lg:-translate-y-1/2"
+              onClick={handleHomeClick}
+              aria-label="Suthrayaa home"
+            >
+              <Image src={logoUrl} alt="Suthrayaa" width={64} height={64} className="h-[52px] w-[52px] object-contain lg:h-[60px] lg:w-[60px]" priority />
             </Link>
 
             {/* Desktop navigation */}

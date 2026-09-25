@@ -826,3 +826,32 @@ export async function exportNewsletterCsv() {
   a.remove()
   setTimeout(() => URL.revokeObjectURL(url), 2000)
 }
+
+// ---- Storefront theme (Admin → Theme) ----
+export interface ThemeToken {
+  key: string
+  label: string
+  group: string
+}
+export type ThemeColors = Record<string, string>
+export interface ThemeDef {
+  id: string
+  name: string
+  description?: string
+  colors: ThemeColors
+}
+export interface ThemeAdminState {
+  activeId: string
+  defaultId: string
+  tokens: ThemeToken[]
+  presets: ThemeDef[]
+  customThemes: ThemeDef[]
+}
+export const getThemeAdmin = () => adminFetch<ThemeAdminState>('/admin/theme')
+export const activateTheme = (id: string) =>
+  adminFetch<ThemeAdminState>('/admin/theme/active', { method: 'PUT', body: JSON.stringify({ id }) })
+export const createCustomTheme = (name: string, colors: ThemeColors) =>
+  adminFetch<ThemeAdminState & { id: string }>('/admin/theme/custom', { method: 'POST', body: JSON.stringify({ name, colors }) })
+export const updateCustomTheme = (id: string, name: string, colors: ThemeColors) =>
+  adminFetch<ThemeAdminState & { id: string }>(`/admin/theme/custom/${id}`, { method: 'PUT', body: JSON.stringify({ name, colors }) })
+export const deleteCustomTheme = (id: string) => adminFetch<ThemeAdminState>(`/admin/theme/custom/${id}`, { method: 'DELETE' })

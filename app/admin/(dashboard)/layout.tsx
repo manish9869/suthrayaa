@@ -21,6 +21,7 @@ import {
   Layers,
   LayoutTemplate,
   Send,
+  Paintbrush,
   Image as ImageIcon,
   Mail,
   History,
@@ -112,6 +113,7 @@ const navGroups: NavGroup[] = [
       { href: '/admin/users', label: 'Users & Roles', icon: ShieldCheck, permission: 'users.view', aliases: ['/admin/roles'] },
       { href: '/admin/audit-logs', label: 'Audit Logs', icon: ScrollText, permission: 'audit_logs.view' },
       { href: '/admin/settings', label: 'Site Settings', icon: Settings2, permission: 'settings.view' },
+      { href: '/admin/theme', label: 'Theme', icon: Paintbrush, permission: 'settings.view' },
       { href: '/admin/settings/invoice', label: 'Invoice Settings', icon: Receipt, permission: 'settings.view' },
     ],
   },
@@ -148,9 +150,9 @@ function isActive(pathname: string, item: NavItem | string) {
 function BrandMark({ collapsed = false }: { collapsed?: boolean }) {
   return (
     <Link href="/admin" className="flex items-center gap-3" title="Suthrayaa Admin">
-      {/* The storefront logo, inverted to white on the indigo sidebar (as in the storefront footer) */}
-      <span className="relative h-10 w-10 shrink-0">
-        <Image src="/logo.png" alt="" fill sizes="40px" className="object-contain brightness-0 invert" />
+      {/* Brand yarn-ball icon (same as the favicon) — the full logo's lettering is illegible at this size */}
+      <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl ring-1 ring-white/10">
+        <Image src="/icon-192.png" alt="" fill sizes="40px" className="object-cover" />
       </span>
       {!collapsed && (
         <span className="leading-tight">

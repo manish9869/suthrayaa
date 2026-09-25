@@ -4,6 +4,8 @@
  * take priority over the hero fallbacks on the homepage. */
 export const STOREFRONT_IMAGES = {
   logo: '/logo.png',
+  /** Square, tightly-cropped emblem — use wherever the logo sits in a small box (header, drawer). */
+  logoMark: '/logo-mark.png',
   // hero slides
   heroGarland: '/editorial/scene-garland.webp',
   heroFlowers: '/editorial/scene-hibiscus.webp',

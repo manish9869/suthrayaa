@@ -53,28 +53,48 @@ async function getPublicSettings(): Promise<Record<string, Record<string, unknow
   return {}
 }
 
-// Admin → Site Settings → Branding colours → storefront CSS variables. Only colours that differ
-// from the built-in theme (app/globals.css :root) are emitted, so an untouched store renders
-// exactly as designed. Admin pages keep their own palette (the .admin scope overrides :root).
-const BRAND_COLOR_VARS: Record<string, { theme: string; vars: string[] }> = {
-  'branding.color_primary': { theme: '#6d4aff', vars: ['--primary', '--ring', '--violet', '--chart-1', '--sidebar-primary', '--sidebar-ring'] },
-  'branding.color_secondary': { theme: '#ff9e7a', vars: ['--secondary', '--chart-2'] },
-  'branding.color_accent': { theme: '#f5b544', vars: ['--gold', '--chart-4'] },
-  'branding.color_background': { theme: '#fcfbff', vars: ['--background', '--cream'] },
-  'branding.color_text': { theme: '#1f1a33', vars: ['--foreground', '--card-foreground', '--popover-foreground'] },
-  'branding.color_success': { theme: '#1e7a48', vars: ['--mint-foreground'] },
-  'branding.color_error': { theme: '#e5484d', vars: ['--destructive'] },
+// Admin → Theme → storefront CSS variables. With the default theme active nothing is emitted,
+// so the storefront renders exactly from app/globals.css. Admin pages keep their own palette
+// (the .admin scope redefines every token on its wrapper, overriding these inherited values).
+const THEME_VARS: Record<string, string[]> = {
+  primary: ['--primary', '--violet', '--ring', '--chart-1', '--sidebar-primary', '--sidebar-ring'],
+  primaryForeground: ['--primary-foreground', '--violet-foreground', '--sidebar-primary-foreground'],
+  secondary: ['--secondary', '--chart-2'],
+  secondaryForeground: ['--secondary-foreground'],
+  accent: ['--accent', '--lavender', '--sidebar-accent'],
+  accentForeground: ['--accent-foreground', '--lavender-foreground', '--forest', '--sidebar-accent-foreground'],
+  background: ['--background', '--cream'],
+  card: ['--card', '--popover', '--sidebar'],
+  muted: ['--muted'],
+  sand: ['--sand'],
+  blush: ['--blush', '--peach', '--chart-5'],
+  border: ['--border', '--input', '--sidebar-border'],
+  foreground: ['--foreground', '--card-foreground', '--popover-foreground', '--sidebar-foreground'],
+  mutedForeground: ['--muted-foreground'],
+  ink: ['--ink'],
+  rose: ['--rose'],
+  gold: ['--gold', '--chart-4'],
+  sage: ['--sage', '--chart-3'],
 }
 
-function brandColorCss(branding: Record<string, unknown> = {}): string {
-  const decls: string[] = []
-  for (const [key, { theme, vars }] of Object.entries(BRAND_COLOR_VARS)) {
-    const value = branding[key]
-    if (typeof value !== 'string' || !/^#[0-9a-f]{3,8}$/i.test(value) || value.toLowerCase() === theme) continue
-    for (const v of vars) decls.push(`${v}:${value}`)
+async function getThemeCss(): Promise<string> {
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000/api'
+    const res = await fetch(`${apiUrl}/theme`, { next: { revalidate: 60 } })
+    if (!res.ok) return ''
+    const theme = (await res.json()) as { isDefault: boolean; colors: Record<string, string> }
+    if (theme.isDefault) return ''
+    const decls: string[] = []
+    for (const [token, vars] of Object.entries(THEME_VARS)) {
+      const value = theme.colors?.[token]
+      if (typeof value !== 'string' || !/^#[0-9a-f]{6}$/i.test(value)) continue
+      for (const v of vars) decls.push(`${v}:${value}`)
+    }
+    // html:root out-specifies globals.css's :root regardless of stylesheet order
+    return decls.length ? `html:root{${decls.join(';')}}` : ''
+  } catch {
+    return '' // API unreachable: fall back to the built-in theme
   }
-  // html:root out-specifies globals.css's :root regardless of stylesheet order
-  return decls.length ? `html:root{${decls.join(';')}}` : ''
 }
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -100,25 +120,19 @@ export async function generateMetadata(): Promise<Metadata> {
       images: ogImage ? [{ url: ogImage }] : undefined,
     },
     robots: (seo['seo.robots'] as string) || undefined,
-    icons: typeof favicon === 'string' && favicon.trim()
-      ? { icon: favicon, apple: favicon }
-      : {
-      icon: [
-        {
-          url: '/icon-light-32x32.png',
-          media: '(prefers-color-scheme: light)',
-        },
-        {
-          url: '/icon-dark-32x32.png',
-          media: '(prefers-color-scheme: dark)',
-        },
-        {
-          url: '/icon.svg',
-          type: 'image/svg+xml',
-        },
-      ],
-      apple: '/apple-icon.png',
-    },
+    // Brand yarn-ball icons (public/favicon*, generated from logo-mark.png). A favicon set in
+    // Admin → Site Settings → Branding replaces them.
+    icons:
+      typeof favicon === 'string' && favicon.trim()
+        ? { icon: favicon, apple: favicon }
+        : {
+            icon: [
+              { url: '/favicon.ico', sizes: 'any' },
+              { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+              { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+            ],
+            apple: { url: '/apple-touch-icon.png', sizes: '180x180' },
+          },
   }
 }
 
@@ -127,12 +141,12 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const brandCss = brandColorCss((await getPublicSettings()).branding)
+  const themeCss = await getThemeCss()
   return (
     <html lang="en" data-scroll-behavior="smooth" className={`${playfair.variable} ${fraunces.variable} ${jakarta.variable} ${allura.variable} bg-background`}>
-      {brandCss && (
+      {themeCss && (
         <head>
-          <style id="brand-colors" dangerouslySetInnerHTML={{ __html: brandCss }} />
+          <style id="storefront-theme" dangerouslySetInnerHTML={{ __html: themeCss }} />
         </head>
       )}
       <body className="font-sans antialiased min-h-screen">

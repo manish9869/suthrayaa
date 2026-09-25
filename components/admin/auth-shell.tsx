@@ -16,8 +16,10 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-primary/30 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-40 -left-20 h-96 w-96 rounded-full bg-peach/20 blur-3xl" />
         <div className="relative flex items-center gap-3">
-          <span className="relative h-12 w-12">
-            <Image src="/logo.png" alt="" fill sizes="48px" className="object-contain brightness-0 invert" />
+          <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full bg-white p-1 shadow-lg ring-2 ring-white/20">
+            <span className="relative block h-full w-full">
+              <Image src="/logo-mark.png" alt="" fill sizes="64px" className="object-contain" />
+            </span>
           </span>
           <span className="leading-tight">
             <span className="block font-serif text-lg font-medium tracking-tight">Suthrayaa</span>
@@ -45,8 +47,8 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
       <section className="flex items-center justify-center px-4 py-12 sm:px-8">
         <div className="w-full max-w-sm">
           <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <span className="relative h-11 w-11">
-              <Image src="/logo.png" alt="" fill sizes="44px" className="object-contain" />
+            <span className="relative h-14 w-14 shrink-0">
+              <Image src="/logo-mark.png" alt="" fill sizes="56px" className="object-contain" />
             </span>
             <span className="font-serif text-lg font-medium tracking-tight">Suthrayaa Admin</span>
           </div>

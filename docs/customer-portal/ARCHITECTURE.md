@@ -68,7 +68,8 @@ sequenceDiagram
 |---|---|
 | Site Settings → Homepage | Which sections show, their order, and each section's eyebrow, title (`*accent*`), description and link |
 | Storefront Content | Trust badges, promo and coupon, story, reels, feature showcase, Instagram, About, FAQs, contact page text, the five policy pages, header perks and page images, footer extras |
-| Site Settings (other tabs) | Store contact details, social links, SEO, announcement bar, footer links, branding colours, logo, favicon |
+| Theme | The storefront colour theme — injected as CSS variables by `app/layout.tsx` (nothing is injected while the default theme is active) |
+| Site Settings (other tabs) | Store contact details, social links, SEO, announcement bar, footer links, logo, favicon |
 | Products, Categories, Colors, Hero Slides, Testimonials, Coupons, Reviews | Their own pages |
 
 To add a new editable block:

@@ -58,6 +58,7 @@ Custom roles are built in Admin → Users & Roles → Roles.
 | Newsletter | `/admin/newsletter` | `customers.view` | `/api/admin/newsletter` |
 | Users & Roles | `/admin/users`, `/admin/roles` | `users.view` / `roles.view` | `/api/admin/users`, `/roles`, `/permissions`, `/invites` |
 | Audit Logs | `/admin/audit-logs` | `audit_logs.view` | `/api/admin/audit-logs` |
+| Theme | `/admin/theme` | `settings.view` (apply/edit: `settings.branding`) | `/api/admin/theme` |
 | Site Settings | `/admin/settings` | `settings.view` (+ per-tab slugs) | `/api/admin/settings` (+ tax categories, shipping zones, nav, footer links, homepage sections) |
 | Invoice Settings | `/admin/settings/invoice` | `settings.view` | `/api/admin/settings/invoice` (live PDF preview) |
 
@@ -72,7 +73,8 @@ Admins can change everything a shopper sees without a deploy:
 | Homepage section order, on/off, headings and links | Site Settings → Homepage |
 | Section bodies, About, FAQs, policy pages, header perks, page images, footer extras | Storefront Content |
 | Hero carousel | Hero Slides (with image upload) |
-| Announcement bar, navigation, footer links and description, logo, favicon, brand colours, SEO, social, contact details, maintenance mode, checkout rules, GST, shipping zones, payment methods | Site Settings tabs |
+| Storefront colour theme (7 ready-made themes + custom themes) | Theme |
+| Announcement bar, navigation, footer links and description, logo, favicon, SEO, social, contact details, maintenance mode, checkout rules, GST, shipping zones, payment methods | Site Settings tabs |
 | Products, categories, colours, customization options | Catalogue pages |
 | Testimonials, reviews, coupons | Their pages |
 | Every transactional email | Email Templates (HTML with `{{variables}}`) |

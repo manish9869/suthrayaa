@@ -2,7 +2,7 @@
 
 **Direction:** "lavender & peach". The storefront is bright, warm and handmade. Violet is the single action colour, peach and coral add highlights, surfaces are soft lilac, and a deep ink-violet grounds the footer. Type pairs an editorial serif for display with a friendly geometric sans for UI. Motion is quick and tactile, never floaty.
 
-Tokens live in `app/globals.css` (`:root`). Tailwind 4 exposes them as utilities (`bg-primary`, `text-muted-foreground`, `ring-border`, …). The admin's **Branding colours** (Site Settings → Branding) override the storefront `:root` values at runtime; the admin console is never affected.
+Tokens live in `app/globals.css` (`:root`). Tailwind 4 exposes them as utilities (`bg-primary`, `text-muted-foreground`, `ring-border`, …). The values below are the default **Lavender & Peach** theme. Admin → **Theme** can switch the storefront to another ready-made theme (Rose Blossom, Ocean Breeze, Forest Sage, Terracotta Earth, Marigold Festive, Royal Indigo) or a custom one. The active theme's colours are written onto `:root` at render time, while the default theme adds no override at all. The admin console is never affected. Presets live in `suthrayaa-backend/src/modules/theme/theme.presets.ts`.
 
 ## Colour
 
