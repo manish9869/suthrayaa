@@ -283,11 +283,18 @@ export default function EmailTemplatesPage() {
 
       {/* Preview dialog */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-h-[92vh] max-w-3xl overflow-hidden">
           <DialogHeader>
             <DialogTitle>{previewContent?.subject}</DialogTitle>
           </DialogHeader>
-          <div className="border rounded-lg p-4 bg-muted/30" dangerouslySetInnerHTML={{ __html: previewContent?.bodyHtml ?? '' }} />
+          {/* Sandboxed (no scripts, no same-origin): template HTML is admin-authored, so it must
+              never run inside the admin console itself. */}
+          <iframe
+            title="Email preview"
+            sandbox=""
+            srcDoc={previewContent?.bodyHtml ?? ''}
+            className="h-[70vh] w-full rounded-lg border bg-white"
+          />
         </DialogContent>
       </Dialog>
 

@@ -11,10 +11,26 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp'
 import { Separator } from '@/components/ui/separator'
-import { Mail, Lock, Eye, EyeOff, Phone, Sparkles, User, Loader2 } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, Phone, Sparkles, User, Loader2, Check, Circle } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { STOREFRONT_IMAGES } from '@/lib/storefront-images'
+import { isStrongPassword, passwordChecks, validateEmail } from '@/lib/validation'
+import { cn } from '@/lib/utils'
+
+/** Live password-rule checklist shown when creating or resetting a password. */
+function PasswordRules({ password }: { password: string }) {
+  return (
+    <ul className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-xs" aria-label="Password requirements">
+      {passwordChecks(password).map((c) => (
+        <li key={c.label} className={cn('flex items-center gap-1.5 transition-colors', c.ok ? 'text-emerald-600' : 'text-muted-foreground')}>
+          {c.ok ? <Check className="h-3.5 w-3.5" /> : <Circle className="h-3 w-3" />}
+          {c.label}
+        </li>
+      ))}
+    </ul>
+  )
+}
 
 export default function LoginPage() {
   const router = useRouter()
@@ -68,11 +84,26 @@ export default function LoginPage() {
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const emailError = validateEmail(email)
+    if (emailError) {
+      toast.error(emailError)
+      return
+    }
+    if (authMode === 'signup') {
+      if (!firstName.trim() || !lastName.trim()) {
+        toast.error('Enter your first and last name')
+        return
+      }
+      if (!isStrongPassword(password)) {
+        toast.error('Use at least 8 characters with a letter and a number')
+        return
+      }
+    }
     setLoading(true)
     const supabase = createSupabaseBrowserClient()
 
     if (authMode === 'signin') {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
       if (error) {
         toast.error(error.message.includes('Invalid login credentials') ? 'Incorrect email or password' : error.message)
         setLoading(false)
@@ -83,16 +114,11 @@ export default function LoginPage() {
       return
     }
 
-    if (password.length < 6) {
-      toast.error('Password must be at least 6 characters')
-      setLoading(false)
-      return
-    }
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: email.trim(),
       password,
       options: {
-        data: { first_name: firstName, last_name: lastName },
+        data: { first_name: firstName.trim(), last_name: lastName.trim() },
         emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
       },
     })
@@ -113,13 +139,13 @@ export default function LoginPage() {
   }
 
   const handleForgotPassword = async () => {
-    if (!/^\S+@\S+\.\S+$/.test(email)) {
+    if (validateEmail(email)) {
       toast.error('Enter your email above first')
       return
     }
     setLoading(true)
     const supabase = createSupabaseBrowserClient()
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo: `${window.location.origin}/login`,
     })
     setLoading(false)
@@ -132,8 +158,8 @@ export default function LoginPage() {
 
   const handleSetNewPassword = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (password.length < 6) {
-      toast.error('Password must be at least 6 characters')
+    if (!isStrongPassword(password)) {
+      toast.error('Use at least 8 characters with a letter and a number')
       return
     }
     setResettingPassword(true)
@@ -208,6 +234,7 @@ export default function LoginPage() {
                         type={showPassword ? 'text' : 'password'}
                         required
                         className="pl-10 pr-10"
+                        autoComplete="new-password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                       />
@@ -216,10 +243,12 @@ export default function LoginPage() {
                         onClick={() => setShowPassword((v) => !v)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                         tabIndex={-1}
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
                       >
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
+                    <PasswordRules password={password} />
                   </div>
                   <Button type="submit" size="lg" className="w-full" disabled={resettingPassword}>
                     {resettingPassword ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
@@ -238,7 +267,9 @@ export default function LoginPage() {
                   {authMode === 'signin' ? 'Welcome Back' : 'Create Your Account'}
                 </h1>
                 <p className="text-sm text-muted-foreground text-center mb-6">
-                  Sign in to track orders, save favorites, and check out faster.
+                  {authMode === 'signin'
+                    ? 'Sign in to track orders, save favorites, and check out faster.'
+                    : 'Join to track orders, save favorites, and check out faster.'}
                 </p>
 
                 <Tabs value={loginMethod} onValueChange={(v) => setLoginMethod(v as 'email' | 'mobile')}>
@@ -284,6 +315,7 @@ export default function LoginPage() {
                             type="email"
                             required
                             className="pl-10"
+                            autoComplete="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                           />
@@ -310,6 +342,7 @@ export default function LoginPage() {
                             type={showPassword ? 'text' : 'password'}
                             required
                             className="pl-10 pr-10"
+                            autoComplete={authMode === 'signin' ? 'current-password' : 'new-password'}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                           />
@@ -318,10 +351,12 @@ export default function LoginPage() {
                             onClick={() => setShowPassword((v) => !v)}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                             tabIndex={-1}
+                            aria-label={showPassword ? 'Hide password' : 'Show password'}
                           >
                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </button>
                         </div>
+                        {authMode === 'signup' && <PasswordRules password={password} />}
                       </div>
 
                       <Button type="submit" size="lg" className="w-full" disabled={loading}>

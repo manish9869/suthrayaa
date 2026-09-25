@@ -2,6 +2,8 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { isOutOfStock, needsOptions } from '@/lib/product-rules'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Navbar } from '@/components/navbar'
 import { Footer } from '@/components/footer'
@@ -18,10 +20,21 @@ export function WishlistContent({ categories }: { categories: Category[] }) {
   const { addItem: addToCart, openCart } = useCartStore()
   const hydrated = useHydrated()
 
+  const router = useRouter()
   const handleMoveToCart = (productId: string) => {
     const product = items.find((p) => p.id === productId)
     if (!product) return
-    addToCart(product, product.colors[0])
+    if (isOutOfStock(product)) {
+      toast.error(`${product.name} is sold out right now`)
+      return
+    }
+    // Products needing a size / option / name are completed on the product page
+    if (needsOptions(product)) {
+      toast.info('Choose your options to add this to your cart')
+      router.push(`/product/${product.slug}`)
+      return
+    }
+    addToCart(product, product.colors[0] ?? '')
     removeItem(productId)
     openCart()
     toast.success(`${product.name} moved to cart`)
@@ -100,9 +113,9 @@ export function WishlistContent({ categories }: { categories: Category[] }) {
                       </Link>
                       <p className="text-primary font-semibold mt-1 mb-3">{formatPrice(product.price)}</p>
                       <div className="flex gap-2">
-                        <Button size="sm" className="flex-1 tap-bounce" onClick={() => handleMoveToCart(product.id)} disabled={product.stock === 0}>
+                        <Button size="sm" className="flex-1 tap-bounce" onClick={() => handleMoveToCart(product.id)} disabled={isOutOfStock(product)}>
                           <ShoppingBag className="h-3.5 w-3.5 mr-1.5" />
-                          {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+                          {isOutOfStock(product) ? 'Sold out' : needsOptions(product) ? 'Choose options' : 'Add to cart'}
                         </Button>
                         <Button size="icon" variant="outline" className="tap-bounce" onClick={() => removeItem(product.id)} aria-label="Remove from wishlist">
                           <Trash2 className="h-4 w-4 text-destructive" />

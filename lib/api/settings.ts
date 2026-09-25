@@ -42,11 +42,13 @@ export interface TaxCategory {
   rate: number
   is_default: boolean
   is_active: boolean
+  /** HSN code printed on GST invoices for products in this category (optional). */
+  hsn_code?: string | null
 }
 export const getTaxCategories = () => adminFetch<TaxCategory[]>('/admin/settings/tax-categories')
-export const createTaxCategory = (input: { name: string; rate: number; isDefault?: boolean; isActive?: boolean }) =>
+export const createTaxCategory = (input: { name: string; rate: number; hsnCode?: string; isDefault?: boolean; isActive?: boolean }) =>
   adminFetch<TaxCategory>('/admin/settings/tax-categories', { method: 'POST', body: JSON.stringify(input) })
-export const updateTaxCategory = (id: string, input: Partial<{ name: string; rate: number; isDefault: boolean; isActive: boolean }>) =>
+export const updateTaxCategory = (id: string, input: Partial<{ name: string; rate: number; hsnCode: string; isDefault: boolean; isActive: boolean }>) =>
   adminFetch<TaxCategory>(`/admin/settings/tax-categories/${id}`, { method: 'PATCH', body: JSON.stringify(input) })
 export const deleteTaxCategory = (id: string) => adminFetch<void>(`/admin/settings/tax-categories/${id}`, { method: 'DELETE' })
 

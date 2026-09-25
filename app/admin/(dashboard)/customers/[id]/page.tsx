@@ -440,13 +440,19 @@ export default function AdminCustomerDetailPage() {
                         {a.first_name} {a.last_name}
                         {a.is_default && (
                           <Badge variant="outline" className="text-[10px]">
-                            Default
+                            Default shipping
+                          </Badge>
+                        )}
+                        {a.is_default_billing && (
+                          <Badge variant="outline" className="text-[10px]">
+                            Default billing
                           </Badge>
                         )}
                         {a.label && <span className="text-xs text-muted-foreground font-normal">({a.label})</span>}
                       </p>
                       <p className="text-muted-foreground">{a.address_line1}</p>
                       {a.address_line2 && <p className="text-muted-foreground">{a.address_line2}</p>}
+                      {a.landmark && <p className="text-muted-foreground">Landmark: {a.landmark}</p>}
                       <p className="text-muted-foreground">
                         {a.city}, {a.state} {a.pincode}
                       </p>

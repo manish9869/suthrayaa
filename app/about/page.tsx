@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import Image from 'next/image'
 import Link from 'next/link'
 import { Heart, Sparkles, Users, Award } from 'lucide-react'
 import { StaticPageShell } from '@/components/static-page-shell'

@@ -72,6 +72,9 @@ const matches = (item: CartItem, productId: string, selectedColor: string, custo
   item.customText === customText &&
   customizationsKey(item.customizations) === customizationsKey(customizations)
 
+/** The checkout API accepts up to 20 of one line. */
+export const MAX_LINE_QTY = 20
+
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
@@ -87,12 +90,12 @@ export const useCartStore = create<CartState>()(
 
           if (existingIndex > -1) {
             const newItems = [...state.items]
-            newItems[existingIndex] = { ...newItems[existingIndex], quantity: newItems[existingIndex].quantity + qty }
+            newItems[existingIndex] = { ...newItems[existingIndex], quantity: Math.min(MAX_LINE_QTY, newItems[existingIndex].quantity + qty) }
             return { items: newItems }
           }
 
           return {
-            items: [...state.items, { product, quantity: qty, selectedColor, customText, customizations }],
+            items: [...state.items, { product, quantity: Math.min(MAX_LINE_QTY, qty), selectedColor, customText, customizations }],
           }
         })
       },
@@ -111,7 +114,7 @@ export const useCartStore = create<CartState>()(
 
         set((state) => ({
           items: state.items.map((item) =>
-            matches(item, productId, selectedColor, customText, customizations) ? { ...item, quantity } : item
+            matches(item, productId, selectedColor, customText, customizations) ? { ...item, quantity: Math.min(MAX_LINE_QTY, quantity) } : item
           ),
         }))
       },

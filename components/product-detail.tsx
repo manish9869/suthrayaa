@@ -32,7 +32,7 @@ import { cn } from '@/lib/utils'
 import { useCartStore, useWishlistStore } from '@/lib/store'
 import { useHydrated } from '@/lib/hooks/use-hydrated'
 import { formatPrice, type Product, type Review, type Category } from '@/lib/data'
-import { ProductCustomizer, type ResolvedCustomization } from '@/components/product-customizer'
+import { customizationGroupId, ProductCustomizer, type ResolvedCustomization } from '@/components/product-customizer'
 import { YarnColorPicker } from '@/components/yarn-color-picker'
 import { toast } from 'sonner'
 import { EASE_OUT, Stagger, StaggerItem } from '@/components/motion/reveal'
@@ -53,7 +53,10 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
   const allowedColors = rules?.allowedColors && rules.allowedColors.length > 0 ? rules.allowedColors : product.colors
 
   const [selectedImage, setSelectedImage] = useState(0)
-  const [selectedColor, setSelectedColor] = useState(product.colors[0])
+  // With several colours nothing is preselected — the customer must choose one (a single
+  // colour is simply the colour, so it's preselected).
+  const [selectedColor, setSelectedColor] = useState(product.colors.length === 1 ? product.colors[0] : '')
+  const [colorError, setColorError] = useState(false)
   const [customText, setCustomText] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [zoomOrigin, setZoomOrigin] = useState('50% 50%')
@@ -74,6 +77,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
   const [resolvedCustomizations, setResolvedCustomizations] = useState<ResolvedCustomization[]>([])
   const [customizationPriceAdjustment, setCustomizationPriceAdjustment] = useState(0)
   const [missingRequired, setMissingRequired] = useState<string[]>([])
+  const [showOptionErrors, setShowOptionErrors] = useState(false)
 
   const { addItem, openCart } = useCartStore()
   const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlistStore()
@@ -94,10 +98,26 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
 
   const displayUnitPrice = usesNewCustomizer ? product.price + customizationPriceAdjustment : product.price
 
+  const colorMissing = showBaseColorPicker && product.colors.length > 1 && !effectiveColor
   const handleAddToCart = () => {
+    if (colorMissing) {
+      setColorError(true)
+      if (usesNewCustomizer && missingRequired.length) setShowOptionErrors(true)
+      document.getElementById('pd-color')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      toast.error('Please choose a colour first')
+      return
+    }
     if (usesNewCustomizer) {
       if (missingRequired.length > 0) {
-        toast.error(`Please choose ${missingRequired[0].toLowerCase()}`)
+        // Flag every unanswered option inline and bring the first one into view
+        setShowOptionErrors(true)
+        const first = product.customizations.find((c) => c.enabled && c.label === missingRequired[0])
+        if (first) document.getElementById(customizationGroupId(first.id))?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        toast.error(missingRequired.length === 1 ? `Please choose ${missingRequired[0].toLowerCase()} first` : `Please choose ${missingRequired.slice(0, -1).map((m) => m.toLowerCase()).join(', ')} and ${missingRequired.at(-1)!.toLowerCase()} first`)
+        return
+      }
+      if (quantity < 1 || quantity > maxQty) {
+        toast.error(`You can add between 1 and ${maxQty} of this item`)
         return
       }
       addItem(
@@ -160,8 +180,11 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
     stars,
     share: reviews.length ? reviews.filter((r) => Math.round(r.rating) === stars).length / reviews.length : 0,
   }))
-  const outOfStock = product.stock === 0
-  const lowStock = product.stock > 0 && product.stock < 10
+  // Mirrors the backend: stock only limits purchases when it's tracked and backorders are off
+  const stockLimited = product.trackInventory !== false && !product.allowBackorders && !product.continueSellingWhenOutOfStock
+  const outOfStock = product.status === 'out_of_stock' || (stockLimited && product.stock <= 0)
+  const maxQty = stockLimited ? Math.max(1, Math.min(product.stock, 20)) : 20
+  const lowStock = stockLimited && product.stock > 0 && product.stock < 10
 
   return (
     <>
@@ -290,6 +313,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                   <div className="rounded-[1.5rem] bg-blush/50 p-5 ring-1 ring-blush">
                     <ProductCustomizer
                       customizations={product.customizations}
+                      showErrors={showOptionErrors}
                       onChange={(resolved, priceAdjustment, missing) => {
                         setResolvedCustomizations(resolved)
                         setCustomizationPriceAdjustment(priceAdjustment)
@@ -301,20 +325,33 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
 
                 {/* Color selection — locked while customizing if the admin disabled color choice */}
                 {showBaseColorPicker && (
+                  <div
+                    id="pd-color"
+                    className={cn('scroll-mt-32 rounded-2xl transition-colors', colorError && colorMissing && '-m-2 bg-destructive/[0.05] p-2 ring-1 ring-destructive/30')}
+                  >
                   <YarnColorPicker
                     options={product.colors.map((color) => ({
                       value: color,
                       color,
                       disabled: isCustomizing && customText.length > 0 && !allowColorChoice && color !== allowedColors[0],
                     }))}
-                    value={effectiveColor}
-                    onChange={setSelectedColor}
+                    value={effectiveColor || undefined}
+                    onChange={(c) => {
+                      setSelectedColor(c)
+                      setColorError(false)
+                    }}
                     note={
                       isCustomizing && customText && !allowColorChoice ? (
                         <span className="text-xs text-muted-foreground">(fixed for personalized orders)</span>
                       ) : undefined
                     }
                   />
+                  {colorError && colorMissing && (
+                    <p role="alert" className="mt-2 text-[12.5px] font-medium text-destructive">
+                      Please choose a colour
+                    </p>
+                  )}
+                  </div>
                 )}
 
                 {!product.isCustomizable && rules?.isLimitedEdition && (
@@ -382,8 +419,8 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                     <button
                       type="button"
                       className="tap-bounce flex h-[52px] w-12 items-center justify-center rounded-full text-foreground/70 hover:text-foreground disabled:opacity-30"
-                      onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
-                      disabled={quantity >= product.stock}
+                      onClick={() => setQuantity(Math.min(maxQty, quantity + 1))}
+                      disabled={quantity >= maxQty}
                       aria-label="Increase quantity"
                     >
                       <Plus className="h-4 w-4" />

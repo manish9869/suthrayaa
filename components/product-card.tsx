@@ -3,14 +3,16 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Heart, ShoppingBag, Star, Check, Plus } from 'lucide-react'
+import { Heart, ShoppingBag, Star, Check, Plus, SlidersHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useCartStore, useWishlistStore } from '@/lib/store'
 import { useHydrated } from '@/lib/hooks/use-hydrated'
 import { formatPrice, type Product } from '@/lib/data'
 import { toast } from 'sonner'
+import { isOutOfStock, needsOptions } from '@/lib/product-rules'
 
 interface ProductCardProps {
   product: Product
@@ -24,8 +26,19 @@ export function ProductCard({ product, className }: ProductCardProps) {
   const inWishlist = hydrated && isInWishlist(product.id)
   const [justAdded, setJustAdded] = useState(false)
 
+  const router = useRouter()
+  const chooseFirst = needsOptions(product)
+  const soldOut = isOutOfStock(product)
+
   const handleAddToCart = () => {
-    addItem(product, product.colors[0])
+    if (soldOut) return
+    // Products with a required size / option / name go to the product page to choose it —
+    // adding them bare would only fail at payment.
+    if (chooseFirst) {
+      router.push(`/product/${product.slug}`)
+      return
+    }
+    addItem(product, product.colors[0] ?? '')
     openCart()
     toast.success(`${product.name} added to cart`)
     setJustAdded(true)
@@ -88,7 +101,8 @@ export function ProductCard({ product, className }: ProductCardProps) {
           {product.newArrival && (
             <span className="rounded-full bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground">New</span>
           )}
-          {product.stock < 5 && product.stock > 0 && (
+          {soldOut && <span className="rounded-full bg-card/90 px-2.5 py-1 text-[11px] font-medium text-foreground/70 backdrop-blur">Sold out</span>}
+          {!soldOut && product.trackInventory !== false && product.stock < 5 && product.stock > 0 && (
             <span className="rounded-full bg-card/90 px-2.5 py-1 text-[11px] font-medium text-rose backdrop-blur">Only {product.stock} left</span>
           )}
         </div>
@@ -109,7 +123,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
 
         {/* Quick add — slides up on hover devices, a compact button on touch */}
         <div className="absolute inset-x-3 bottom-3 z-10 hidden translate-y-3 opacity-0 transition-[opacity,transform] duration-300 ease-[var(--ease-out)] [@media(hover:hover)]:flex [@media(hover:hover)]:group-hover:translate-y-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-within:translate-y-0 [@media(hover:hover)]:group-focus-within:opacity-100">
-          <Button className="h-11 flex-1 overflow-hidden shadow-lg" onClick={handleAddToCart} disabled={justAdded}>
+          <Button className="h-11 flex-1 overflow-hidden shadow-lg" onClick={handleAddToCart} disabled={justAdded || soldOut} variant={soldOut ? 'secondary' : 'default'}>
             <AnimatePresence mode="wait" initial={false}>
               {justAdded ? (
                 <motion.span
@@ -131,7 +145,17 @@ export function ProductCard({ product, className }: ProductCardProps) {
                   transition={{ duration: 0.15 }}
                   className="flex items-center gap-2"
                 >
-                  <ShoppingBag className="h-4 w-4" /> Add to cart
+                  {soldOut ? (
+                    'Sold out'
+                  ) : chooseFirst ? (
+                    <>
+                      <SlidersHorizontal className="h-4 w-4" /> Choose options
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingBag className="h-4 w-4" /> Add to cart
+                    </>
+                  )}
                 </motion.span>
               )}
             </AnimatePresence>
@@ -140,11 +164,14 @@ export function ProductCard({ product, className }: ProductCardProps) {
         <button
           type="button"
           onClick={handleAddToCart}
-          disabled={justAdded}
-          aria-label={`Add ${product.name} to cart`}
-          className="tap-bounce absolute bottom-3 right-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg [@media(hover:hover)]:hidden"
+          disabled={justAdded || soldOut}
+          aria-label={soldOut ? `${product.name} is sold out` : chooseFirst ? `Choose options for ${product.name}` : `Add ${product.name} to cart`}
+          className={cn(
+            'tap-bounce absolute bottom-3 right-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg disabled:opacity-50 [@media(hover:hover)]:hidden',
+            soldOut && 'hidden'
+          )}
         >
-          {justAdded ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+          {justAdded ? <Check className="h-4 w-4" /> : chooseFirst ? <SlidersHorizontal className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
         </button>
       </div>
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,6 +14,12 @@ export function ContactForm() {
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' })
   const [sent, setSent] = useState(false)
   const [sending, setSending] = useState(false)
+
+  // Arriving from an order page (/contact?order=SUT-…) — prefill the subject.
+  useEffect(() => {
+    const order = new URLSearchParams(window.location.search).get('order')
+    if (order) setForm((f) => (f.subject ? f : { ...f, subject: `Question about order ${order}` }))
+  }, [])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))

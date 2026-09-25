@@ -23,7 +23,12 @@ export interface ResolvedCustomization extends CustomizerSelection {
 interface ProductCustomizerProps {
   customizations: ProductCustomization[]
   onChange: (resolved: ResolvedCustomization[], priceAdjustment: number, missingRequired: string[]) => void
+  /** Once the customer has tried to add to cart, unanswered required groups are flagged. */
+  showErrors?: boolean
 }
+
+/** DOM id of a customization group — used to scroll to the first missing one. */
+export const customizationGroupId = (id: string) => `cz-${id}`
 
 
 /**
@@ -32,7 +37,7 @@ interface ProductCustomizerProps {
  * (e.g. "Add Name? Yes" -> shows a text field) and live price adjustment. The backend
  * always re-validates and recomputes price at checkout; this is display-only.
  */
-export function ProductCustomizer({ customizations, onChange }: ProductCustomizerProps) {
+export function ProductCustomizer({ customizations, onChange, showErrors = false }: ProductCustomizerProps) {
   const [selections, setSelections] = useState<Record<string, CustomizerSelection>>({})
 
   const groups = useMemo(
@@ -112,11 +117,16 @@ export function ProductCustomizer({ customizations, onChange }: ProductCustomize
 
       {visibleGroups.map((group) => {
         const current = selections[group.id]
+        const missing = showErrors && group.required && !(current?.valueId || current?.textValue?.trim())
         return (
-          <div key={group.id}>
+          <div
+            key={group.id}
+            id={customizationGroupId(group.id)}
+            className={cn('scroll-mt-32 rounded-2xl transition-colors', missing && '-m-2 bg-destructive/[0.05] p-2 ring-1 ring-destructive/30')}
+          >
             <Label className="mb-2 block text-sm font-medium">
               {group.label}
-              {!group.required && <span className="ml-1 text-xs font-normal text-muted-foreground">(optional)</span>}
+              {group.required ? <span className="ml-0.5 text-destructive" aria-hidden>*</span> : <span className="ml-1 text-xs font-normal text-muted-foreground">(optional)</span>}
             </Label>
 
             {(group.type === 'choice' || group.type === 'checkbox') && (
@@ -166,8 +176,14 @@ export function ProductCustomizer({ customizations, onChange }: ProductCustomize
                 maxLength={group.maxLength}
                 value={current?.textValue ?? ''}
                 onChange={(e) => setText(group.id, e.target.value.slice(0, group.maxLength))}
-                className="max-w-xs bg-background"
+                className={cn('max-w-xs bg-background', missing && 'border-destructive')}
+                aria-invalid={missing || undefined}
               />
+            )}
+            {missing && (
+              <p role="alert" className="mt-2 text-[12.5px] font-medium text-destructive">
+                {group.type === 'text' || group.type === 'number' ? `Please enter ${group.label.toLowerCase()}` : `Please choose a ${group.label.toLowerCase()}`}
+              </p>
             )}
           </div>
         )

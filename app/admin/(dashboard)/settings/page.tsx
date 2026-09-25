@@ -31,6 +31,7 @@ import {
   Scale,
   Plus,
   Trash2,
+  Pencil,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { GLASS_PANEL } from '@/lib/admin-ui'
@@ -331,14 +332,16 @@ function TaxCategoriesPanel({ categories, onChanged }: { categories: TaxCategory
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [rate, setRate] = useState(18)
+  const [hsn, setHsn] = useState('')
 
   const handleCreate = async () => {
     if (!name.trim()) return
     try {
-      await createTaxCategory({ name, rate })
+      await createTaxCategory({ name, rate, hsnCode: hsn.trim() || undefined })
       toast.success('Tax category created')
       setOpen(false)
       setName('')
+      setHsn('')
       onChanged()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to create')
@@ -358,13 +361,24 @@ function TaxCategoriesPanel({ categories, onChanged }: { categories: TaxCategory
     await updateTaxCategory(id, { isDefault: true })
     onChanged()
   }
+  const handleHsn = async (c: TaxCategory) => {
+    const next = prompt(`HSN code for "${c.name}" (4, 6 or 8 digits; leave empty to clear)`, c.hsn_code ?? '')
+    if (next === null) return
+    try {
+      await updateTaxCategory(c.id, { hsnCode: next.trim() })
+      toast.success('HSN code saved')
+      onChanged()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save HSN code')
+    }
+  }
 
   return (
     <div className={`${GLASS_PANEL} overflow-hidden`}>
       <div className="flex items-center justify-between border-b p-4">
         <div>
           <h3 className="font-medium">GST Rate Categories</h3>
-          <p className="text-xs text-muted-foreground">Applied per-product — different products can have different GST rates.</p>
+          <p className="text-xs text-muted-foreground">Applied per-product — different products can have different GST rates. The HSN code is printed on tax invoices.</p>
         </div>
         <Can permission="settings.tax">
           <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
@@ -377,6 +391,7 @@ function TaxCategoriesPanel({ categories, onChanged }: { categories: TaxCategory
           <TableRow>
             <TableHead>Name</TableHead>
             <TableHead>Rate</TableHead>
+            <TableHead>HSN</TableHead>
             <TableHead>Default</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -386,6 +401,18 @@ function TaxCategoriesPanel({ categories, onChanged }: { categories: TaxCategory
             <TableRow key={c.id}>
               <TableCell className="font-medium">{c.name}</TableCell>
               <TableCell>{c.rate}%</TableCell>
+              <TableCell>
+                <Can permission="settings.tax" fallback={<span className="text-muted-foreground">{c.hsn_code || '—'}</span>}>
+                  <button
+                    type="button"
+                    onClick={() => handleHsn(c)}
+                    className="rounded-md px-1.5 py-0.5 text-sm tabular-nums hover:bg-muted"
+                    title="Edit HSN code"
+                  >
+                    {c.hsn_code || <span className="text-muted-foreground">Add HSN</span>}
+                  </button>
+                </Can>
+              </TableCell>
               <TableCell>
                 {c.is_default ? (
                   <Badge variant="secondary">Default</Badge>
@@ -423,6 +450,11 @@ function TaxCategoriesPanel({ categories, onChanged }: { categories: TaxCategory
               <Label>Rate (%)</Label>
               <Input type="number" value={rate} onChange={(e) => setRate(Number(e.target.value))} min={0} max={100} />
             </div>
+            <div className="space-y-2">
+              <Label>HSN code (optional)</Label>
+              <Input value={hsn} onChange={(e) => setHsn(e.target.value.replace(/\D/g, '').slice(0, 8))} placeholder="6117" inputMode="numeric" />
+              <p className="text-xs text-muted-foreground">Crocheted accessories are usually 6117; toys 9503. Printed per item on tax invoices.</p>
+            </div>
           </div>
           <DialogFooter>
             <Button onClick={handleCreate}>Create</Button>
@@ -434,23 +466,70 @@ function TaxCategoriesPanel({ categories, onChanged }: { categories: TaxCategory
 }
 
 // ---- Shipping zones ----
-function ShippingZonesPanel({ zones, onChanged }: { zones: ShippingZone[]; onChanged: () => void }) {
-  const [open, setOpen] = useState(false)
-  const [name, setName] = useState('')
-  const [fee, setFee] = useState(79)
-  const [selectedStates, setSelectedStates] = useState<string[]>([])
+type ZoneForm = {
+  name: string
+  fee: number
+  freeThreshold: string
+  cod: boolean
+  minDays: number
+  maxDays: number
+  active: boolean
+  states: string[]
+}
+const EMPTY_ZONE: ZoneForm = { name: '', fee: 79, freeThreshold: '', cod: true, minDays: 3, maxDays: 7, active: true, states: [] }
 
-  const handleCreate = async () => {
-    if (!name.trim()) return
+function ShippingZonesPanel({ zones, onChanged }: { zones: ShippingZone[]; onChanged: () => void }) {
+  // null = dialog closed, 'new' = creating, otherwise the id of the zone being edited
+  const [editing, setEditing] = useState<string | null>(null)
+  const [form, setForm] = useState<ZoneForm>(EMPTY_ZONE)
+  const [saving, setSaving] = useState(false)
+  const set = <K extends keyof ZoneForm>(k: K, v: ZoneForm[K]) => setForm((f) => ({ ...f, [k]: v }))
+
+  const openNew = () => {
+    setForm(EMPTY_ZONE)
+    setEditing('new')
+  }
+  const openEdit = (z: ShippingZone) => {
+    setForm({
+      name: z.name,
+      fee: Number(z.shipping_fee),
+      freeThreshold: z.free_shipping_threshold == null ? '' : String(z.free_shipping_threshold),
+      cod: z.cod_available,
+      minDays: z.delivery_min_days,
+      maxDays: z.delivery_max_days,
+      active: z.is_active,
+      states: z.states,
+    })
+    setEditing(z.id)
+  }
+
+  const handleSave = async () => {
+    if (!form.name.trim()) return toast.error('Give the zone a name')
+    if (!(form.fee >= 0)) return toast.error('Shipping fee can’t be negative')
+    if (form.minDays < 0 || form.maxDays < form.minDays) return toast.error('Delivery days: the maximum must be at least the minimum')
+    const threshold = form.freeThreshold.trim() === '' ? null : Number(form.freeThreshold)
+    if (threshold !== null && !(threshold >= 0)) return toast.error('Enter a valid free-shipping threshold')
+    const input = {
+      name: form.name.trim(),
+      states: form.states,
+      shippingFee: form.fee,
+      freeShippingThreshold: threshold,
+      codAvailable: form.cod,
+      deliveryMinDays: form.minDays,
+      deliveryMaxDays: form.maxDays,
+      isActive: form.active,
+    }
+    setSaving(true)
     try {
-      await createShippingZone({ name, states: selectedStates, shippingFee: fee })
-      toast.success('Shipping zone created')
-      setOpen(false)
-      setName('')
-      setSelectedStates([])
+      if (editing === 'new') await createShippingZone(input)
+      else if (editing) await updateShippingZone(editing, input)
+      toast.success(editing === 'new' ? 'Shipping zone created' : 'Shipping zone updated')
+      setEditing(null)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to create')
+      toast.error(err instanceof Error ? err.message : 'Failed to save')
+    } finally {
+      setSaving(false)
     }
   }
   const handleDelete = async (id: string, zoneName: string) => {
@@ -472,7 +551,7 @@ function ShippingZonesPanel({ zones, onChanged }: { zones: ShippingZone[]; onCha
           <p className="text-xs text-muted-foreground">A zone with no states listed acts as the catch-all for everywhere else.</p>
         </div>
         <Can permission="settings.shipping">
-          <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+          <Button size="sm" variant="outline" onClick={openNew}>
             <Plus className="h-4 w-4 mr-1" /> Add Zone
           </Button>
         </Can>
@@ -484,23 +563,41 @@ function ShippingZonesPanel({ zones, onChanged }: { zones: ShippingZone[]; onCha
             <TableHead>States</TableHead>
             <TableHead>Fee</TableHead>
             <TableHead>Delivery</TableHead>
+            <TableHead>COD</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
+          {zones.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
+                No zones yet — every order uses the standard shipping fee.
+              </TableCell>
+            </TableRow>
+          )}
           {zones.map((z) => (
-            <TableRow key={z.id}>
-              <TableCell className="font-medium">{z.name}</TableCell>
+            <TableRow key={z.id} className={z.is_active ? undefined : 'opacity-60'}>
+              <TableCell className="font-medium">
+                {z.name}
+                {!z.is_active && <span className="ml-2 text-[11px] font-normal text-muted-foreground">(inactive)</span>}
+              </TableCell>
               <TableCell className="max-w-xs truncate text-xs text-muted-foreground">
                 {z.states.length ? z.states.join(', ') : 'Rest of India (catch-all)'}
               </TableCell>
-              <TableCell>₹{z.shipping_fee}</TableCell>
+              <TableCell>
+                ₹{z.shipping_fee}
+                {z.free_shipping_threshold != null && <span className="block text-[11px] text-muted-foreground">Free over ₹{z.free_shipping_threshold}</span>}
+              </TableCell>
               <TableCell>
                 {z.delivery_min_days}-{z.delivery_max_days} days
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell>{z.cod_available ? 'Yes' : 'No'}</TableCell>
+              <TableCell className="text-right whitespace-nowrap">
                 <Can permission="settings.shipping">
-                  <Button variant="ghost" size="icon" onClick={() => handleDelete(z.id, z.name)}>
+                  <Button variant="ghost" size="icon" onClick={() => openEdit(z)} aria-label={`Edit ${z.name}`}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => handleDelete(z.id, z.name)} aria-label={`Delete ${z.name}`}>
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </Can>
@@ -510,37 +607,64 @@ function ShippingZonesPanel({ zones, onChanged }: { zones: ShippingZone[]; onCha
         </TableBody>
       </Table>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={editing !== null} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>New Shipping Zone</DialogTitle>
+            <DialogTitle>{editing === 'new' ? 'New Shipping Zone' : 'Edit Shipping Zone'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Zone Name</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. South India" />
+              <Input value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g. South India" />
             </div>
-            <div className="space-y-2">
-              <Label>Shipping Fee (₹)</Label>
-              <Input type="number" value={fee} onChange={(e) => setFee(Number(e.target.value))} min={0} />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Shipping Fee (₹)</Label>
+                <Input type="number" value={form.fee} onChange={(e) => set('fee', Number(e.target.value))} min={0} />
+              </div>
+              <div className="space-y-2">
+                <Label>Free shipping over (₹)</Label>
+                <Input type="number" value={form.freeThreshold} onChange={(e) => set('freeThreshold', e.target.value)} min={0} placeholder="Store default" />
+              </div>
+              <div className="space-y-2">
+                <Label>Delivery min (days)</Label>
+                <Input type="number" value={form.minDays} onChange={(e) => set('minDays', Number(e.target.value))} min={0} />
+              </div>
+              <div className="space-y-2">
+                <Label>Delivery max (days)</Label>
+                <Input type="number" value={form.maxDays} onChange={(e) => set('maxDays', Number(e.target.value))} min={0} />
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-6">
+              <label className="flex items-center gap-2 text-sm">
+                <Switch checked={form.cod} onCheckedChange={(v) => set('cod', v)} /> Cash on delivery available
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Switch checked={form.active} onCheckedChange={(v) => set('active', v)} /> Active
+              </label>
             </div>
             <div className="space-y-2">
               <Label>States (leave empty for a catch-all zone)</Label>
               <div className="max-h-48 space-y-1.5 overflow-y-auto rounded-md border p-3 scrollbar-hide">
-                {INDIA_STATE_NAMES.map((s) => (
-                  <label key={s} className="flex items-center gap-2 text-sm">
+                {INDIA_STATE_NAMES.map((st) => (
+                  <label key={st} className="flex items-center gap-2 text-sm">
                     <Checkbox
-                      checked={selectedStates.includes(s)}
-                      onCheckedChange={(c) => setSelectedStates((prev) => (c ? [...prev, s] : prev.filter((x) => x !== s)))}
+                      checked={form.states.includes(st)}
+                      onCheckedChange={(c) => set('states', c ? [...form.states, st] : form.states.filter((x) => x !== st))}
                     />
-                    {s}
+                    {st}
                   </label>
                 ))}
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleCreate}>Create</Button>
+            <Button variant="outline" onClick={() => setEditing(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {editing === 'new' ? 'Create' : 'Save changes'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
