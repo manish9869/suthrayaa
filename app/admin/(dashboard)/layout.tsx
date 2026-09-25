@@ -32,12 +32,6 @@ import {
   Sun,
   ChevronDown,
   ExternalLink,
-  Boxes,
-  ShoppingBag,
-  LayoutTemplate,
-  Megaphone,
-  Building2,
-  ChevronRight,
   PanelLeftClose,
   PanelLeftOpen,
 } from 'lucide-react'
@@ -66,20 +60,16 @@ interface NavItem {
 }
 interface NavGroup {
   title: string
-  /** Icon for the collapsible parent entry (and the collapsed rail). Single-item groups link directly. */
-  icon: typeof LayoutDashboard
   items: NavItem[]
 }
 
 const navGroups: NavGroup[] = [
   {
     title: 'Overview',
-    icon: LayoutDashboard,
     items: [{ href: '/admin', label: 'Dashboard', icon: LayoutDashboard, permission: 'analytics.view' }],
   },
   {
     title: 'Catalog',
-    icon: Boxes,
     items: [
       { href: '/admin/products', label: 'Products', icon: Package, permission: 'products.view' },
       { href: '/admin/categories', label: 'Categories', icon: FolderTree, permission: 'categories.view' },
@@ -88,7 +78,6 @@ const navGroups: NavGroup[] = [
   },
   {
     title: 'Sales',
-    icon: ShoppingBag,
     items: [
       { href: '/admin/orders', label: 'Orders', icon: ShoppingCart, permission: 'orders.view' },
       { href: '/admin/coupons', label: 'Coupons', icon: Tags, permission: 'coupons.view' },
@@ -97,7 +86,6 @@ const navGroups: NavGroup[] = [
   },
   {
     title: 'Content',
-    icon: LayoutTemplate,
     items: [
       { href: '/admin/testimonials', label: 'Testimonials', icon: MessageSquareQuote, permission: 'content.view' },
       { href: '/admin/hero-slides', label: 'Hero Slides', icon: ImageIcon, permission: 'banners.view' },
@@ -105,7 +93,6 @@ const navGroups: NavGroup[] = [
   },
   {
     title: 'Communications',
-    icon: Megaphone,
     items: [
       { href: '/admin/emails/templates', label: 'Email Templates', icon: Mail, permission: 'emails.view' },
       { href: '/admin/emails/logs', label: 'Email Logs', icon: History, permission: 'emails.view' },
@@ -113,7 +100,6 @@ const navGroups: NavGroup[] = [
   },
   {
     title: 'Administration',
-    icon: Building2,
     items: [
       { href: '/admin/users', label: 'Users & Roles', icon: ShieldCheck, permission: 'users.view', aliases: ['/admin/roles'] },
       { href: '/admin/audit-logs', label: 'Audit Logs', icon: ScrollText, permission: 'audit_logs.view' },
@@ -169,144 +155,71 @@ function BrandMark({ collapsed = false }: { collapsed?: boolean }) {
 }
 
 const NAV_LINK =
-  'group flex items-center gap-3 rounded-xl text-[13.5px] font-medium transition-colors text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-foreground'
-const NAV_LINK_ACTIVE = 'bg-sidebar-primary text-sidebar-primary-foreground shadow-sm hover:bg-sidebar-primary hover:text-sidebar-primary-foreground'
+  'group flex items-center gap-3 rounded-xl text-[14px] font-medium transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+const NAV_LINK_ACTIVE =
+  'bg-sidebar-primary font-semibold text-sidebar-primary-foreground shadow-[0_1px_2px_rgb(0_0_0/0.12),0_4px_12px_-6px_rgb(0_0_0/0.35)] hover:bg-sidebar-primary hover:text-sidebar-primary-foreground'
+const NAV_ICON = 'h-[18px] w-[18px] shrink-0 transition-colors'
 
-/** Expanded sidebar: single-page groups are plain links; every other group is a collapsible
- * parent entry whose pages sit underneath on a thin tree line. The group holding the current
- * page opens automatically. */
+/** Expanded sidebar: a flat list of every page, grouped under small uppercase section labels
+ * (no accordions), so the whole console is one glance away. The current page is a raised pill. */
 function SidebarNav({ groups, pathname, onNavigate }: { groups: NavGroup[]; pathname: string; onNavigate?: () => void }) {
-  const activeGroup = groups.find((g) => g.items.some((i) => isActive(pathname, i)))?.title
-  const [open, setOpen] = useState<Set<string>>(() => new Set(activeGroup ? [activeGroup] : []))
-
-  // Navigating into another section (e.g. via ⌘K) reveals it without closing the others
-  useEffect(() => {
-    if (activeGroup) setOpen((prev) => (prev.has(activeGroup) ? prev : new Set(prev).add(activeGroup)))
-  }, [activeGroup])
-
-  const toggle = (title: string) =>
-    setOpen((prev) => {
-      const next = new Set(prev)
-      if (next.has(title)) next.delete(title)
-      else next.add(title)
-      return next
-    })
-
   return (
-    <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-1 [scrollbar-width:thin]">
-      {groups.map((group) => {
-        if (group.items.length === 1) {
-          const item = group.items[0]
-          const active = isActive(pathname, item)
-          return (
-            <Link key={item.href} href={item.href} onClick={onNavigate} className={cn(NAV_LINK, 'px-3 py-2.5', active && NAV_LINK_ACTIVE)}>
-              <item.icon className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-primary' : 'text-sidebar-foreground/45 group-hover:text-sidebar-foreground/80')} />
-              {item.label}
-            </Link>
-          )
-        }
-        const isOpen = open.has(group.title)
-        const containsActive = group.title === activeGroup
-        return (
-          <div key={group.title}>
-            <button
-              type="button"
-              onClick={() => toggle(group.title)}
-              aria-expanded={isOpen}
-              className={cn(NAV_LINK, 'w-full px-3 py-2.5', containsActive && 'text-sidebar-foreground')}
-            >
-              <group.icon
-                className={cn(
-                  'h-[18px] w-[18px] shrink-0',
-                  containsActive ? 'text-primary' : 'text-sidebar-foreground/45 group-hover:text-sidebar-foreground/80'
-                )}
-              />
-              <span className="flex-1 text-left">{group.title}</span>
-              {containsActive && !isOpen && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
-              <ChevronRight
-                className={cn('h-4 w-4 shrink-0 text-sidebar-foreground/35 transition-transform duration-200', isOpen && 'rotate-90')}
-              />
-            </button>
-            <div className={cn('grid transition-[grid-template-rows] duration-200 ease-out', isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]')}>
-              <div className="overflow-hidden">
-                <div className="ml-[21px] mt-0.5 mb-1.5 space-y-0.5 border-l border-sidebar-border pl-3">
-                  {group.items.map((item) => {
-                    const active = isActive(pathname, item)
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={onNavigate}
-                        tabIndex={isOpen ? undefined : -1}
-                        className={cn(NAV_LINK, 'relative px-3 py-2 text-[13px]', active && NAV_LINK_ACTIVE)}
-                      >
-                        {active && <span className="absolute -left-[13.5px] top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-primary" />}
-                        {item.label}
-                      </Link>
-                    )
-                  })}
-                </div>
-              </div>
-            </div>
+    <nav className="flex-1 min-h-0 overflow-y-auto px-3 pb-4 pt-1 [scrollbar-width:thin]">
+      {groups.map((group, gi) => (
+        <div key={group.title} className={cn(gi > 0 && 'mt-5')}>
+          <p className="px-3 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/40">{group.title}</p>
+          <div className="space-y-0.5">
+            {group.items.map((item) => {
+              const active = isActive(pathname, item)
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={onNavigate}
+                  aria-current={active ? 'page' : undefined}
+                  className={cn(NAV_LINK, 'px-3 py-2', active && NAV_LINK_ACTIVE)}
+                >
+                  <item.icon
+                    className={cn(NAV_ICON, active ? 'text-primary' : 'text-sidebar-foreground/50 group-hover:text-sidebar-foreground/85')}
+                    strokeWidth={active ? 2.25 : 1.75}
+                  />
+                  <span className="truncate">{item.label}</span>
+                </Link>
+              )
+            })}
           </div>
-        )
-      })}
+        </div>
+      ))}
     </nav>
   )
 }
 
-/** Collapsed icon rail: single pages are icon links; each group is an icon that opens its
- * pages in a flyout to the right. */
+/** Collapsed icon rail: the same flat list as icons, with a hairline between sections. */
 function SidebarRail({ groups, pathname }: { groups: NavGroup[]; pathname: string }) {
   return (
-    <nav className="flex-1 min-h-0 overflow-y-auto px-2.5 py-3 space-y-1 [scrollbar-width:none]">
-      {groups.map((group) => {
-        if (group.items.length === 1) {
-          const item = group.items[0]
-          const active = isActive(pathname, item)
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              title={item.label}
-              aria-label={item.label}
-              className={cn(NAV_LINK, 'h-11 justify-center', active && NAV_LINK_ACTIVE)}
-            >
-              <item.icon className={cn('h-[18px] w-[18px]', active ? 'text-primary' : 'text-sidebar-foreground/55 group-hover:text-sidebar-foreground')} />
-            </Link>
-          )
-        }
-        const containsActive = group.items.some((i) => isActive(pathname, i))
-        return (
-          <DropdownMenu key={group.title}>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                title={group.title}
-                aria-label={group.title}
-                className={cn(NAV_LINK, 'relative h-11 w-full justify-center data-[state=open]:bg-sidebar-accent', containsActive && NAV_LINK_ACTIVE)}
+    <nav className="flex-1 min-h-0 overflow-y-auto px-2.5 pb-4 pt-1 [scrollbar-width:none]">
+      {groups.map((group, gi) => (
+        <div key={group.title} className={cn('space-y-1', gi > 0 && 'mt-3 border-t border-sidebar-border pt-3')}>
+          {group.items.map((item) => {
+            const active = isActive(pathname, item)
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                title={item.label}
+                aria-label={item.label}
+                aria-current={active ? 'page' : undefined}
+                className={cn(NAV_LINK, 'h-10 justify-center', active && NAV_LINK_ACTIVE)}
               >
-                <group.icon
-                  className={cn('h-[18px] w-[18px]', containsActive ? 'text-primary' : 'text-sidebar-foreground/55 group-hover:text-sidebar-foreground')}
+                <item.icon
+                  className={cn(NAV_ICON, active ? 'text-primary' : 'text-sidebar-foreground/55 group-hover:text-sidebar-foreground')}
+                  strokeWidth={active ? 2.25 : 1.75}
                 />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent side="right" align="start" sideOffset={14} className="w-56 rounded-xl p-1.5">
-              <DropdownMenuLabel className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{group.title}</DropdownMenuLabel>
-              {group.items.map((item) => {
-                const active = isActive(pathname, item)
-                return (
-                  <DropdownMenuItem key={item.href} asChild className={cn('rounded-lg py-2', active && 'bg-primary/10 font-semibold text-primary focus:bg-primary/10 focus:text-primary')}>
-                    <Link href={item.href}>
-                      <item.icon className={cn(active && '!text-primary')} /> {item.label}
-                    </Link>
-                  </DropdownMenuItem>
-                )
-              })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )
-      })}
+              </Link>
+            )
+          })}
+        </div>
+      ))}
     </nav>
   )
 }
