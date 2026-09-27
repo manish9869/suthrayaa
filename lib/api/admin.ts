@@ -48,15 +48,25 @@ function rangeQuery(params: DateRangeParams = {}): string {
 }
 
 export interface AnalyticsSummary {
+  /** Net revenue: collected order totals minus refunds (COD counts once delivered). */
   revenue: number
   revenueChangePct: number | null
+  grossSales: number
+  refunds: number
+  /** Orders placed — abandoned online payment attempts aren't orders. */
   orderCount: number
   orderCountChangePct: number | null
   avgOrderValue: number
+  avgOrderValueChangePct: number | null
   newCustomers: number
   newCustomersChangePct: number | null
   totalCustomers: number
+  /** Orders to fulfil right now (confirmed / making / ready). */
+  openOrders: number
+  /** @deprecated same as openOrders */
   pendingOrders: number
+  cancelledOrders: number
+  codToCollectValue: number
   totalTransactions: number
   successfulTransactions: number
   failedTransactions: number
@@ -100,12 +110,109 @@ export const getTopProducts = (limit = 10, params: DateRangeParams = {}) => {
     `/admin/analytics/top-products?${q.toString()}`
   )
 }
-export const getCustomizationPopularity = () =>
-  adminFetch<{ total: number; customized: number; percentage: number }>('/admin/analytics/customization-popularity')
+export const getCustomizationPopularity = (params: DateRangeParams = {}) =>
+  adminFetch<{ total: number; customized: number; percentage: number }>(`/admin/analytics/customization-popularity?${rangeQuery(params)}`)
 export const getStockAlerts = () =>
   adminFetch<{ id: string; name: string; slug: string; stock: number; low_stock_threshold: number }[]>(
     '/admin/analytics/stock-alerts'
   )
+
+// ---- Analytics & Reports ----
+export interface ReportSummary {
+  placedOrders: number
+  paidOrders: number
+  grossSales: number
+  refunds: number
+  netRevenue: number
+  discounts: number
+  shipping: number
+  tax: number
+  unitsSold: number
+  avgOrderValue: number
+  cancelledOrders: number
+  cancelledValue: number
+  cancellationRatePct: number
+  codToCollectOrders: number
+  codToCollectValue: number
+}
+export interface AnalyticsReport {
+  range: { from: string; to: string; days: number; timezone: string; previousFrom: string; previousTo: string }
+  summary: ReportSummary
+  previous: ReportSummary
+  changes: Record<'netRevenue' | 'grossSales' | 'placedOrders' | 'avgOrderValue' | 'unitsSold' | 'refunds' | 'cancelledOrders' | 'discounts', number | null>
+  series: { date: string; orders: number; paidOrders: number; revenue: number; grossSales: number; signups: number }[]
+  products: { productId: string | null; name: string; sku: string | null; unitsSold: number; revenue: number; orders: number }[]
+  variants: { productId: string | null; name: string; variant: string; unitsSold: number; revenue: number }[]
+  categories: { categoryId: string | null; name: string; unitsSold: number; revenue: number; products: number }[]
+  customization: { items: number; customized: number; percentage: number; customizedRevenue: number; topOptions: { label: string; value: string; count: number }[] }
+  payments: {
+    methods: { method: string; orders: number; paidOrders: number; revenue: number }[]
+    attempts: { total: number; collected: number; successRatePct: number; byStatus: { status: string; count: number; amount: number }[] }
+  }
+  coupons: { couponId: string; code: string; orders: number; discount: number; sales: number; avgDiscount: number }[]
+  refunds: {
+    count: number
+    amount: number
+    byMethod: { method: string; count: number; amount: number }[]
+    recent: { id: string; orderId: string; orderNumber: string | null; amount: number; method: string; status: string; reason: string | null; createdAt: string }[]
+  }
+  customers: {
+    newSignups: number
+    newSignupsChangePct: number | null
+    buyers: number
+    firstTimeBuyers: number
+    returningBuyers: number
+    repeatRatePct: number
+    guestOrders: number
+    topCustomers: { customerId: string | null; name: string; email: string | null; orders: number; spent: number; returning: boolean }[]
+  }
+  tax: { state: string; orders: number; taxableValue: number; cgst: number; sgst: number; igst: number; totalTax: number; invoiceValue: number }[]
+  shipping: {
+    freeShippingOrders: number
+    byState: { state: string; orders: number; shippingCollected: number; sales: number }[]
+    byMethod: { method: string; orders: number; shippingCollected: number }[]
+  }
+  inventory: {
+    summary: InventorySummary & { inventoryCostValue: number }
+    alerts: { id: string; name: string; sku: string | null; stock: number; low_stock_threshold: number }[]
+    products: { id: string; name: string; sku: string | null; status: string; stock: number; lowStockThreshold: number; tracked: boolean; price: number; costPrice: number | null }[]
+  }
+}
+export const getAnalyticsReport = (params: DateRangeParams = {}) => adminFetch<AnalyticsReport>(`/admin/analytics/reports?${rangeQuery(params)}`)
+
+export type ReportExportSection =
+  | 'sales'
+  | 'products'
+  | 'variants'
+  | 'categories'
+  | 'payments'
+  | 'coupons'
+  | 'refunds'
+  | 'customers'
+  | 'gst'
+  | 'shipping'
+  | 'inventory'
+
+/** Downloads one report section as CSV (server-generated — needs analytics.export). */
+export async function downloadReportCsv(section: ReportExportSection, params: DateRangeParams = {}) {
+  const t = await token()
+  const q = new URLSearchParams(rangeQuery(params))
+  q.set('section', section)
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/analytics/reports/export?${q.toString()}`, {
+    headers: t ? { Authorization: `Bearer ${t}` } : {},
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => null)
+    throw new Error(body?.error?.message ?? 'Export failed')
+  }
+  const filename = /filename="([^"]+)"/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? `suthrayaa-${section}.csv`
+  const url = URL.createObjectURL(await res.blob())
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
 
 // ---- Products ----
 export interface AdminProductListItem extends Product {
@@ -456,14 +563,34 @@ export interface AdminOrderDetail extends AdminOrderSummary {
   adminNotes: string | null
   customerNotes: string | null
   invoiceNumber: string | null
+  refundedAmount: number
+  refunds: AdminOrderRefund[]
+  /** Statuses the server will accept next — refunds go through refundOrder instead. */
+  allowedStatuses: string[]
   items: AdminOrderItem[]
   statusHistory: { status: string; note?: string; created_at: string }[]
 }
 export const getAdminOrder = (id: string) => adminFetch<AdminOrderDetail>(`/admin/orders/${id}`)
 export const updateOrderStatus = (id: string, status: string, note?: string, trackingNumber?: string, courier?: string) =>
-  adminFetch<{ ok: boolean }>(`/admin/orders/${id}/status`, {
+  adminFetch<{ ok: boolean; refundRequired?: boolean }>(`/admin/orders/${id}/status`, {
     method: 'PATCH',
     body: JSON.stringify({ status, note, trackingNumber, courier }),
+  })
+export interface AdminOrderRefund {
+  id: string
+  amount: number
+  method: 'razorpay' | 'manual'
+  razorpayRefundId: string | null
+  status: 'pending' | 'processed' | 'failed'
+  reason: string | null
+  restocked: boolean
+  createdAt: string
+}
+/** Full refund when `amount` is omitted. Online orders are refunded through Razorpay. */
+export const refundOrder = (id: string, input: { amount?: number; reason: string; restock?: boolean }) =>
+  adminFetch<{ refund: AdminOrderRefund; refundedAmount: number; paymentStatus: string }>(`/admin/orders/${id}/refund`, {
+    method: 'POST',
+    body: JSON.stringify(input),
   })
 export const updateOrderNotes = (id: string, input: { adminNotes?: string; customerNotes?: string }) =>
   adminFetch<{ ok: boolean }>(`/admin/orders/${id}/notes`, { method: 'PATCH', body: JSON.stringify(input) })

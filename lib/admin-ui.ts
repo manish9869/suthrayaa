@@ -10,8 +10,10 @@ export const GLASS_PANEL =
  * non-ASCII (₹, etc.) correctly. */
 export function exportRowsToCsv(filename: string, columns: string[], rows: (string | number | null | undefined)[][]) {
   const escape = (v: string | number | null | undefined) => {
-    const s = v == null ? '' : String(v)
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+    let s = v == null ? '' : String(v)
+    // A customer-typed name like "=HYPERLINK(...)" must not run as a spreadsheet formula
+    if (typeof v === 'string' && /^[=+\-@\t\r]/.test(s) && !/^-?\d+(\.\d+)?$/.test(s)) s = `'${s}`
+    return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
   }
   const lines = [columns.map(escape).join(','), ...rows.map((r) => r.map(escape).join(','))]
   const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' })

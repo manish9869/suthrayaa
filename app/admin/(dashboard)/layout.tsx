@@ -10,6 +10,7 @@ import { RbacProvider, useRbac } from '@/lib/rbac/rbac-context'
 import { AccessDenied } from '@/components/admin/access-denied'
 import {
   LayoutDashboard,
+  BarChart3,
   Package,
   FolderTree,
   Palette,
@@ -71,7 +72,10 @@ interface NavGroup {
 const navGroups: NavGroup[] = [
   {
     title: 'Overview',
-    items: [{ href: '/admin', label: 'Dashboard', icon: LayoutDashboard, permission: 'analytics.view' }],
+    items: [
+      { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, permission: 'analytics.view' },
+      { href: '/admin/analytics', label: 'Analytics & Reports', icon: BarChart3, permission: 'analytics.view' },
+    ],
   },
   {
     title: 'Catalog',
@@ -387,11 +391,11 @@ function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <PortalContainerContext.Provider value={portalContainer}>
-      <div ref={setPortalContainer} className={cn('admin h-screen flex bg-background text-foreground overflow-hidden', theme === 'dark' && 'dark')}>
+      <div ref={setPortalContainer} className={cn('admin h-screen flex bg-background text-foreground overflow-hidden print:h-auto print:overflow-visible', theme === 'dark' && 'dark')}>
         {/* Desktop sidebar */}
         <aside
           className={cn(
-            'hidden lg:flex flex-shrink-0 flex-col h-full border-r border-sidebar-border transition-[width] duration-300 ease-out',
+            'hidden lg:flex flex-shrink-0 flex-col h-full border-r border-sidebar-border transition-[width] duration-300 ease-out print:!hidden',
             collapsed ? 'w-[76px]' : 'w-[264px]'
           )}
         >
@@ -412,9 +416,9 @@ function AdminShell({ children }: { children: React.ReactNode }) {
           </SheetContent>
         </Sheet>
 
-        <div className="flex-1 min-w-0 flex flex-col h-full">
+        <div className="flex-1 min-w-0 flex flex-col h-full print:h-auto">
           {/* Top bar */}
-          <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b bg-card/80 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
+          <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b bg-card/80 px-4 backdrop-blur-xl sm:px-6 lg:px-8 print:hidden">
             <Button variant="ghost" size="icon" className="lg:hidden -ml-1" onClick={() => setMobileNavOpen(true)} aria-label="Open navigation">
               <Menu className="h-5 w-5" />
             </Button>
@@ -500,7 +504,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          <main className="flex-1 overflow-y-auto overflow-x-hidden">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden print:overflow-visible">
             <div className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8">{children}</div>
           </main>
         </div>

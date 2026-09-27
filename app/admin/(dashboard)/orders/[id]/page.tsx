@@ -11,6 +11,8 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
   ArrowLeft,
   FileText,
@@ -31,6 +33,7 @@ import {
   getAdminOrder,
   updateOrderStatus,
   updateOrderNotes,
+  refundOrder,
   emailInvoice,
   regenerateInvoice,
   fetchInvoicePdfBlob,
@@ -41,6 +44,7 @@ import {
 } from '@/lib/api/admin'
 import { formatPrice } from '@/lib/data'
 import { toast } from 'sonner'
+import { ApiError } from '@/lib/api/http'
 import { PageLoader } from '@/components/admin/loading-state'
 import { StatusDot, type DotTone } from '@/components/admin/status-dot'
 import { StatCard } from '@/components/admin/stat-card'
@@ -66,17 +70,6 @@ const STATUS_DOT: Record<string, DotTone> = {
   partially_refunded: 'destructive',
 }
 
-const STATUSES = [
-  'pending_payment',
-  'confirmed',
-  'in_production',
-  'ready',
-  'shipped',
-  'delivered',
-  'cancelled',
-  'refunded',
-  'partially_refunded',
-]
 const STATUS_LABELS: Record<string, string> = { in_production: 'Making', pending_payment: 'Pending Payment' }
 
 export default function AdminOrderDetailPage() {
@@ -92,6 +85,11 @@ export default function AdminOrderDetailPage() {
   const [invoiceBusy, setInvoiceBusy] = useState(false)
   const [emailType, setEmailType] = useState<OrderEmailType>('order_shipped')
   const [sendingEmail, setSendingEmail] = useState(false)
+  const [refundOpen, setRefundOpen] = useState(false)
+  const [refundAmount, setRefundAmount] = useState('')
+  const [refundReason, setRefundReason] = useState('')
+  const [refundRestock, setRefundRestock] = useState(true)
+  const [refunding, setRefunding] = useState(false)
 
   const load = () => {
     setLoading(true)
@@ -110,11 +108,12 @@ export default function AdminOrderDetailPage() {
   const handleStatusChange = async (status: string) => {
     setUpdating(true)
     try {
-      await updateOrderStatus(params.id, status, undefined, tracking || undefined, courier || undefined)
-      toast.success('Order status updated')
+      const res = await updateOrderStatus(params.id, status, undefined, tracking || undefined, courier || undefined)
+      if (res.refundRequired) toast.warning('Order cancelled — it was paid online, so issue a refund next')
+      else toast.success('Order status updated')
       load()
-    } catch {
-      toast.error('Failed to update status')
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Failed to update status')
     } finally {
       setUpdating(false)
     }
@@ -130,6 +129,40 @@ export default function AdminOrderDetailPage() {
       toast.error('Failed to save shipping details')
     } finally {
       setUpdating(false)
+    }
+  }
+
+  const refundable = order ? Math.round((order.total - (order.refundedAmount ?? 0)) * 100) / 100 : 0
+  const canRefund = !!order && (order.paymentStatus === 'paid' || order.paymentStatus === 'partially_refunded') && refundable > 0
+
+  const openRefund = () => {
+    setRefundAmount(String(refundable))
+    setRefundReason('')
+    // Unshipped items can go straight back on the shelf; shipped ones only once returned
+    setRefundRestock(!!order && !['shipped', 'delivered'].includes(order.status))
+    setRefundOpen(true)
+  }
+
+  const refundValue = Number(refundAmount)
+  const refundIsFull = refundValue >= refundable
+  const refundInvalid = !refundAmount || Number.isNaN(refundValue) || refundValue <= 0 || refundValue > refundable || !refundReason.trim()
+
+  const handleRefund = async () => {
+    if (refundInvalid) return
+    setRefunding(true)
+    try {
+      await refundOrder(params.id, {
+        amount: refundIsFull ? undefined : Math.round(refundValue * 100) / 100,
+        reason: refundReason.trim(),
+        restock: refundIsFull ? refundRestock : false,
+      })
+      toast.success(`${formatPrice(refundValue)} refunded`)
+      setRefundOpen(false)
+      load()
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Refund failed')
+    } finally {
+      setRefunding(false)
     }
   }
 
@@ -372,20 +405,29 @@ export default function AdminOrderDetailPage() {
               <CardTitle className="text-base">Order Status</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Can anyOf={['orders.update', 'orders.cancel', 'orders.refund']}>
-                <Select value={order.status} onValueChange={handleStatusChange} disabled={updating}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {STATUSES.map((s) => (
-                      <SelectItem key={s} value={s} className="capitalize">
-                        {STATUS_LABELS[s] ?? s.replace(/_/g, ' ')}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <Can anyOf={['orders.update', 'orders.cancel']}>
+                {order.allowedStatuses.length > 0 ? (
+                  <Select value={order.status} onValueChange={handleStatusChange} disabled={updating}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[order.status, ...order.allowedStatuses].map((s) => (
+                        <SelectItem key={s} value={s} className="capitalize">
+                          {STATUS_LABELS[s] ?? s.replace(/_/g, ' ')}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-xs text-muted-foreground">This order is final — its status can no longer change.</p>
+                )}
               </Can>
+              {order.status === 'cancelled' && order.paymentStatus === 'paid' && (
+                <div className="flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" /> Cancelled after online payment — refund the customer.
+                </div>
+              )}
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Payment</span>
                 <StatusDot label={order.paymentStatus} tone={PAYMENT_DOT[order.paymentStatus] ?? 'muted'} />
@@ -427,6 +469,12 @@ export default function AdminOrderDetailPage() {
                 <span>Total</span>
                 <span>{formatPrice(order.total)}</span>
               </div>
+              {order.refundedAmount > 0 && (
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Refunded</span>
+                  <span>-{formatPrice(order.refundedAmount)}</span>
+                </div>
+              )}
               {order.paymentStatus === 'paid' ? (
                 <div className="flex items-center gap-2 rounded-lg bg-mint/10 text-mint px-3 py-2 text-xs font-medium mt-1">
                   <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0" /> Fully paid — no balance due.
@@ -434,7 +482,11 @@ export default function AdminOrderDetailPage() {
               ) : order.paymentStatus === 'refunded' || order.paymentStatus === 'partially_refunded' ? (
                 <div className="flex items-center gap-2 rounded-lg bg-muted text-muted-foreground px-3 py-2 text-xs font-medium mt-1">
                   <RotateCcw className="h-3.5 w-3.5 flex-shrink-0" />
-                  {order.paymentStatus === 'refunded' ? 'Fully refunded.' : 'Partially refunded.'}
+                  {order.paymentStatus === 'refunded' ? 'Fully refunded.' : `Partially refunded — ${formatPrice(refundable)} still refundable.`}
+                </div>
+              ) : order.paymentMethod === 'cod' && order.paymentStatus === 'pending' ? (
+                <div className="flex items-center gap-2 rounded-lg bg-gold/10 text-gold px-3 py-2 text-xs font-medium mt-1">
+                  <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" /> {formatPrice(order.total)} to collect on delivery.
                 </div>
               ) : (
                 <div className="flex items-center gap-2 rounded-lg bg-gold/10 text-gold px-3 py-2 text-xs font-medium mt-1">
@@ -443,6 +495,45 @@ export default function AdminOrderDetailPage() {
               )}
             </CardContent>
           </Card>
+
+          {(canRefund || order.refunds.length > 0) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <RotateCcw className="h-4 w-4" /> Refunds
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {order.refunds.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No refunds on this order.</p>
+                ) : (
+                  <ul className="divide-y text-sm">
+                    {order.refunds.map((r) => (
+                      <li key={r.id} className="py-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-medium tabular-nums">{formatPrice(r.amount)}</span>
+                          <StatusDot label={r.status === 'processed' ? (r.method === 'razorpay' ? 'Razorpay' : 'Manual') : r.status} tone={r.status === 'failed' ? 'destructive' : r.status === 'pending' ? 'gold' : 'mint'} />
+                        </div>
+                        {r.reason && <p className="text-xs text-muted-foreground">{r.reason}</p>}
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(r.createdAt).toLocaleString('en-IN')}
+                          {r.restocked && ' · stock returned'}
+                          {r.razorpayRefundId && ` · ${r.razorpayRefundId}`}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {canRefund && (
+                  <Can permission="orders.refund">
+                    <Button variant="outline" size="sm" className="w-full" onClick={openRefund}>
+                      <RotateCcw className="h-3.5 w-3.5 mr-2" /> Refund…
+                    </Button>
+                  </Can>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader>
@@ -503,6 +594,64 @@ export default function AdminOrderDetailPage() {
           </Card>
         </div>
       </div>
+
+      <Dialog open={refundOpen} onOpenChange={(open) => !refunding && setRefundOpen(open)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Refund {order.orderNumber}</DialogTitle>
+            <DialogDescription>
+              {order.paymentMethod === 'razorpay'
+                ? 'The money is returned to the customer through Razorpay. This can’t be undone.'
+                : 'Cash on Delivery was collected offline — record this once you have paid the customer back.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="refund-amount">Amount</Label>
+              <Input
+                id="refund-amount"
+                type="number"
+                inputMode="decimal"
+                min={0.01}
+                max={refundable}
+                step="0.01"
+                value={refundAmount}
+                onChange={(e) => setRefundAmount(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Up to {formatPrice(refundable)}
+                {order.refundedAmount > 0 && ` (${formatPrice(order.refundedAmount)} already refunded)`}
+                {refundValue > refundable && <span className="text-destructive"> — that&apos;s more than can be refunded</span>}
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="refund-reason">Reason</Label>
+              <Textarea id="refund-reason" rows={2} maxLength={500} value={refundReason} onChange={(e) => setRefundReason(e.target.value)} placeholder="Shown in the order history and audit log" />
+            </div>
+            {refundIsFull ? (
+              <label className="flex items-start gap-2 text-sm">
+                <Checkbox checked={refundRestock} onCheckedChange={(v) => setRefundRestock(v === true)} className="mt-0.5" />
+                <span>
+                  Return items to stock
+                  <span className="block text-xs text-muted-foreground">
+                    {['shipped', 'delivered'].includes(order.status) ? 'Only if the items have come back to you.' : 'These items never left, so they can be sold again.'}
+                  </span>
+                </span>
+              </label>
+            ) : (
+              <p className="text-xs text-muted-foreground">A partial refund keeps the order open and its stock unchanged.</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRefundOpen(false)} disabled={refunding}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleRefund} disabled={refunding || refundInvalid}>
+              {refunding ? 'Refunding…' : `Refund ${refundValue > 0 && !Number.isNaN(refundValue) ? formatPrice(refundValue) : ''}`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
     </ProtectedRoute>
   )
