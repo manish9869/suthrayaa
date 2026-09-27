@@ -40,7 +40,8 @@ lib/
   store.ts               zustand cart + wishlist (persisted)
   store-contact.ts       store email/phone/WhatsApp/address from Site Settings
   supabase/              browser + server Supabase clients
-proxy.ts                 refreshes the Supabase session cookie on every request
+lib/auth/session.ts      auth session store (tokens from the backend gateway, auto-refresh, cross-tab sync)
+components/site-analytics.tsx  GA4 / GTM / Meta Pixel + optional cookie-consent banner
 ```
 
 ## Data flow
@@ -97,7 +98,7 @@ The admin editor builds its form from the catalog automatically.
 
 ### Accounts
 
-- **Sign-in:** Supabase Auth, either email + password or Google (redirects through `/auth/callback`). `safeRedirectPath` sanitises `?redirect=` and `?next=`, so only same-site paths are followed.
+- **Sign-in:** email + password or Google, always through the backend's auth gateway (`/api/auth/*`). The frontend has no Supabase URL or key. The backend returns Supabase-issued tokens, which `lib/auth/session.ts` stores and refreshes via the backend. Email links (confirm account, reset password, change email) and Google sign-in land on `/auth/callback`, which reads the session from the URL fragment. `safeRedirectPath` sanitises `?redirect=` and `?next=`, so only same-site paths are followed.
 - **Profile row:** a database trigger creates `customer_profiles` on sign-up.
 - **Signed-in cart and wishlist:** `AccountSync` merges the local cart and wishlist with the account on sign-in (a line in both keeps the larger quantity), then pushes changes with `PUT /me/cart` and `PUT /me/wishlist` in replace mode. Sign-out clears the local copies.
 - **Orders:** customers can cancel while an order is `pending_payment` or `confirmed` (not once production has started), retry payment on unpaid online orders, and download a GST invoice PDF.
@@ -116,7 +117,6 @@ The footer card, and the optional homepage section, `POST /newsletter`. Signups 
 | Variable | Purpose |
 |---|---|
 | `NEXT_PUBLIC_API_URL` | Backend base URL, including `/api` |
-| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Auth |
 
 `.env.local` points at `localhost:5000` for development. The production values are set in the Vercel project.
 

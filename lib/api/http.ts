@@ -1,6 +1,6 @@
 // Isomorphic fetch wrapper — safe to import from both Server and Client Components.
-// It never touches Supabase/next-headers itself; callers that need an authenticated
-// request pass a bearer token explicitly (see lib/api/auth-header.ts for each context).
+// It never talks to Supabase (auth goes through the backend gateway); callers that need an authenticated
+// request pass a bearer token explicitly (from getAccessToken in lib/auth/session.ts).
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api"
 

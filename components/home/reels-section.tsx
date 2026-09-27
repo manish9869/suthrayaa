@@ -62,7 +62,7 @@ function ReelCard({ reel, index }: { reel: Reel; index: number }) {
       transition={{ duration: 0.6, delay: (index % 4) * 0.07, ease: EASE_OUT }}
       className="w-[64vw] max-w-[250px] shrink-0 snap-start sm:w-[230px]"
     >
-      <div className="group relative aspect-[9/16] overflow-hidden rounded-[1.75rem] bg-sand shadow-[0_24px_50px_-30px_rgb(49_32_140/0.55)] ring-1 ring-border">
+      <div className="group relative aspect-[9/16] overflow-hidden rounded-[1.75rem] bg-sand shadow-[0_24px_50px_-30px_color-mix(in_oklab,var(--shadow-tint)_55%,transparent)] ring-1 ring-border">
         <video
           ref={ref}
           poster={reel.poster || undefined}

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Lock, ArrowRight } from 'lucide-react'
 import { AuthShell } from '@/components/admin/auth-shell'
-import { createSupabaseBrowserClient } from '@/lib/supabase/client'
+import { signIn } from '@/lib/api/auth'
 import { toast } from 'sonner'
 import { safeRedirectPath } from '@/lib/utils'
 
@@ -20,9 +20,9 @@ export default function AdminLoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    const supabase = createSupabaseBrowserClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) {
+    try {
+      await signIn(email.trim(), password)
+    } catch {
       toast.error('Invalid email or password')
       setLoading(false)
       return

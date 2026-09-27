@@ -12,7 +12,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp'
 import { Separator } from '@/components/ui/separator'
 import { Mail, Lock, Eye, EyeOff, Phone, Sparkles, User, Loader2, Check, Circle } from 'lucide-react'
-import { createSupabaseBrowserClient } from '@/lib/supabase/client'
+import { signIn, signUp, requestPasswordReset, changePassword, googleSignInUrl } from '@/lib/api/auth'
+import { ApiError } from '@/lib/api/http'
 import { toast } from 'sonner'
 import { STOREFRONT_IMAGES } from '@/lib/storefront-images'
 import { getContentBlock } from '@/lib/content'
@@ -45,18 +46,13 @@ export default function LoginPage() {
     setRedirectTo(safeRedirectPath(params.get('redirect')))
   }, [])
 
-  // Landing here from a "reset password" email puts Supabase into a recovery session —
-  // detected via onAuthStateChange rather than a separate route, so the same page handles it.
+  // The "reset password" email lands on /auth/callback, which stores the recovery session and
+  // sends the shopper here with ?mode=reset to choose a new password.
   const [recoveryMode, setRecoveryMode] = useState(false)
   useEffect(() => {
-    const supabase = createSupabaseBrowserClient()
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') setRecoveryMode(true)
-    })
-    return () => subscription.unsubscribe()
+    if (new URLSearchParams(window.location.search).get('mode') === 'reset') setRecoveryMode(true)
   }, [])
+  const errorMessage = (err: unknown, fallback: string) => (err instanceof ApiError ? err.message : fallback)
 
   const [loginMethod, setLoginMethod] = useState<'email' | 'mobile'>('email')
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin')
@@ -74,17 +70,10 @@ export default function LoginPage() {
   const [otp, setOtp] = useState('')
   const [loadingGoogle, setLoadingGoogle] = useState(false)
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleLogin = () => {
     setLoadingGoogle(true)
-    const supabase = createSupabaseBrowserClient()
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}` },
-    })
-    if (error) {
-      toast.error('Google sign-in isn’t configured yet. Please try again later.')
-      setLoadingGoogle(false)
-    }
+    // Full-page hop through the backend to Google; we come back via /auth/callback
+    window.location.href = googleSignInUrl(redirectTo)
   }
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
@@ -105,12 +94,12 @@ export default function LoginPage() {
       }
     }
     setLoading(true)
-    const supabase = createSupabaseBrowserClient()
 
     if (authMode === 'signin') {
-      const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
-      if (error) {
-        toast.error(error.message.includes('Invalid login credentials') ? 'Incorrect email or password' : error.message)
+      try {
+        await signIn(email.trim(), password)
+      } catch (err) {
+        toast.error(errorMessage(err, 'Could not sign in. Please try again.'))
         setLoading(false)
         return
       }
@@ -119,20 +108,15 @@ export default function LoginPage() {
       return
     }
 
-    const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      options: {
-        data: { first_name: firstName.trim(), last_name: lastName.trim() },
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
-      },
-    })
-    if (error) {
-      toast.error(error.message)
+    let needsConfirmation: boolean
+    try {
+      ;({ needsConfirmation } = await signUp({ email: email.trim(), password, firstName: firstName.trim(), lastName: lastName.trim(), next: redirectTo }))
+    } catch (err) {
+      toast.error(errorMessage(err, 'Could not create your account. Please try again.'))
       setLoading(false)
       return
     }
-    if (data.session) {
+    if (!needsConfirmation) {
       toast.success('Account created — welcome!')
       router.push(redirectTo)
       router.refresh()
@@ -149,14 +133,13 @@ export default function LoginPage() {
       return
     }
     setLoading(true)
-    const supabase = createSupabaseBrowserClient()
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/login`,
-    })
-    setLoading(false)
-    if (error) {
-      toast.error(error.message)
+    try {
+      await requestPasswordReset(email.trim())
+    } catch (err) {
+      toast.error(errorMessage(err, 'Could not send the reset link. Please try again.'))
       return
+    } finally {
+      setLoading(false)
     }
     toast.success(`Password reset link sent to ${email}`)
   }
@@ -168,12 +151,13 @@ export default function LoginPage() {
       return
     }
     setResettingPassword(true)
-    const supabase = createSupabaseBrowserClient()
-    const { error } = await supabase.auth.updateUser({ password })
-    setResettingPassword(false)
-    if (error) {
-      toast.error(error.message)
+    try {
+      await changePassword(password)
+    } catch (err) {
+      toast.error(errorMessage(err, 'Could not update your password. Please try again.'))
       return
+    } finally {
+      setResettingPassword(false)
     }
     toast.success('Password updated — you’re signed in')
     router.push(redirectTo)
@@ -246,7 +230,7 @@ export default function LoginPage() {
                       <button
                         type="button"
                         onClick={() => setShowPassword((v) => !v)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        className="absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:text-foreground"
                         tabIndex={-1}
                         aria-label={showPassword ? 'Hide password' : 'Show password'}
                       >
@@ -354,7 +338,7 @@ export default function LoginPage() {
                           <button
                             type="button"
                             onClick={() => setShowPassword((v) => !v)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                            className="absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:text-foreground"
                             tabIndex={-1}
                             aria-label={showPassword ? 'Hide password' : 'Show password'}
                           >

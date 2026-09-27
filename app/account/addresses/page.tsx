@@ -181,7 +181,7 @@ export default function AddressesPage() {
             <article
               key={a.id}
               className={cn(
-                'relative flex flex-col rounded-3xl border bg-card p-5 shadow-[0_1px_2px_rgb(49_32_140/0.04)]',
+                'relative flex flex-col rounded-3xl border bg-card p-5 shadow-[0_1px_2px_color-mix(in_oklab,var(--shadow-tint)_4%,transparent)]',
                 a.isDefault && 'border-primary/40 ring-1 ring-primary/15'
               )}
             >

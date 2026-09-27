@@ -1,14 +1,9 @@
 import { apiFetch } from './http'
-import { createSupabaseBrowserClient } from '@/lib/supabase/client'
+import { getAccessToken } from '@/lib/auth/session'
 import type { Product } from '@/lib/data'
 
-async function token(): Promise<string | undefined> {
-  const supabase = createSupabaseBrowserClient()
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-  return session?.access_token
-}
+/** Bearer token from the auth session (refreshed via the backend when needed). */
+const token = getAccessToken
 
 async function adminFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   return apiFetch<T>(path, { ...options, token: await token(), revalidate: false })
@@ -846,6 +841,8 @@ export interface ThemeAdminState {
   tokens: ThemeToken[]
   presets: ThemeDef[]
   customThemes: ThemeDef[]
+  /** Invoice accent choices re-coloured for the live theme; null while the default theme is live. */
+  invoiceAccents: Record<'peach' | 'violet' | 'rose' | 'teal', { name: string; label: string; wave: string; soft: string; strong: string }> | null
 }
 export const getThemeAdmin = () => adminFetch<ThemeAdminState>('/admin/theme')
 export const activateTheme = (id: string) =>

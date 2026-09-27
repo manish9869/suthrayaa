@@ -73,7 +73,7 @@ Admins can change everything a shopper sees without a deploy:
 | Homepage section order, on/off, headings and links | Site Settings → Homepage |
 | Section bodies, About, FAQs, policy pages, header perks, page images, footer extras | Storefront Content |
 | Hero carousel | Hero Slides (with image upload) |
-| Storefront colour theme (7 ready-made themes + custom themes) | Theme |
+| Colour theme of the storefront **and** of transactional emails and invoice PDFs (14 ready-made themes + custom themes; invoices keep the Dark/Light header choice) | Theme |
 | Announcement bar, navigation, footer links and description, logo, favicon, SEO, social, contact details, maintenance mode, checkout rules, GST, shipping zones, payment methods | Site Settings tabs |
 | Products, categories, colours, customization options | Catalogue pages |
 | Testimonials, reviews, coupons | Their pages |

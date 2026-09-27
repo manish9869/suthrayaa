@@ -199,24 +199,27 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
           {/* Slide dots + social proof */}
           <div className="mt-12 flex flex-wrap items-center gap-6">
             {slides.length > 1 && (
-              <div className="flex items-center gap-2">
+              <div className="-my-4 flex items-center">
                 {slides.map((s, i) => (
+                  // The visible bar stays slim; the button pads it to a ~44px-tall touch target
                   <button
                     key={s.id}
                     onClick={() => setCurrent(i)}
                     aria-label={`Show slide ${i + 1}`}
                     aria-current={i === current}
-                    className="relative h-1.5 w-8 overflow-hidden rounded-full bg-foreground/15"
+                    className="px-1 py-[19px]"
                   >
-                    {i === current && (
-                      <motion.span
-                        key={`${s.id}-${paused}`}
-                        className="absolute inset-y-0 left-0 rounded-full bg-primary"
-                        initial={{ width: paused || reduce ? '100%' : '0%' }}
-                        animate={{ width: '100%' }}
-                        transition={{ duration: paused || reduce ? 0 : 6.5, ease: 'linear' }}
-                      />
-                    )}
+                    <span className="relative block h-1.5 w-8 overflow-hidden rounded-full bg-foreground/15">
+                      {i === current && (
+                        <motion.span
+                          key={`${s.id}-${paused}`}
+                          className="absolute inset-y-0 left-0 rounded-full bg-primary"
+                          initial={{ width: paused || reduce ? '100%' : '0%' }}
+                          animate={{ width: '100%' }}
+                          transition={{ duration: paused || reduce ? 0 : 6.5, ease: 'linear' }}
+                        />
+                      )}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -243,7 +246,7 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
         <div className="relative mx-auto w-full max-w-[360px] sm:max-w-[520px]">
           <div className="absolute inset-x-[6%] bottom-[4%] top-[10%] rounded-full bg-blush" />
           <motion.div style={{ y: imageY }} className="relative">
-            <div className="arch relative mx-auto aspect-[4/5] w-[78%] overflow-hidden bg-sand shadow-[0_40px_80px_-40px_rgb(49_32_140/0.55)]">
+            <div className="arch relative mx-auto aspect-[4/5] w-[78%] overflow-hidden bg-sand shadow-[0_40px_80px_-40px_color-mix(in_oklab,var(--shadow-tint)_55%,transparent)]">
               <AnimatePresence initial={false}>
                 <motion.div
                   key={slide.id}
@@ -265,7 +268,7 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
           </motion.div>
 
           {/* Slide counter */}
-          <div className="absolute bottom-[12%] left-0 z-[2] hidden items-baseline gap-1.5 rounded-2xl bg-card/80 px-4 py-2.5 shadow-[0_18px_40px_-24px_rgb(49_32_140/0.5)] ring-1 ring-white/70 backdrop-blur-md sm:flex sm:left-[-4%]">
+          <div className="absolute bottom-[12%] left-0 z-[2] hidden items-baseline gap-1.5 rounded-2xl bg-card/80 px-4 py-2.5 shadow-[0_18px_40px_-24px_color-mix(in_oklab,var(--shadow-tint)_50%,transparent)] ring-1 ring-white/70 backdrop-blur-md sm:flex sm:left-[-4%]">
             <AnimatePresence mode="popLayout" initial={false}>
               <motion.span
                 key={current}
@@ -287,7 +290,7 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
               initial={reduce ? { opacity: 0 } : { opacity: 0, y: 24, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ delay: 0.45, duration: 0.6, ease: EASE_OUT }}
-              className="absolute bottom-[-2%] right-[-4%] z-[2] hidden w-[180px] rounded-3xl bg-card/95 p-2.5 shadow-[0_24px_60px_-28px_rgb(49_32_140/0.55)] ring-1 ring-border backdrop-blur sm:block xl:right-[-8%]"
+              className="absolute bottom-[-2%] right-[-4%] z-[2] hidden w-[180px] rounded-3xl bg-card/95 p-2.5 shadow-[0_24px_60px_-28px_color-mix(in_oklab,var(--shadow-tint)_55%,transparent)] ring-1 ring-border backdrop-blur sm:block xl:right-[-8%]"
             >
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div

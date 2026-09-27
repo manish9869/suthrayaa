@@ -1,13 +1,8 @@
 import { apiFetch } from './http'
-import { createSupabaseBrowserClient } from '@/lib/supabase/client'
+import { getAccessToken } from '@/lib/auth/session'
 
-async function getBrowserToken(): Promise<string | undefined> {
-  const supabase = createSupabaseBrowserClient()
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-  return session?.access_token
-}
+/** Bearer token from the auth session (refreshed via the backend when needed). */
+const getBrowserToken = getAccessToken
 
 export interface CustomizationSelectionInput {
   customizationId: string

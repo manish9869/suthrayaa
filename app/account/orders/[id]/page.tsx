@@ -29,7 +29,7 @@ const CANCEL_REASONS = ['Ordered by mistake', 'Want to change items or options',
 
 function Panel({ title, children, className }: { title?: string; children: React.ReactNode; className?: string }) {
   return (
-    <section className={cn('rounded-3xl border bg-card p-5 shadow-[0_1px_2px_rgb(49_32_140/0.04)] sm:p-6', className)}>
+    <section className={cn('rounded-3xl border bg-card p-5 shadow-[0_1px_2px_color-mix(in_oklab,var(--shadow-tint)_4%,transparent)] sm:p-6', className)}>
       {title && <h3 className="mb-4 text-[13px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{title}</h3>}
       {children}
     </section>

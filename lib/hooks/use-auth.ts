@@ -1,37 +1,26 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import type { User } from '@supabase/supabase-js'
-import { createSupabaseBrowserClient } from '@/lib/supabase/client'
+import { getSession, onSessionChange, type AuthUser } from '@/lib/auth/session'
+import { signOut as apiSignOut } from '@/lib/api/auth'
 
+/** The signed-in user (or null), kept in sync across the app and other tabs. */
 export function useAuth() {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const supabase = createSupabaseBrowserClient()
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      // Supabase re-emits the session (SIGNED_IN / TOKEN_REFRESHED) whenever the tab regains
-      // focus, each time with a fresh user object. Keep the existing reference while it's the
-      // same account, so consumers don't treat a token refresh as a new sign-in and reload.
+    setUser(getSession()?.user ?? null)
+    setLoading(false)
+    return onSessionChange((session) => {
       const next = session?.user ?? null
-      setUser((prev) => (prev && next && prev.id === next.id ? prev : next))
+      // Keep the same reference for the same account, so a token refresh isn't treated as a new sign-in
+      setUser((prev) => (prev && next && prev.id === next.id && prev.email === next.email ? prev : next))
     })
-
-    return () => subscription.unsubscribe()
   }, [])
 
   const signOut = async () => {
-    const supabase = createSupabaseBrowserClient()
-    await supabase.auth.signOut()
+    await apiSignOut('local')
     setUser(null)
   }
 

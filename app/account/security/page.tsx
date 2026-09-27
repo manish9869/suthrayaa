@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input'
 import { AccountPageHeader, useAccount } from '@/components/account/account-shell'
 import { Field } from '@/components/account/field'
 import { useAuth } from '@/lib/hooks/use-auth'
-import { createSupabaseBrowserClient } from '@/lib/supabase/client'
+import { changePassword, requestPasswordReset, signOut } from '@/lib/api/auth'
+import { ApiError } from '@/lib/api/http'
 import { isStrongPassword, passwordChecks, passwordStrength } from '@/lib/validation'
 import { cn } from '@/lib/utils'
 
@@ -51,7 +52,7 @@ export default function SecurityPage() {
   const { user } = useAuth()
   const { email } = useAccount()
   // Accounts created with Google / a mobile OTP have no password yet — they can set one.
-  const providers: string[] = (user?.app_metadata?.providers as string[] | undefined) ?? (user?.app_metadata?.provider ? [user.app_metadata.provider as string] : [])
+  const providers: string[] = user?.providers ?? []
   const hasPassword = providers.includes('email')
 
   const [current, setCurrent] = useState('')
@@ -91,20 +92,14 @@ export default function SecurityPage() {
     setErrors(e)
     if (Object.keys(e).length) return
     setSaving(true)
-    const supabase = createSupabaseBrowserClient()
     try {
-      if (hasPassword) {
-        if (!email) throw new Error('Your account has no email address to verify against')
-        // Re-authenticate with the current password before allowing the change
-        const { error } = await supabase.auth.signInWithPassword({ email, password: current })
-        if (error) {
-          setErrors({ current: 'That password isn’t correct' })
-          return
-        }
-      }
-      const { error } = await supabase.auth.updateUser({ password: next })
-      if (error) {
-        setErrors({ next: /different/i.test(error.message) ? 'Your new password must be different from the current one' : error.message })
+      // The backend re-checks the current password before changing it
+      try {
+        await changePassword(next, hasPassword ? current : undefined)
+      } catch (err) {
+        const message = err instanceof ApiError ? err.message : 'Could not change your password'
+        if (/current password/i.test(message)) setErrors({ current: 'That password isn’t correct' })
+        else setErrors({ next: /different/i.test(message) ? 'Your new password must be different from the current one' : message })
         return
       }
       toast.success(hasPassword ? 'Password changed' : 'Password set — you can now sign in with your email')
@@ -122,26 +117,31 @@ export default function SecurityPage() {
 
   const sendReset = async () => {
     if (!email) return
-    const supabase = createSupabaseBrowserClient()
-    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/login` })
-    if (error) toast.error(error.message)
-    else setResetSent(true)
+    try {
+      await requestPasswordReset(email)
+      setResetSent(true)
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Could not send the reset link')
+    }
   }
 
   const signOutOthers = async () => {
     setSigningOut(true)
-    const supabase = createSupabaseBrowserClient()
-    const { error } = await supabase.auth.signOut({ scope: 'others' })
-    setSigningOut(false)
-    if (error) toast.error(error.message)
-    else toast.success('Signed out of all other devices')
+    try {
+      await signOut('others')
+      toast.success('Signed out of all other devices')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not sign out other devices')
+    } finally {
+      setSigningOut(false)
+    }
   }
 
   return (
     <>
       <AccountPageHeader title="Password & security" description="Keep your account safe." />
       <div className="space-y-5">
-        <section className="rounded-3xl border bg-card p-5 shadow-[0_1px_2px_rgb(49_32_140/0.04)] sm:p-7">
+        <section className="rounded-3xl border bg-card p-5 shadow-[0_1px_2px_color-mix(in_oklab,var(--shadow-tint)_4%,transparent)] sm:p-7">
           <div className="flex items-start gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
               <KeyRound className="h-5 w-5" />
@@ -202,7 +202,7 @@ export default function SecurityPage() {
           </form>
         </section>
 
-        <section className="flex flex-col gap-4 rounded-3xl border bg-card p-5 shadow-[0_1px_2px_rgb(49_32_140/0.04)] sm:flex-row sm:items-center sm:justify-between sm:p-7">
+        <section className="flex flex-col gap-4 rounded-3xl border bg-card p-5 shadow-[0_1px_2px_color-mix(in_oklab,var(--shadow-tint)_4%,transparent)] sm:flex-row sm:items-center sm:justify-between sm:p-7">
           <div className="flex items-start gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
               <ShieldCheck className="h-5 w-5" />

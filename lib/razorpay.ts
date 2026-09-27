@@ -54,7 +54,7 @@ export async function openRazorpayPayment(opts: {
       description: `Order ${opts.orderNumber}`,
       order_id: opts.razorpay.orderId,
       prefill: opts.prefill,
-      theme: { color: '#6d4aff' },
+      theme: { color: getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#6d4aff' },
       handler: async (response) => {
         try {
           await opts.verify({

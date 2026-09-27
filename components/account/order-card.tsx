@@ -31,7 +31,7 @@ export function OrderCard({ order, onPay }: { order: OrderSummary; onPay?: (o: O
   }
 
   return (
-    <article className="overflow-hidden rounded-3xl border bg-card shadow-[0_1px_2px_rgb(49_32_140/0.04)] transition-shadow hover:shadow-[0_14px_40px_-24px_rgb(49_32_140/0.35)]">
+    <article className="overflow-hidden rounded-3xl border bg-card shadow-[0_1px_2px_color-mix(in_oklab,var(--shadow-tint)_4%,transparent)] transition-shadow hover:shadow-[0_14px_40px_-24px_color-mix(in_oklab,var(--shadow-tint)_35%,transparent)]">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b bg-muted/40 px-4 py-3 sm:px-5">
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-[13px]">
           <span>

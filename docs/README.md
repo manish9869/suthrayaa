@@ -34,7 +34,7 @@ flowchart LR
   FE -- REST /api/* --> BE
   SF -- REST (cart, checkout, account) --> BE
   AD -- REST /api/admin/* --> BE
-  SF & AD -- sign-in / session --> SB
+  SF & AD -- sign-in / session (/api/auth) --> BE
   BE -- service-role key --> SB
   BE -- orders & refunds --> RZ
   RZ -- webhook --> BE
@@ -100,8 +100,7 @@ docs/openapi.ts      OpenAPI generator (from the live route table) + Swagger UI 
 | Variable | Where | Purpose |
 |---|---|---|
 | `NEXT_PUBLIC_API_URL` | frontend | Backend base URL including `/api` |
-| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | frontend | Supabase Auth in the browser and in `proxy.ts` |
-| `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_JWKS_URL` | backend | DB access and JWT verification |
+| `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_JWKS_URL` | backend only | DB access, the auth gateway (`/api/auth`), JWT verification — the frontend has no Supabase URL or key |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | backend | Payments and the webhook signature |
 | `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `ADMIN_NOTIFICATION_EMAIL` | backend | Transactional email |
 | `FRONTEND_URL` | backend | CORS origin (no trailing slash) and links in emails |

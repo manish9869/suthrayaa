@@ -17,7 +17,7 @@ const ACTIVE = ['pending_payment', 'confirmed', 'in_production', 'ready', 'shipp
 
 function Stat({ icon: Icon, label, value, href }: { icon: React.ElementType; label: string; value: React.ReactNode; href: string }) {
   return (
-    <Link href={href} className="group rounded-3xl border bg-card p-4 transition-shadow hover:shadow-[0_14px_40px_-24px_rgb(49_32_140/0.35)] sm:p-5">
+    <Link href={href} className="group rounded-3xl border bg-card p-4 transition-shadow hover:shadow-[0_14px_40px_-24px_color-mix(in_oklab,var(--shadow-tint)_35%,transparent)] sm:p-5">
       <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
         <Icon className="h-5 w-5" />
       </span>

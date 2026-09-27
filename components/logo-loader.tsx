@@ -27,10 +27,10 @@ export function LogoLoader({
       <div className="logo-loader relative" style={{ width: size, height: size }}>
         <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full overflow-visible" aria-hidden>
           {/* soft halo */}
-          <circle cx="50" cy="50" r="46" fill="none" stroke="#6d4aff" strokeOpacity="0.08" strokeWidth="6" />
+          <circle cx="50" cy="50" r="46" fill="none" style={{ stroke: "var(--primary)" }} strokeOpacity="0.08" strokeWidth="6" />
           {/* running stitches, slowly turning */}
           <g className="logo-loader__stitches">
-            <circle cx="50" cy="50" r="46" fill="none" stroke="#6d4aff" strokeOpacity="0.55" strokeWidth="1.8" strokeDasharray="5 4" strokeLinecap="round" />
+            <circle cx="50" cy="50" r="46" fill="none" style={{ stroke: "var(--primary)" }} strokeOpacity="0.55" strokeWidth="1.8" strokeDasharray="5 4" strokeLinecap="round" />
           </g>
           {/* the thread being pulled round, with the needle at its head */}
           <g className="logo-loader__thread">
@@ -39,7 +39,7 @@ export function LogoLoader({
               cy="50"
               r="46"
               fill="none"
-              stroke="#ff9e7a"
+              style={{ stroke: "var(--secondary)" }}
               strokeWidth="2.6"
               strokeLinecap="round"
               pathLength="100"
@@ -47,7 +47,7 @@ export function LogoLoader({
               transform="rotate(-90 50 50)"
             />
             <g transform="rotate(100.8 50 50)">
-              <circle cx="50" cy="4" r="4.2" fill="#ff9e7a" stroke="white" strokeWidth="1.4" />
+              <circle cx="50" cy="4" r="4.2" style={{ fill: "var(--secondary)" }} stroke="white" strokeWidth="1.4" />
             </g>
           </g>
         </svg>
@@ -55,7 +55,7 @@ export function LogoLoader({
           <Image src="/logo-mark.png" alt="" fill priority sizes={`${size}px`} className="object-contain" />
         </div>
       </div>
-      {label && <p className="logo-loader__label font-serif text-[15px] italic text-[#6d4aff]">{label}</p>}
+      {label && <p className="logo-loader__label font-serif text-[15px] italic text-primary">{label}</p>}
       <span className="sr-only">Loading</span>
     </div>
   )

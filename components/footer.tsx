@@ -216,10 +216,11 @@ export function Footer() {
               {columns.map((col) => (
                 <div key={col.title}>
                   <h4 className="text-[12px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/55">{col.title}</h4>
-                  <ul className="mt-4 space-y-2.5">
+                  {/* Touch devices get ~32px-tall rows; desktop keeps the tighter list */}
+                  <ul className="mt-3 space-y-0.5 lg:mt-4 lg:space-y-2.5">
                     {col.links.map((link) => (
                       <li key={link.label}>
-                        <Link href={link.href} className="link-underline text-sm text-primary-foreground/85 hover:text-primary-foreground">
+                        <Link href={link.href} className="link-underline inline-block py-1.5 text-sm text-primary-foreground/85 hover:text-primary-foreground lg:py-0">
                           {link.label}
                         </Link>
                       </li>

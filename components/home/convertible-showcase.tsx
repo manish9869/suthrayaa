@@ -54,7 +54,7 @@ export function ConvertibleShowcase({ content }: { content?: SiteContent['home.c
       <div className="container mx-auto grid grid-cols-1 items-center gap-10 px-4 lg:grid-cols-2 lg:gap-16">
         <div
           ref={ref}
-          className="relative mx-auto aspect-[3/4] w-full max-w-[440px] overflow-hidden rounded-[2.5rem] bg-sand shadow-[0_40px_80px_-40px_rgb(49_32_140/0.5)]"
+          className="relative mx-auto aspect-[3/4] w-full max-w-[440px] overflow-hidden rounded-[2.5rem] bg-sand shadow-[0_40px_80px_-40px_color-mix(in_oklab,var(--shadow-tint)_50%,transparent)]"
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
         >

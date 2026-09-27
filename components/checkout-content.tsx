@@ -107,7 +107,7 @@ function StepCard({
     <motion.section
       layout
       transition={{ layout: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } }}
-      className={cn('overflow-hidden rounded-3xl border bg-card transition-shadow', state === 'active' && 'shadow-[0_18px_50px_-30px_rgb(49_32_140/0.45)] ring-1 ring-primary/15')}
+      className={cn('overflow-hidden rounded-3xl border bg-card transition-shadow', state === 'active' && 'shadow-[0_18px_50px_-30px_color-mix(in_oklab,var(--shadow-tint)_45%,transparent)] ring-1 ring-primary/15')}
     >
       <header className="flex items-center gap-3 px-5 py-4 sm:px-6">
         <span
@@ -1008,7 +1008,7 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
 
             {/* ---------- summary ---------- */}
             <aside className="hidden lg:block">
-              <div className="sticky top-28 rounded-3xl border bg-card p-6 shadow-[0_18px_50px_-34px_rgb(49_32_140/0.45)]">
+              <div className="sticky top-28 rounded-3xl border bg-card p-6 shadow-[0_18px_50px_-34px_color-mix(in_oklab,var(--shadow-tint)_45%,transparent)]">
                 <h2 className="mb-4 flex items-center justify-between text-[17px] font-semibold">
                   Order summary
                   <Link href="/cart" className="text-sm font-semibold text-primary hover:underline">

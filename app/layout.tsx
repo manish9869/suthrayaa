@@ -4,6 +4,8 @@ import { Analytics } from '@vercel/analytics/next'
 import { Toaster } from 'sonner'
 import { StoreSettingsGate } from '@/components/store-settings-gate'
 import { AccountSync } from '@/components/account-sync'
+import { SiteAnalytics } from '@/components/site-analytics'
+import { Suspense } from 'react'
 import './globals.css'
 
 const playfair = Playfair_Display({
@@ -90,6 +92,13 @@ async function getThemeCss(): Promise<string> {
       if (typeof value !== 'string' || !/^#[0-9a-f]{6}$/i.test(value)) continue
       for (const v of vars) decls.push(`${v}:${value}`)
     }
+    // Soft coloured shadows (--shadow-tint): a deep blend of the theme's primary and ink
+    const { primary, ink } = theme.colors ?? {}
+    if (/^#[0-9a-f]{6}$/i.test(primary ?? '') && /^#[0-9a-f]{6}$/i.test(ink ?? '')) {
+      const mix = (a: string, b: string, t: number) =>
+        '#' + [1, 3, 5].map((i) => Math.round(parseInt(a.slice(i, i + 2), 16) * (1 - t) + parseInt(b.slice(i, i + 2), 16) * t).toString(16).padStart(2, '0')).join('')
+      decls.push(`--shadow-tint:${mix(primary, ink, 0.55)}`)
+    }
     // html:root out-specifies globals.css's :root regardless of stylesheet order
     return decls.length ? `html:root{${decls.join(';')}}` : ''
   } catch {
@@ -141,7 +150,10 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const themeCss = await getThemeCss()
+  const [themeCss, settings] = await Promise.all([getThemeCss(), getPublicSettings()])
+  const analytics = settings.analytics ?? {}
+  const legal = settings.legal ?? {}
+  const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : undefined)
   return (
     <html lang="en" data-scroll-behavior="smooth" className={`${playfair.variable} ${fraunces.variable} ${jakarta.variable} ${allura.variable} bg-background`}>
       {themeCss && (
@@ -152,6 +164,15 @@ export default async function RootLayout({
       <body className="font-sans antialiased min-h-screen">
         <StoreSettingsGate>{children}</StoreSettingsGate>
         <AccountSync />
+        <Suspense fallback={null}>
+          <SiteAnalytics
+            gaId={str(analytics['analytics.ga_measurement_id'])}
+            gtmId={str(analytics['analytics.gtm_id'])}
+            pixelId={str(analytics['analytics.meta_pixel_id'])}
+            consentRequired={legal['legal.cookie_consent_enabled'] === true}
+            consentMessage={str(legal['legal.cookie_message'])}
+          />
+        </Suspense>
         <Toaster position="bottom-right" richColors />
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
