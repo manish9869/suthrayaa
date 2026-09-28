@@ -106,6 +106,13 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
   const [customizeLoaded, setCustomizeLoaded] = useState(false)
   const previewColors = useMemo(() => (previewEnabled ? selectedColorMap(product, czSelections) : {}), [previewEnabled, product, czSelections])
   const hasPickedColor = Object.values(previewColors).some(Boolean)
+  // A real-photo preview is shown in the main gallery once a colour is picked (with a toggle
+  // back to the original photo); illustrations stay in the small tile + dialog.
+  const [showOriginalPhoto, setShowOriginalPhoto] = useState(false)
+  const galleryPreview = showPreview && hasPickedColor && product.preview?.mode === 'photo'
+  const showGalleryPreview = galleryPreview && !showOriginalPhoto
+  const colourGroups = product.customizations.filter((g) => g.enabled && g.type === 'color')
+  const pickedParts = colourGroups.filter((g) => previewColors[g.id]).length
   const openCustomize = () => {
     setCustomizeLoaded(true)
     setCustomizeOpen(true)
@@ -144,7 +151,8 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
         // Flag every unanswered option inline and bring the first one into view
         setShowOptionErrors(true)
         const first = product.customizations.find((c) => c.enabled && c.label === missingRequired[0])
-        if (first) document.getElementById(customizationGroupId(first.id))?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        if (first && first.type === 'color' && showPreview) openCustomize()
+        else if (first) document.getElementById(customizationGroupId(first.id))?.scrollIntoView({ behavior: 'smooth', block: 'center' })
         toast.error(missingRequired.length === 1 ? `Please choose ${missingRequired[0].toLowerCase()} first` : `Please choose ${missingRequired.slice(0, -1).map((m) => m.toLowerCase()).join(', ')} and ${missingRequired.at(-1)!.toLowerCase()} first`)
         return
       }
@@ -269,6 +277,24 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                 }}
               >
                 <AnimatePresence initial={false}>
+                  {showGalleryPreview ? (
+                    <motion.div
+                      key="your-colours"
+                      className="absolute inset-0"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.35, ease: EASE_OUT }}
+                    >
+                      <ColorPreview
+                        preview={product.preview!}
+                        colors={previewColors}
+                        alt={`${product.name} in your colours`}
+                        className="absolute inset-0 h-full w-full"
+                        onError={() => setPreviewFailed(true)}
+                      />
+                    </motion.div>
+                  ) : (
                   <motion.div
                     key={selectedImage}
                     className="absolute inset-0"
@@ -287,7 +313,28 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                       className="object-cover transition-transform duration-500 ease-[var(--ease-out)] [@media(hover:hover)]:group-hover:scale-[1.6]"
                     />
                   </motion.div>
+                  )}
                 </AnimatePresence>
+                {galleryPreview && (
+                  <div className="absolute inset-x-4 bottom-4 flex justify-center">
+                    <div className="flex rounded-full bg-card/85 p-1 text-[13px] font-medium shadow-sm ring-1 ring-white/70 backdrop-blur-md">
+                      {[
+                        { label: 'Your colours', on: !showOriginalPhoto },
+                        { label: 'Original photo', on: showOriginalPhoto },
+                      ].map((t) => (
+                        <button
+                          key={t.label}
+                          type="button"
+                          aria-pressed={t.on}
+                          onClick={() => setShowOriginalPhoto(t.label === 'Original photo')}
+                          className={cn('rounded-full px-3.5 py-1.5 transition-colors', t.on ? 'bg-primary text-primary-foreground' : 'text-foreground/70 hover:text-foreground')}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="pointer-events-none absolute left-4 top-4 flex flex-col items-start gap-2">
                   {discount > 0 && <span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-white">−{discount}% off</span>}
                   {product.bestseller && <span className="rounded-full bg-card/90 px-3 py-1 text-xs font-semibold backdrop-blur">Bestseller</span>}
@@ -342,31 +389,39 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
 
               <div className="space-y-6">
                 {usesNewCustomizer && (
-                  <div className="rounded-[1.5rem] bg-blush/50 p-5 ring-1 ring-blush">
+                  <div className={cn(!showPreview && 'rounded-[1.5rem] bg-blush/50 p-5 ring-1 ring-blush', showPreview && 'space-y-5')}>
                     {showPreview && (
-                      <div className="mb-4 flex items-center gap-3 rounded-2xl bg-background p-3 ring-1 ring-border">
-                        {hasPickedColor ? (
-                          <button
-                            type="button"
-                            onClick={openCustomize}
-                            className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-blush/60 p-1"
-                            aria-label="Open your design preview"
-                          >
-                            <ColorPreview preview={product.preview!} colors={previewColors} alt={`${product.name} — your design`} className="h-full w-full" onError={() => setPreviewFailed(true)} />
-                          </button>
-                        ) : (
-                          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-blush/60">
-                            <Palette className="h-6 w-6 text-primary" />
-                          </span>
-                        )}
+                      <div className="flex items-center gap-3 rounded-2xl border bg-card p-3">
+                        <button
+                          type="button"
+                          onClick={openCustomize}
+                          className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-sand"
+                          aria-label="Choose your colours"
+                        >
+                          {hasPickedColor ? (
+                            <ColorPreview preview={product.preview!} colors={previewColors} alt={`${product.name} in your colours`} className="absolute inset-0 h-full w-full" onError={() => setPreviewFailed(true)} />
+                          ) : (
+                            <Image src={product.images[0] ?? '/placeholder.svg'} alt="" fill sizes="56px" className="object-cover" />
+                          )}
+                        </button>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold">{hasPickedColor ? 'Your design' : 'See it before we make it'}</p>
-                          <p className="text-xs text-muted-foreground">Try yarn colors and preview your piece live</p>
+                          <p className="text-sm font-semibold">Colours</p>
+                          <div className="mt-1 flex items-center gap-1">
+                            {colourGroups.map((g) => (
+                              <span
+                                key={g.id}
+                                title={g.label}
+                                className="h-4 w-4 shrink-0 rounded-full ring-1 ring-black/10"
+                                style={{ background: previewColors[g.id] ?? g.defaultValue ?? 'var(--muted)' }}
+                              />
+                            ))}
+                            <span className="ml-1 truncate text-xs text-muted-foreground">
+                              {pickedParts > 0 ? `${pickedParts} of ${colourGroups.length} changed` : 'As shown · change any yarn'}
+                            </span>
+                          </div>
                         </div>
                         <Button type="button" size="sm" className="shrink-0 rounded-full" onClick={openCustomize}>
-                          <Sparkles className="h-4 w-4" />
-                          <span className="hidden min-[400px]:inline">Customize &amp; Preview</span>
-                          <span className="min-[400px]:hidden">Preview</span>
+                          <Palette className="h-4 w-4" /> Customize
                         </Button>
                       </div>
                     )}
@@ -374,6 +429,8 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                       customizations={product.customizations}
                       showErrors={showOptionErrors}
                       {...(previewEnabled ? { selections: czSelections, onSelectionsChange: setCzSelections } : {})}
+                      hideTypes={showPreview ? ['color'] : []}
+                      bare={showPreview}
                       onChange={(resolved, priceAdjustment, missing) => {
                         setResolvedCustomizations(resolved)
                         setCustomizationPriceAdjustment(priceAdjustment)

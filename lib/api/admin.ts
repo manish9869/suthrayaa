@@ -384,6 +384,8 @@ export const deleteCustomizationGroup = (productId: string, groupId: string) =>
 export interface CustomizationValueInput {
   label: string
   value: string
+  /** Color groups: the Colors library entry — the server takes the name and hex from it. */
+  colorId?: string
   priceAdjustment?: number
   sortOrder?: number
   enabled?: boolean
@@ -403,6 +405,12 @@ export const updateCustomizationValue = (
   adminFetch<AdminProductListItem>(`/admin/products/${productId}/customizations/${groupId}/values/${valueId}`, {
     method: 'PATCH',
     body: JSON.stringify(input),
+  })
+/** Adds Colors-library colours to a Color group (ones already in it are skipped). */
+export const addLibraryColors = (productId: string, groupId: string, colorIds: string[], priceAdjustment = 0) =>
+  adminFetch<AdminProductListItem>(`/admin/products/${productId}/customizations/${groupId}/library-colors`, {
+    method: 'POST',
+    body: JSON.stringify({ colorIds, priceAdjustment }),
   })
 export const deleteCustomizationValue = (productId: string, groupId: string, valueId: string) =>
   adminFetch<AdminProductListItem>(`/admin/products/${productId}/customizations/${groupId}/values/${valueId}`, {

@@ -393,7 +393,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <PortalContainerContext.Provider value={portalContainer}>
-      <div ref={setPortalContainer} className={cn('admin h-screen flex bg-background text-foreground overflow-hidden print:h-auto print:overflow-visible', theme === 'dark' && 'dark')}>
+      <div ref={setPortalContainer} className={cn('admin relative h-dvh flex bg-background text-foreground overflow-hidden print:h-auto print:overflow-visible', theme === 'dark' && 'dark')}>
         {/* Desktop sidebar */}
         <aside
           className={cn(
@@ -506,7 +506,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          <main className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide print:overflow-visible">
+          <main className="relative flex-1 overflow-y-auto overflow-x-hidden overscroll-contain scrollbar-hide print:overflow-visible">
             <div className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8">{children}</div>
           </main>
         </div>

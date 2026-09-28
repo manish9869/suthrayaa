@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog'
-import { Plus, Pencil, Trash2, GripVertical, Layers } from 'lucide-react'
+import { Plus, Pencil, Trash2, GripVertical, Layers, Check } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import {
@@ -29,6 +29,7 @@ import {
   deleteCustomizationGroup,
   createCustomizationValue,
   updateCustomizationValue,
+  addLibraryColors,
   deleteCustomizationValue,
   type CustomizationGroupInput,
 } from '@/lib/api/admin'
@@ -70,6 +71,12 @@ export function CustomizationEditor({ productId, customizations, colors, onChang
     maxLength: 50,
   })
   const [valueForm, setValueForm] = useState({ label: '', value: '', priceAdjustment: 0, sku: '', enabled: true })
+  // Color groups only take colours from the Colors library: several at once when adding,
+  // one (to swap to) when editing.
+  const [pickedColorIds, setPickedColorIds] = useState<string[]>([])
+  const libraryColors = colors.filter((c) => c.is_active)
+  const activeGroup = customizations.find((g) => g.id === valueDialogGroupId)
+  const sameHex = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase()
   const [saving, setSaving] = useState(false)
   const [quickAddingLabel, setQuickAddingLabel] = useState<string | null>(null)
   const [templates, setTemplates] = useState<CustomizationTemplate[] | null>(null)
@@ -167,19 +174,48 @@ export function CustomizationEditor({ productId, customizations, colors, onChang
   const openCreateValue = (groupId: string) => {
     setEditingValue(null)
     setValueForm({ label: '', value: '', priceAdjustment: 0, sku: '', enabled: true })
+    setPickedColorIds([])
     setValueDialogGroupId(groupId)
   }
 
   const openEditValue = (groupId: string, v: CustomizationValue) => {
     setEditingValue(v)
     setValueForm({ label: v.label, value: v.value, priceAdjustment: v.priceAdjustment, sku: v.sku ?? '', enabled: v.enabled })
+    const current = libraryColors.find((c) => sameHex(c.hex, v.value))
+    setPickedColorIds(current ? [current.id] : [])
     setValueDialogGroupId(groupId)
   }
 
+  const saveColorValues = async (groupId: string) => {
+    const price = Number(valueForm.priceAdjustment) || 0
+    if (editingValue) {
+      const picked = libraryColors.find((c) => c.id === pickedColorIds[0])
+      await updateCustomizationValue(productId, groupId, editingValue.id, {
+        priceAdjustment: price,
+        sku: valueForm.sku || null,
+        enabled: valueForm.enabled,
+        ...(picked && !sameHex(picked.hex, editingValue.value) ? { colorId: picked.id } : {}),
+      })
+      toast.success('Colour updated')
+    } else {
+      await addLibraryColors(productId, groupId, pickedColorIds, price)
+      toast.success(`${pickedColorIds.length} colour${pickedColorIds.length > 1 ? 's' : ''} added`)
+    }
+  }
+
   const saveValue = async () => {
-    if (!valueDialogGroupId || !valueForm.label.trim()) return
+    if (!valueDialogGroupId) return
+    const isColor = activeGroupType === 'color'
+    if (isColor ? pickedColorIds.length === 0 && !editingValue : !valueForm.label.trim()) return
     setSaving(true)
     try {
+      if (isColor) {
+        await saveColorValues(valueDialogGroupId)
+        setValueDialogGroupId(null)
+        setEditingValue(null)
+        onChange()
+        return
+      }
       const payload = {
         label: valueForm.label,
         value: valueForm.value || valueForm.label.toLowerCase().replace(/\s+/g, '-'),
@@ -395,6 +431,11 @@ export function CustomizationEditor({ productId, customizations, colors, onChang
                           </span>
                         )}
                         <span className={!v.enabled ? 'text-muted-foreground line-through' : ''}>{v.label}</span>
+                        {g.type === 'color' && v.inLibrary === false && (
+                          <Badge variant="outline" className="border-amber-500/50 text-[10px] text-amber-700" title="Customers can't pick this colour. Edit it and choose one from your Colors library.">
+                            Not in Colors library
+                          </Badge>
+                        )}
                         {v.priceAdjustment !== 0 && (
                           <span className="text-muted-foreground">
                             {v.priceAdjustment > 0 ? '+' : ''}
@@ -414,7 +455,7 @@ export function CustomizationEditor({ productId, customizations, colors, onChang
                     </div>
                   ))}
                   <Button variant="ghost" size="sm" className="text-xs" onClick={() => openCreateValue(g.id)}>
-                    <Plus className="h-3.5 w-3.5 mr-1" /> Add Value
+                    <Plus className="h-3.5 w-3.5 mr-1" /> {g.type === 'color' ? 'Add colours' : 'Add Value'}
                   </Button>
 
                   {g.type === 'choice' && (() => {
@@ -460,66 +501,54 @@ export function CustomizationEditor({ productId, customizations, colors, onChang
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingValue ? 'Edit Value' : 'New Value'}</DialogTitle>
+            <DialogTitle>{activeGroupType === 'color' ? (editingValue ? 'Change colour' : 'Add colours from your library') : editingValue ? 'Edit Value' : 'New Value'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            {activeGroupType === 'color' && (
-              <div className="space-y-2">
-                <Label className="text-xs">Pick a Color</Label>
-                {colors.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">
-                    No colors yet — add some under Media → Colors first, or enter a hex value manually below.
-                  </p>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {colors.map((c) => {
-                      const selected = valueForm.value.toLowerCase() === c.hex.toLowerCase()
-                      return (
-                        <button
-                          key={c.id}
-                          type="button"
-                          onClick={() => setValueForm((f) => ({ ...f, label: f.label || c.name, value: c.hex }))}
-                          title={c.name}
-                          className={`w-8 h-8 rounded-full border-2 transition-transform ${
-                            selected ? 'border-primary scale-110' : 'border-border hover:scale-105'
-                          }`}
-                        >
-                          <ColorYarnSwatch color={c.hex} />
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-            <div className="space-y-2">
-              <Label>Label</Label>
-              <Input value={valueForm.label} onChange={(e) => setValueForm((f) => ({ ...f, label: e.target.value }))} placeholder="e.g. Hot Pink" />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-xs">{activeGroupType === 'color' ? 'Hex Value' : 'Value (internal id)'}</Label>
-                <div className="flex items-center gap-2">
-                  {activeGroupType === 'color' && (
-                    <input
-                      type="color"
-                      value={/^#[0-9a-fA-F]{6}$/.test(valueForm.value) ? valueForm.value : '#000000'}
-                      onChange={(e) => setValueForm((f) => ({ ...f, value: e.target.value }))}
-                      className="w-9 h-9 rounded border cursor-pointer flex-shrink-0"
-                    />
-                  )}
-                  <Input value={valueForm.value} onChange={(e) => setValueForm((f) => ({ ...f, value: e.target.value }))} placeholder="e.g. #FF69B4" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">Additional Price (₹)</Label>
-                <Input
-                  type="number"
-                  value={valueForm.priceAdjustment}
-                  onChange={(e) => setValueForm((f) => ({ ...f, priceAdjustment: Number(e.target.value) }))}
+            {activeGroupType === 'color' ? (
+              <>
+                <LibraryColorPicker
+                  colors={
+                    editingValue
+                      ? libraryColors
+                      : libraryColors.filter((c) => !activeGroup?.values.some((v) => sameHex(v.value, c.hex)))
+                  }
+                  multiple={!editingValue}
+                  picked={pickedColorIds}
+                  onChange={setPickedColorIds}
                 />
-              </div>
-            </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">Additional Price (₹){!editingValue && pickedColorIds.length > 1 ? ' — for each colour' : ''}</Label>
+                  <Input
+                    type="number"
+                    value={valueForm.priceAdjustment}
+                    onChange={(e) => setValueForm((f) => ({ ...f, priceAdjustment: Number(e.target.value) }))}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label>Label</Label>
+                  <Input value={valueForm.label} onChange={(e) => setValueForm((f) => ({ ...f, label: e.target.value }))} placeholder="e.g. Large" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Value (internal id)</Label>
+                    <Input value={valueForm.value} onChange={(e) => setValueForm((f) => ({ ...f, value: e.target.value }))} placeholder="e.g. large" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Additional Price (₹)</Label>
+                    <Input
+                      type="number"
+                      value={valueForm.priceAdjustment}
+                      onChange={(e) => setValueForm((f) => ({ ...f, priceAdjustment: Number(e.target.value) }))}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+            {(activeGroupType !== 'color' || editingValue) && (
+            <>
             <div className="space-y-2">
               <Label className="text-xs">SKU (optional, for your own bookkeeping)</Label>
               <Input value={valueForm.sku} onChange={(e) => setValueForm((f) => ({ ...f, sku: e.target.value }))} />
@@ -528,14 +557,86 @@ export function CustomizationEditor({ productId, customizations, colors, onChang
               <Switch checked={valueForm.enabled} onCheckedChange={(v) => setValueForm((f) => ({ ...f, enabled: v }))} />
               Active
             </label>
+            </>
+            )}
           </div>
           <DialogFooter>
-            <Button onClick={saveValue} disabled={saving || !valueForm.label.trim()}>
-              {saving ? 'Saving...' : editingValue ? 'Save Changes' : 'Add Value'}
+            <Button
+              onClick={saveValue}
+              disabled={saving || (activeGroupType === 'color' ? !editingValue && pickedColorIds.length === 0 : !valueForm.label.trim())}
+            >
+              {saving
+                ? 'Saving...'
+                : editingValue
+                  ? 'Save Changes'
+                  : activeGroupType === 'color'
+                    ? `Add ${pickedColorIds.length || ''} colour${pickedColorIds.length === 1 ? '' : 's'}`
+                    : 'Add Value'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  )
+}
+
+/** Swatches from the Colors library — the only colours a Color option can offer. */
+function LibraryColorPicker({
+  colors,
+  multiple,
+  picked,
+  onChange,
+}: {
+  colors: AdminColor[]
+  multiple: boolean
+  picked: string[]
+  onChange: (ids: string[]) => void
+}) {
+  if (colors.length === 0) {
+    return (
+      <p className="rounded-lg bg-muted p-3 text-xs text-muted-foreground">
+        {multiple ? 'Every colour in your library is already in this option. ' : ''}
+        Add colours under{' '}
+        <Link href="/admin/colors" className="font-medium underline">
+          Colors
+        </Link>{' '}
+        first — options can only use colours from your library.
+      </p>
+    )
+  }
+  const toggle = (id: string) =>
+    onChange(multiple ? (picked.includes(id) ? picked.filter((x) => x !== id) : [...picked, id]) : [id])
+  const allPicked = picked.length === colors.length
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <Label className="text-xs">{multiple ? 'Pick colours from your library' : 'Colour from your library'}</Label>
+        {multiple && (
+          <button type="button" className="text-xs font-medium text-primary" onClick={() => onChange(allPicked ? [] : colors.map((c) => c.id))}>
+            {allPicked ? 'Clear' : 'Select all'}
+          </button>
+        )}
+      </div>
+      <div className="grid max-h-64 grid-cols-2 gap-1.5 overflow-y-auto sm:grid-cols-3">
+        {colors.map((c) => {
+          const on = picked.includes(c.id)
+          return (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => toggle(c.id)}
+              aria-pressed={on}
+              className={`flex items-center gap-2 rounded-lg border px-2 py-1.5 text-left text-xs transition-colors ${on ? 'border-primary bg-primary/5' : 'hover:bg-muted'}`}
+            >
+              <span className="h-5 w-5 shrink-0 rounded-full border">
+                <ColorYarnSwatch color={c.hex} />
+              </span>
+              <span className="min-w-0 flex-1 truncate">{c.name}</span>
+              {on && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }

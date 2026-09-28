@@ -14,6 +14,8 @@ export interface CustomizationValue {
   priceAdjustment: number
   enabled: boolean
   sku?: string
+  /** Color groups only: false when the colour isn't in the Colors library (hidden from customers). */
+  inLibrary?: boolean
 }
 
 export interface ProductCustomization {
@@ -195,7 +197,7 @@ function withProductImages(p: Product): Product {
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   try {
-    return withProductImages(await apiFetch<Product>(`/products/${slug}`))
+    return withProductImages(await apiFetch<Product>(`/products/${slug}`, { tags: [`product:${slug}`] }))
   } catch {
     return null
   }

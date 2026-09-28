@@ -12,6 +12,8 @@ import { cn } from '@/lib/utils'
 import type { ProductCustomization, ProductPreview } from '@/lib/data'
 import { PREVIEW_TEMPLATES, getPreviewTemplate } from '@/lib/preview/templates'
 import { ColorPreview } from '@/components/customize/color-preview'
+import { YarnColorSetup } from '@/components/admin/preview-yarn-colors'
+import type { AdminColor } from '@/lib/api/admin'
 import {
   getPreviewConfig,
   savePreviewConfig,
@@ -39,11 +41,24 @@ const nextKey = () => `l${++keySeq}`
 
 const MODES: { value: PreviewMode; title: string; body: string }[] = [
   { value: 'none', title: 'Off', body: 'No preview for this product.' },
-  { value: 'photo', title: 'Photo + masks', body: 'Your real photo, recolored part by part. Most realistic.' },
+  { value: 'photo', title: 'Real photo', body: 'Your product photo, repainted yarn by yarn. Most realistic.' },
   { value: 'svg', title: 'Illustration', body: 'A built-in drawing. No photo prep needed.' },
 ]
 
-export function PreviewEditor({ productId, customizations }: { productId?: string; customizations: ProductCustomization[] }) {
+export function PreviewEditor({
+  productId,
+  customizations,
+  productImages = [],
+  libraryColors = [],
+  onCustomizationsChange,
+}: {
+  productId?: string
+  customizations: ProductCustomization[]
+  productImages?: string[]
+  libraryColors?: AdminColor[]
+  /** Reload the product after the yarn tool creates colour options. */
+  onCustomizationsChange?: () => void | Promise<void>
+}) {
   const [config, setConfig] = useState<AdminPreviewConfig | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [mode, setMode] = useState<PreviewMode>('none')
@@ -82,6 +97,17 @@ export function PreviewEditor({ productId, customizations }: { productId?: strin
   }
 
   const template = getPreviewTemplate(svgTemplate)
+
+  const applySaved = async (saved?: AdminPreviewConfig) => {
+    if (saved) {
+      setConfig(saved)
+      setMode(saved.mode)
+      setSvgTemplate(saved.svgTemplate)
+      setBase({ url: saved.baseUrl, width: saved.width, height: saved.height })
+      setLayers(saved.layers.map((l) => ({ key: nextKey(), customizationId: l.customizationId, zone: l.zone, maskUrl: l.maskUrl })))
+    }
+    await onCustomizationsChange?.()
+  }
 
   const draftPreview: ProductPreview | null =
     mode === 'svg' && template
@@ -192,6 +218,19 @@ export function PreviewEditor({ productId, customizations }: { productId?: strin
           ))}
         </div>
 
+        {mode === 'photo' && (
+          <YarnColorSetup
+            productId={productId}
+            productImages={productImages}
+            base={base}
+            onBaseChange={setBase}
+            libraryColors={libraryColors}
+            colorGroups={colorGroups}
+            linkedGroupIds={config.mode === 'photo' ? config.layers.map((l) => l.customizationId) : []}
+            onSaved={applySaved}
+          />
+        )}
+
         {mode !== 'none' && (
           <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
             <div className="space-y-5">
@@ -235,7 +274,11 @@ export function PreviewEditor({ productId, customizations }: { productId?: strin
               )}
 
               {mode === 'photo' && (
-                <>
+                <details className="rounded-xl border p-3 [&[open]>summary]:mb-4">
+                  <summary className="cursor-pointer text-sm font-medium">
+                    Parts ({layers.length}) · advanced: replace the photo or masks by hand
+                  </summary>
+                  <div className="space-y-5">
                   <div>
                     <Label className="mb-2 block">Base photo</Label>
                     <div className="flex items-center gap-3">
@@ -245,7 +288,7 @@ export function PreviewEditor({ productId, customizations }: { productId?: strin
                       )}
                       <UploadButton busy={uploading === 'base'} label={base.url ? 'Replace photo' : 'Upload photo'} onFile={(f) => upload(f, 'base')} />
                     </div>
-                    <p className="mt-1.5 text-xs text-muted-foreground">Best: the piece made in white or cream yarn, on a plain background.</p>
+                    <p className="mt-1.5 text-xs text-muted-foreground">A clear photo on a plain background detects best.</p>
                   </div>
 
                   <div className="space-y-2">
@@ -278,7 +321,8 @@ export function PreviewEditor({ productId, customizations }: { productId?: strin
                       <strong> white</strong>, fill everything else <strong>black</strong>, export as PNG at the <strong>same size</strong> as the photo.
                     </Hint>
                   </div>
-                </>
+                  </div>
+                </details>
               )}
             </div>
 
@@ -312,7 +356,7 @@ export function PreviewEditor({ productId, customizations }: { productId?: strin
 }
 
 /** A color group a customer can actually pick from — the storefront ignores the rest. */
-const isUsableGroup = (g: ProductCustomization) => g.enabled && g.values.some((v) => v.enabled)
+const isUsableGroup = (g: ProductCustomization) => g.enabled && g.values.some((v) => v.enabled && v.inLibrary !== false)
 
 const layerSignature = (ls: { customizationId: string; zone?: string; maskUrl?: string }[]) =>
   ls
@@ -360,6 +404,8 @@ function SetupChecklist({
     (mode === 'photo' && baseUrl !== config.baseUrl) ||
     layerSignature(layers) !== layerSignature(config.layers)
 
+  const offLibrary = colorGroups.filter((g) => g.values.some((v) => v.inLibrary === false))
+
   const items: CheckItem[] = [
     {
       ok: config.enabledGlobally,
@@ -386,6 +432,19 @@ function SetupChecklist({
             color&rdquo;) and add some colors. <strong>Save the product, then reload this page</strong> so the group shows up here.
           </>
         ),
+    },
+    {
+      ok: offLibrary.length === 0,
+      label: 'Colour options only use your Colors library',
+      fix: (
+        <>
+          {offLibrary.map((g) => `“${g.label}”`).join(', ')} {offLibrary.length > 1 ? 'have' : 'has'} colours that aren&apos;t in your{' '}
+          <Link href="/admin/colors" className="font-medium underline">
+            Colors library
+          </Link>
+          , so customers can&apos;t pick them. In the Customization tab, delete those or change them to a library colour.
+        </>
+      ),
     },
     {
       ok: mode !== 'none',

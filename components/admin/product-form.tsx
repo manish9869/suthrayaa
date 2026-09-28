@@ -33,6 +33,7 @@ import {
 } from '@/lib/api/admin'
 import { CustomizationEditor } from '@/components/admin/customization-editor'
 import { PreviewEditor } from '@/components/admin/preview-editor'
+import { refreshStorefrontProduct } from '@/lib/api/admin-preview'
 import { ColorYarnSwatch } from '@/components/color-yarn-swatch'
 import { Can } from '@/components/admin/can'
 import { getTaxCategories, type TaxCategory } from '@/lib/api/settings'
@@ -308,6 +309,7 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
       const saved = product ? await updateProduct(product.id, payload) : await createProduct(payload)
       const productId = product?.id ?? saved.id
       setSavedProduct(saved as AdminProductListItem & { id: string })
+      refreshStorefrontProduct(saved.slug)
 
       const allowedColorIds = colors.filter((c) => allowedColorHexes.includes(c.hex)).map((c) => c.id)
       await updateCustomizationRules(productId, {
@@ -670,6 +672,7 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
               if (!savedProduct) return
               const fresh = await getAdminProduct(savedProduct.id)
               setSavedProduct(fresh as AdminProductListItem & { id: string })
+              refreshStorefrontProduct(fresh.slug)
             }}
           />
 
@@ -748,7 +751,18 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
 
         {/* ---- Live color preview (optional add-on, switchable in Settings → Storefront) ---- */}
         <TabsContent value="color-preview" className="pt-4">
-          <PreviewEditor productId={savedProduct?.id} customizations={savedProduct?.customizations ?? []} />
+          <PreviewEditor
+            productId={savedProduct?.id}
+            customizations={savedProduct?.customizations ?? []}
+            productImages={savedProduct?.images ?? []}
+            libraryColors={colors}
+            onCustomizationsChange={async () => {
+              if (!savedProduct) return
+              const fresh = await getAdminProduct(savedProduct.id)
+              setSavedProduct(fresh as AdminProductListItem & { id: string })
+              refreshStorefrontProduct(fresh.slug)
+            }}
+          />
         </TabsContent>
 
         {/* ---- Inventory ---- */}

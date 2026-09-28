@@ -67,3 +67,9 @@ export async function uploadPreviewImage(
   }
   return res.json()
 }
+
+/** Asks the storefront to drop its cached copy of a product page (fire-and-forget). */
+export function refreshStorefrontProduct(slug?: string) {
+  if (!slug) return
+  fetch('/api/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug }) }).catch(() => {})
+}
