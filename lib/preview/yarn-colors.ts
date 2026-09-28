@@ -717,6 +717,19 @@ export function nearestColor<T extends { hex: string }>(lab: Lab, colors: T[]): 
 
 // ---- recolouring ----
 
+/** The span of pixel indexes a mask occupies (first to last non-zero row), for recolorPixels. */
+export function maskRange(mask: Uint8Array | Uint8ClampedArray, width: number): { from: number; to: number } {
+  let first = -1
+  let last = -1
+  for (let p = 0; p < mask.length; p++) {
+    if (!mask[p]) continue
+    if (first < 0) first = p
+    last = p
+  }
+  if (first < 0) return { from: 0, to: 0 }
+  return { from: first - (first % width), to: Math.min(mask.length, last - (last % width) + width) }
+}
+
 export interface MaskStats {
   /** Median lightness (L*) of the masked yarn — maps to exactly the chosen colour. */
   refL: number
@@ -752,13 +765,15 @@ export function recolorPixels(
   out: Uint8ClampedArray,
   mask: Uint8Array | Uint8ClampedArray,
   stats: MaskStats,
-  targetHex: string
+  targetHex: string,
+  /** Only look at pixels in [from, to) — the region's rows — instead of the whole photo. */
+  range: { from: number; to: number } = { from: 0, to: mask.length }
 ): void {
   const rgb = hexToRgb(targetHex)
   if (!rgb) return
   const [tL, ta, tb] = rgbToLab(...rgb)
   const refL = stats.refL
-  for (let p = 0, i = 0; p < mask.length; p++, i += 4) {
+  for (let p = range.from, i = range.from * 4; p < range.to; p++, i += 4) {
     const m = mask[p]
     if (!m) continue
     const L = rgbToLab(base[i], base[i + 1], base[i + 2])[0]

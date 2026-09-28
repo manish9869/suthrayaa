@@ -451,11 +451,15 @@ export interface AdminColor {
   hex: string
   sort_order: number
   is_active: boolean
+  /** Colour family for filtering, e.g. "Red" (optional). */
+  family?: string | null
+  /** Yarn code / SKU (optional). */
+  sku?: string | null
 }
 export const getAdminColors = () => adminFetch<AdminColor[]>('/admin/colors')
-export const createColor = (input: { name: string; hex: string; sortOrder?: number }) =>
+export const createColor = (input: { name: string; hex: string; sortOrder?: number; family?: string | null; sku?: string | null }) =>
   adminFetch<AdminColor>('/admin/colors', { method: 'POST', body: JSON.stringify(input) })
-export const updateColor = (id: string, input: Partial<{ name: string; hex: string; sortOrder: number; isActive: boolean }>) =>
+export const updateColor = (id: string, input: Partial<{ name: string; hex: string; sortOrder: number; isActive: boolean; family: string | null; sku: string | null }>) =>
   adminFetch<AdminColor>(`/admin/colors/${id}`, { method: 'PATCH', body: JSON.stringify(input) })
 export const deleteColor = (id: string) => adminFetch<void>(`/admin/colors/${id}`, { method: 'DELETE' })
 
@@ -570,7 +574,17 @@ export interface OrderPreviewSnapshot {
   baseUrl?: string
   width?: number
   height?: number
-  layers: { customizationId: string; partLabel: string; zone?: string; maskUrl?: string; hex?: string; colorName?: string }[]
+  layers: {
+    customizationId: string
+    partLabel: string
+    /** The region and group names as configured when the order was placed. */
+    regionName?: string
+    groupName?: string
+    zone?: string
+    maskUrl?: string
+    hex?: string
+    colorName?: string
+  }[]
 }
 
 export interface AdminOrderItem {

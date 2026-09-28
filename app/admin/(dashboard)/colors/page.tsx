@@ -22,15 +22,21 @@ export default function AdminColorsPage() {
   const [addOpen, setAddOpen] = useState(false)
   const [name, setName] = useState('')
   const [hex, setHex] = useState('#c9a15a')
+  const [family, setFamily] = useState('')
+  const [sku, setSku] = useState('')
   const [saving, setSaving] = useState(false)
 
   const [editing, setEditing] = useState<AdminColor | null>(null)
   const [editName, setEditName] = useState('')
   const [editHex, setEditHex] = useState('')
+  const [editFamily, setEditFamily] = useState('')
+  const [editSku, setEditSku] = useState('')
+  const [familyFilter, setFamilyFilter] = useState<string | null>(null)
   const [editSaving, setEditSaving] = useState(false)
 
   const [loading, setLoading] = useState(true)
 
+  const families = [...new Set(colors.map((c) => c.family?.trim()).filter(Boolean) as string[])].sort()
   const load = () => getAdminColors().then(setColors).finally(() => setLoading(false))
   useEffect(() => {
     load()
@@ -40,9 +46,10 @@ export default function AdminColorsPage() {
     if (!name.trim()) return
     setSaving(true)
     try {
-      await createColor({ name, hex })
+      await createColor({ name, hex, family: family.trim() || null, sku: sku.trim() || null })
       toast.success('Color added')
       setName('')
+      setSku('')
       setAddOpen(false)
       load()
     } catch {
@@ -56,13 +63,15 @@ export default function AdminColorsPage() {
     setEditing(c)
     setEditName(c.name)
     setEditHex(c.hex)
+    setEditFamily(c.family ?? '')
+    setEditSku(c.sku ?? '')
   }
 
   const handleSaveEdit = async () => {
     if (!editing || !editName.trim()) return
     setEditSaving(true)
     try {
-      await updateColor(editing.id, { name: editName, hex: editHex })
+      await updateColor(editing.id, { name: editName, hex: editHex, family: editFamily.trim() || null, sku: editSku.trim() || null })
       toast.success('Color updated')
       setEditing(null)
       load()
@@ -112,6 +121,16 @@ export default function AdminColorsPage() {
                   <Input value={hex} onChange={(e) => setHex(e.target.value)} />
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Family</Label>
+                  <Input value={family} onChange={(e) => setFamily(e.target.value)} placeholder="e.g. Red" list="colour-families" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Yarn code / SKU</Label>
+                  <Input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="optional" />
+                </div>
+              </div>
             </div>
             <DialogFooter>
               <Button onClick={handleCreate} disabled={saving}>
@@ -124,6 +143,26 @@ export default function AdminColorsPage() {
         }
       />
 
+      <datalist id="colour-families">
+        {families.map((f) => (
+          <option key={f} value={f} />
+        ))}
+      </datalist>
+      {families.length > 1 && (
+        <div className="flex flex-wrap gap-1.5">
+          {[null, ...families].map((f) => (
+            <button
+              key={f ?? 'all'}
+              type="button"
+              onClick={() => setFamilyFilter(f)}
+              className={cn('rounded-full border px-3 py-1 text-xs', familyFilter === f ? 'border-foreground bg-foreground text-background' : 'text-muted-foreground hover:text-foreground')}
+            >
+              {f ?? 'All families'}
+            </button>
+          ))}
+        </div>
+      )}
+
       {loading ? (
         <PageLoader />
       ) : colors.length === 0 ? (
@@ -132,7 +171,7 @@ export default function AdminColorsPage() {
         </Card>
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-          {colors.map((c) => (
+          {colors.filter((c) => !familyFilter || c.family?.trim() === familyFilter).map((c) => (
             <Card key={c.id} className={cn('group gap-0 overflow-hidden py-0 transition-shadow hover:shadow-md', c.is_active === false && 'opacity-60')}>
               <div className="relative flex h-32 items-center justify-center" style={{ background: `color-mix(in oklab, ${c.hex} 18%, var(--card))` }}>
                 <span className="h-20 w-20 rounded-full shadow-sm ring-4 ring-card transition-transform duration-300 group-hover:scale-105">
@@ -163,6 +202,7 @@ export default function AdminColorsPage() {
                 <span className="h-4 w-4 shrink-0 rounded-full ring-1 ring-black/10" style={{ background: c.hex }} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{c.name}</p>
+                  {(c.family || c.sku) && <p className="truncate text-[11px] text-muted-foreground">{[c.family, c.sku].filter(Boolean).join(' · ')}</p>}
                   <button
                     type="button"
                     onClick={() => navigator.clipboard?.writeText(c.hex).then(() => toast.success(`Copied ${c.hex}`))}
@@ -200,6 +240,16 @@ export default function AdminColorsPage() {
                 <Input value={editHex} onChange={(e) => setEditHex(e.target.value)} />
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Family</Label>
+                  <Input value={editFamily} onChange={(e) => setEditFamily(e.target.value)} placeholder="e.g. Red" list="colour-families" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Yarn code / SKU</Label>
+                  <Input value={editSku} onChange={(e) => setEditSku(e.target.value)} placeholder="optional" />
+                </div>
+              </div>
           </div>
           <DialogFooter>
             <Button onClick={handleSaveEdit} disabled={editSaving}>

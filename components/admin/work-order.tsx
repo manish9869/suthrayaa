@@ -17,6 +17,12 @@ const HEX_RE = /^#[0-9a-f]{3,8}$/i
 export function WorkOrder({ item, orderNumber }: { item: AdminOrderItem; orderNumber: string }) {
   const printId = useId().replace(/:/g, '')
   const snap = item.previewSnapshot
+  /** The regions a colour choice paints, when they're named differently from the choice (e.g. a group). */
+  const regionsOf = (customizationId?: string) => {
+    const names = (snap?.layers ?? []).filter((l) => l.customizationId === customizationId).map((l) => l.regionName).filter(Boolean) as string[]
+    const label = snap?.layers.find((l) => l.customizationId === customizationId)?.partLabel
+    return names.length && !(names.length === 1 && names[0] === label) ? `→ ${names.join(', ')}` : undefined
+  }
 
   const print = () => {
     document.body.dataset.printTarget = printId
@@ -72,7 +78,10 @@ export function WorkOrder({ item, orderNumber }: { item: AdminOrderItem; orderNu
               const hex = c.type === 'color' && c.value && HEX_RE.test(c.value) ? c.value : undefined
               return (
                 <tr key={i} className="border-t align-top">
-                  <td className="py-1.5 pr-3 font-medium">{c.label}</td>
+                  <td className="py-1.5 pr-3 font-medium">
+                    {c.label}
+                    {regionsOf(c.customizationId) && <span className="block text-[11px] font-normal text-muted-foreground">{regionsOf(c.customizationId)}</span>}
+                  </td>
                   <td className="py-1.5 pr-3">
                     <span className="inline-flex items-center gap-1.5">
                       {hex && <span className="h-3.5 w-3.5 shrink-0 rounded-full border" style={{ backgroundColor: hex }} />}
@@ -87,10 +96,13 @@ export function WorkOrder({ item, orderNumber }: { item: AdminOrderItem; orderNu
               )
             })}
             {snap?.layers
-              .filter((l) => !l.hex && !item.customizations.some((c) => c.customizationId === l.customizationId))
+              .filter((l, i, all) => !l.hex && !item.customizations.some((c) => c.customizationId === l.customizationId) && all.findIndex((x) => x.customizationId === l.customizationId) === i)
               .map((l) => (
                 <tr key={l.customizationId} className="border-t">
-                  <td className="py-1.5 pr-3 font-medium">{l.partLabel}</td>
+                  <td className="py-1.5 pr-3 font-medium">
+                    {l.partLabel}
+                    {regionsOf(l.customizationId) && <span className="block text-[11px] font-normal text-muted-foreground">{regionsOf(l.customizationId)}</span>}
+                  </td>
                   <td className="py-1.5 pr-3 text-muted-foreground" colSpan={2}>
                     Not chosen — make as shown in the product photo
                   </td>

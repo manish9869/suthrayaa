@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
-import { maskStats, recolorPixels, type MaskStats } from '@/lib/preview/yarn-colors'
+import { maskRange, maskStats, recolorPixels, type MaskStats } from '@/lib/preview/yarn-colors'
 
 /**
  * Recolors parts of a real product photo in the browser. For each part, a black/white mask
@@ -21,7 +21,7 @@ interface Prepared {
   width: number
   height: number
   base: Uint8ClampedArray
-  masks: Map<string, { alpha: Uint8Array; stats: MaskStats }>
+  masks: Map<string, { alpha: Uint8Array; stats: MaskStats; range: { from: number; to: number } }>
 }
 
 function loadImage(url: string): Promise<HTMLImageElement> {
@@ -47,7 +47,7 @@ async function prepare(baseUrl: string, maskUrls: string[]): Promise<Prepared> {
   ctx.drawImage(baseImg, 0, 0)
   const base = ctx.getImageData(0, 0, width, height).data // throws if CORS is missing
 
-  const masks = new Map<string, { alpha: Uint8Array; stats: MaskStats }>()
+  const masks = new Map<string, { alpha: Uint8Array; stats: MaskStats; range: { from: number; to: number } }>()
   await Promise.all(
     [...new Set(maskUrls)].map(async (url) => {
       const img = await loadImage(url)
@@ -59,7 +59,7 @@ async function prepare(baseUrl: string, maskUrls: string[]): Promise<Prepared> {
       const data = mctx.getImageData(0, 0, width, height).data
       const alpha = new Uint8Array(width * height)
       for (let i = 0, p = 0; p < alpha.length; i += 4, p++) alpha[p] = data[i]
-      masks.set(url, { alpha, stats: maskStats(base, alpha) })
+      masks.set(url, { alpha, stats: maskStats(base, alpha), range: maskRange(alpha, width) })
     })
   )
 
@@ -75,7 +75,7 @@ function render(target: HTMLCanvasElement, prep: Prepared, layers: PhotoLayer[])
 
   for (const layer of layers) {
     const mask = layer.hex ? prep.masks.get(layer.maskUrl) : undefined
-    if (mask) recolorPixels(prep.base, out, mask.alpha, mask.stats, layer.hex!)
+    if (mask) recolorPixels(prep.base, out, mask.alpha, mask.stats, layer.hex!, mask.range)
   }
 
   ctx.putImageData(new ImageData(out, prep.width, prep.height), 0, 0)

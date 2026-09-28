@@ -10,6 +10,7 @@ import { ProductCustomizer, type CustomizerSelection, type ResolvedCustomization
 import { ColorPreview } from '@/components/customize/color-preview'
 import { ColourPartPicker } from '@/components/customize/colour-part-picker'
 import { selectedColorMap } from '@/lib/preview/selected-colors'
+import { colourSections } from '@/lib/preview/sections'
 
 /**
  * "Customize" — colours for each yarn, one part at a time, next to a live preview of the
@@ -49,15 +50,14 @@ interface CustomizeDialogProps {
 
 export default function CustomizeDialog(props: CustomizeDialogProps) {
   const { product, open, onOpenChange, selections, missingRequired, quantity, outOfStock } = props
-  const preview = product.preview!
+  const preview = product.preview
   const [showOriginal, setShowOriginal] = useState(false)
   const [showErrors, setShowErrors] = useState(false)
 
   const colors = useMemo(() => selectedColorMap(product, selections), [product, selections])
-  // Parts the photo actually paints come first, in the preview's order
-  const layerOrder = preview.layers.map((l) => l.customizationId)
-  const rank = (id: string) => (layerOrder.includes(id) ? layerOrder.indexOf(id) : layerOrder.length)
-  const colourGroups = product.customizations.filter((g) => g.enabled && g.type === 'color').sort((a, b) => rank(a.id) - rank(b.id))
+  // Controls come from the product's own regions/groups (see lib/preview/sections)
+  const sections = useMemo(() => colourSections(product.customizations, preview), [product.customizations, preview])
+  const colourGroups = sections.flatMap((s) => s.options)
   const hasColourChoice = colourGroups.some((g) => selections[g.id])
   const resetColours = () => {
     const next = { ...selections }
@@ -66,7 +66,7 @@ export default function CustomizeDialog(props: CustomizeDialogProps) {
   }
   const otherGroups = product.customizations.filter((g) => g.enabled && g.type !== 'color')
   const unitPrice = product.price + props.resolved.reduce((s, r) => s + r.priceAdjustment, 0)
-  const isPhoto = preview.mode === 'photo'
+  const isPhoto = preview?.mode === 'photo'
 
   const addToCart = () => {
     if (missingRequired.length > 0) {
@@ -89,14 +89,17 @@ export default function CustomizeDialog(props: CustomizeDialogProps) {
         {/* Preview */}
         <div className="relative h-[42dvh] bg-sand md:h-full">
           <PreviewBoundary onError={props.onPreviewError}>
-            {showOriginal && isPhoto ? (
+            {!preview ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={product.images[0]} alt={product.name} className="absolute inset-0 h-full w-full object-cover" />
+            ) : showOriginal && isPhoto ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={preview.baseUrl} alt={product.name} className="absolute inset-0 h-full w-full object-contain" />
             ) : (
               <ColorPreview preview={preview} colors={colors} alt={`${product.name} in your colours`} className="absolute inset-0 h-full w-full" onError={props.onPreviewError} />
             )}
           </PreviewBoundary>
-          {isPhoto ? (
+          {!preview ? null : isPhoto ? (
             <div className="absolute inset-x-0 bottom-3 flex justify-center">
               <div className="flex rounded-full bg-background/85 p-0.5 text-xs font-medium shadow-sm backdrop-blur">
                 {[
@@ -136,7 +139,7 @@ export default function CustomizeDialog(props: CustomizeDialogProps) {
             </div>
 
             <div className="mt-5">
-              <ColourPartPicker groups={colourGroups} selections={selections} onChange={props.onSelectionsChange} showErrors={showErrors} />
+              <ColourPartPicker sections={sections} selections={selections} onChange={props.onSelectionsChange} showErrors={showErrors} />
             </div>
 
             {otherGroups.length > 0 && (

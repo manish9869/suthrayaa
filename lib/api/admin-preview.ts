@@ -16,7 +16,47 @@ export interface AdminPreviewConfig {
   baseUrl?: string
   width?: number
   height?: number
-  layers: PreviewLayer[]
+  layers: AdminPreviewLayer[]
+  groups?: AdminPreviewGroup[]
+}
+
+/** A stored region as the admin sees it (fixed/background regions have no colour option). */
+export interface AdminPreviewLayer extends Omit<PreviewLayer, 'customizationId'> {
+  customizationId?: string
+  /** Allowed library colour ids; undefined = inherit (group → product → library). */
+  colorIds?: string[]
+  locked?: boolean
+  hidden?: boolean
+}
+
+export interface AdminPreviewGroup {
+  id: string
+  name: string
+  sharedColor: boolean
+  colorIds?: string[]
+  sortOrder: number
+}
+
+/** The whole region configuration of a photo preview, saved in one request. */
+export interface RegionConfigInput {
+  baseUrl: string
+  width: number
+  height: number
+  /** Mask of the non-product area (white = background). */
+  backgroundMaskUrl?: string | null
+  groups: { id: string; name: string; sharedColor: boolean; colorIds?: string[] | null }[]
+  regions: {
+    id: string
+    name: string
+    maskUrl: string
+    groupId?: string | null
+    changeable: boolean
+    colorIds?: string[] | null
+    allowOverlap?: boolean
+    locked?: boolean
+    hidden?: boolean
+  }[]
+  removeOtherColourOptions?: boolean
 }
 
 export interface PreviewConfigInput {
@@ -32,6 +72,13 @@ const auth = async () => ({ token: await getAccessToken(), revalidate: false as 
 
 export const getPreviewConfig = async (productId: string) =>
   apiFetch<AdminPreviewConfig>(`/admin/products/${productId}/preview`, await auth())
+
+export const saveRegionConfig = async (productId: string, input: RegionConfigInput) =>
+  apiFetch<AdminPreviewConfig>(`/admin/products/${productId}/preview/regions`, {
+    ...(await auth()),
+    method: 'PUT',
+    body: JSON.stringify(input),
+  })
 
 export const savePreviewConfig = async (productId: string, input: PreviewConfigInput) =>
   apiFetch<AdminPreviewConfig>(`/admin/products/${productId}/preview`, {

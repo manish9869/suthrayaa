@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { Palette, Upload, Plus, Trash2, Shuffle, Save, Info, Loader2, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
+import { Palette, Shuffle, Save, Info, Loader2, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -12,62 +12,60 @@ import { cn } from '@/lib/utils'
 import type { ProductCustomization, ProductPreview } from '@/lib/data'
 import { PREVIEW_TEMPLATES, getPreviewTemplate } from '@/lib/preview/templates'
 import { ColorPreview } from '@/components/customize/color-preview'
-import { YarnColorSetup } from '@/components/admin/preview-yarn-colors'
+import { RegionEditor } from '@/components/admin/region-editor/region-editor'
 import type { AdminColor } from '@/lib/api/admin'
-import {
-  getPreviewConfig,
-  savePreviewConfig,
-  uploadPreviewImage,
-  type AdminPreviewConfig,
-  type PreviewMode,
-} from '@/lib/api/admin-preview'
+import { getPreviewConfig, savePreviewConfig, type AdminPreviewConfig, type PreviewMode } from '@/lib/api/admin-preview'
 
 /**
- * Admin setup for the live color preview. Each colorable part of the piece is linked to one
- * of the product's Color customization groups; the customer's pick in that group paints the
- * part. Two ways to draw it: a real photo + one mask per part, or a built-in illustration.
+ * Admin setup for the live colour preview. Two ways to show a product:
+ *   • Real photo — the product photo divided into customization regions (region editor);
+ *   • Illustration — a built-in drawing whose zones are linked to colour options.
+ * "Off" keeps whatever was set up and just hides it from customers.
  */
 
-interface DraftLayer {
+interface DraftZone {
   key: string
   customizationId: string
-  zone?: string
-  maskUrl?: string
+  zone: string
 }
 
 const NONE = '__none__'
 let keySeq = 0
-const nextKey = () => `l${++keySeq}`
+const nextKey = () => `z${++keySeq}`
 
 const MODES: { value: PreviewMode; title: string; body: string }[] = [
   { value: 'none', title: 'Off', body: 'No preview for this product.' },
-  { value: 'photo', title: 'Real photo', body: 'Your product photo, repainted yarn by yarn. Most realistic.' },
+  { value: 'photo', title: 'Real photo', body: 'Your product photo, divided into regions customers can recolour.' },
   { value: 'svg', title: 'Illustration', body: 'A built-in drawing. No photo prep needed.' },
 ]
+
+const zonesOf = (c: AdminPreviewConfig): DraftZone[] =>
+  c.layers.filter((l) => l.zone && l.customizationId).map((l) => ({ key: nextKey(), customizationId: l.customizationId!, zone: l.zone! }))
 
 export function PreviewEditor({
   productId,
   customizations,
   productImages = [],
+  productColorHexes = [],
   libraryColors = [],
   onCustomizationsChange,
 }: {
   productId?: string
   customizations: ProductCustomization[]
   productImages?: string[]
+  /** The product's own colours — the default palette photo regions inherit. */
+  productColorHexes?: string[]
   libraryColors?: AdminColor[]
-  /** Reload the product after the yarn tool creates colour options. */
+  /** Reload the product after the region editor saves (it creates/updates colour options). */
   onCustomizationsChange?: () => void | Promise<void>
 }) {
   const [config, setConfig] = useState<AdminPreviewConfig | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [mode, setMode] = useState<PreviewMode>('none')
   const [svgTemplate, setSvgTemplate] = useState<string | undefined>()
-  const [base, setBase] = useState<{ url?: string; width?: number; height?: number }>({})
-  const [layers, setLayers] = useState<DraftLayer[]>([])
+  const [zones, setZones] = useState<DraftZone[]>([])
   const [testColors, setTestColors] = useState<Record<string, string | undefined>>({})
   const [saving, setSaving] = useState(false)
-  const [uploading, setUploading] = useState<string | null>(null)
 
   const colorGroups = useMemo(() => customizations.filter((c) => c.type === 'color'), [customizations])
 
@@ -78,43 +76,26 @@ export function PreviewEditor({
         setConfig(c)
         setMode(c.mode)
         setSvgTemplate(c.svgTemplate)
-        setBase({ url: c.baseUrl, width: c.width, height: c.height })
-        setLayers(c.layers.map((l) => ({ key: nextKey(), customizationId: l.customizationId, zone: l.zone, maskUrl: l.maskUrl })))
+        setZones(zonesOf(c))
       })
       .catch((err: Error) => setLoadError(err.message))
   }, [productId])
 
   if (!productId) {
-    return <Hint>Save the product first, then come back here to set up its color preview.</Hint>
+    return <Hint>Save the product first, then come back here to set up its colour preview.</Hint>
   }
   if (loadError) return <Hint tone="warn">{loadError}</Hint>
   if (!config) {
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" /> Loading color preview…
+        <Loader2 className="h-4 w-4 animate-spin" /> Loading colour preview…
       </div>
     )
   }
 
   const template = getPreviewTemplate(svgTemplate)
-
-  const applySaved = async (saved?: AdminPreviewConfig) => {
-    if (saved) {
-      setConfig(saved)
-      setMode(saved.mode)
-      setSvgTemplate(saved.svgTemplate)
-      setBase({ url: saved.baseUrl, width: saved.width, height: saved.height })
-      setLayers(saved.layers.map((l) => ({ key: nextKey(), customizationId: l.customizationId, zone: l.zone, maskUrl: l.maskUrl })))
-    }
-    await onCustomizationsChange?.()
-  }
-
   const draftPreview: ProductPreview | null =
-    mode === 'svg' && template
-      ? { mode: 'svg', svgTemplate, layers: layers.filter((l) => l.zone && l.customizationId).map((l, i) => ({ id: l.key, customizationId: l.customizationId, zone: l.zone, sortOrder: i })) }
-      : mode === 'photo' && base.url
-        ? { mode: 'photo', baseUrl: base.url, width: base.width, height: base.height, layers: layers.filter((l) => l.maskUrl && l.customizationId).map((l, i) => ({ id: l.key, customizationId: l.customizationId, maskUrl: l.maskUrl, sortOrder: i })) }
-        : null
+    mode === 'svg' && template ? { mode: 'svg', svgTemplate, layers: zones.map((z, i) => ({ id: z.key, customizationId: z.customizationId, zone: z.zone, sortOrder: i })) } : null
 
   const shuffle = () => {
     const next: Record<string, string> = {}
@@ -127,53 +108,35 @@ export function PreviewEditor({
 
   const chooseTemplate = (key: string) => {
     setSvgTemplate(key)
-    // Keep any zone links that still exist in the new template.
-    const zones = getPreviewTemplate(key)?.zones.map((z) => z.key) ?? []
-    setLayers((prev) => prev.filter((l) => l.zone && zones.includes(l.zone)))
+    const keep = getPreviewTemplate(key)?.zones.map((z) => z.key) ?? []
+    setZones((prev) => prev.filter((z) => keep.includes(z.zone)))
   }
 
-  const setZoneGroup = (zone: string, customizationId: string) => {
-    setLayers((prev) => {
-      const rest = prev.filter((l) => l.zone !== zone)
+  const setZoneGroup = (zone: string, customizationId: string) =>
+    setZones((prev) => {
+      const rest = prev.filter((z) => z.zone !== zone)
       return customizationId === NONE ? rest : [...rest, { key: nextKey(), zone, customizationId }]
     })
-  }
 
-  const upload = async (file: File | undefined, kind: 'base' | 'mask', layerKey?: string) => {
-    if (!file) return
-    setUploading(layerKey ?? 'base')
-    try {
-      const res = await uploadPreviewImage(productId, file, kind, base)
-      if (kind === 'base') {
-        setBase({ url: res.url, width: res.width, height: res.height })
-      } else {
-        setLayers((prev) => prev.map((l) => (l.key === layerKey ? { ...l, maskUrl: res.url } : l)))
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Upload failed')
-    } finally {
-      setUploading(null)
-    }
-  }
-
+  /** Saves "Off" or the illustration setup (photo regions save from the region editor). */
   const save = async () => {
-    const usable = layers.filter((l) => l.customizationId && (mode === 'svg' ? l.zone : l.maskUrl))
-    if (mode !== 'none' && usable.length === 0) {
-      toast.error('Link at least one part to a color group')
+    if (mode === 'svg' && zones.length === 0) {
+      toast.error('Link at least one part of the drawing to a colour option')
       return
     }
     setSaving(true)
     try {
       const saved = await savePreviewConfig(productId, {
         mode,
-        svgTemplate: mode === 'svg' ? svgTemplate : svgTemplate ?? null,
-        baseUrl: base.url ?? null,
-        width: base.width ?? null,
-        height: base.height ?? null,
-        layers: mode === 'none' ? layers.filter((l) => l.customizationId).map(({ customizationId, zone, maskUrl }) => ({ customizationId, zone, maskUrl })) : usable.map(({ customizationId, zone, maskUrl }) => ({ customizationId, zone, maskUrl })),
+        svgTemplate: svgTemplate ?? null,
+        baseUrl: config.baseUrl ?? null,
+        width: config.width ?? null,
+        height: config.height ?? null,
+        layers: mode === 'svg' ? zones.map(({ customizationId, zone }) => ({ customizationId, zone })) : [],
       })
       setConfig(saved)
-      toast.success(mode === 'none' ? 'Color preview turned off for this product' : 'Color preview saved')
+      toast.success(mode === 'none' ? 'Colour preview turned off — your setup is kept' : 'Colour preview saved')
+      await onCustomizationsChange?.()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Could not save')
     } finally {
@@ -186,24 +149,15 @@ export function PreviewEditor({
       <CardContent className="space-y-6 p-4">
         <div>
           <p className="flex items-center gap-2 text-sm font-medium">
-            <Palette className="h-4 w-4 text-violet" /> Live Color Preview
+            <Palette className="h-4 w-4 text-violet" /> Live colour preview
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Customers tap &ldquo;Customize &amp; Preview&rdquo; and see this piece repainted in the yarn colors they pick. Prices and
-            order details still come from the Color groups in the Customization section above.
+            Customers choose yarn colours for the parts you define and see this piece repainted live. Choices, prices and order details are checked on the server.
           </p>
         </div>
 
-        <SetupChecklist
-          config={config}
-          colorGroups={colorGroups}
-          mode={mode}
-          svgTemplate={svgTemplate}
-          baseUrl={base.url}
-          layers={layers}
-        />
+        <SetupChecklist config={config} colorGroups={colorGroups} mode={mode} svgTemplate={svgTemplate} zones={zones} />
 
-        {/* Mode */}
         <div className="grid gap-2 sm:grid-cols-3">
           {MODES.map((m) => (
             <button
@@ -219,114 +173,54 @@ export function PreviewEditor({
         </div>
 
         {mode === 'photo' && (
-          <YarnColorSetup
+          <RegionEditor
             productId={productId}
             productImages={productImages}
-            base={base}
-            onBaseChange={setBase}
+            productColorHexes={productColorHexes}
+            config={config}
             libraryColors={libraryColors}
-            colorGroups={colorGroups}
-            linkedGroupIds={config.mode === 'photo' ? config.layers.map((l) => l.customizationId) : []}
-            onSaved={applySaved}
+            colourOptions={colorGroups}
+            onSaved={async (saved) => {
+              setConfig(saved)
+              await onCustomizationsChange?.()
+            }}
           />
         )}
 
-        {mode !== 'none' && (
+        {mode === 'svg' && (
           <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
             <div className="space-y-5">
-              {mode === 'svg' && (
-                <>
-                  <div>
-                    <Label className="mb-2 block">Illustration</Label>
-                    <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-                      {PREVIEW_TEMPLATES.map((t) => (
-                        <button
-                          key={t.key}
-                          type="button"
-                          onClick={() => chooseTemplate(t.key)}
-                          className={cn('rounded-xl border p-2 text-center transition-colors', svgTemplate === t.key ? 'border-primary ring-1 ring-primary' : 'hover:border-muted-foreground')}
-                        >
-                          <div className="aspect-square">
-                            <t.Component colors={Object.fromEntries(t.zones.map((z) => [z.key, z.defaultColor]))} />
-                          </div>
-                          <p className="mt-1 text-[11px] leading-tight">{t.name}</p>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {template && (
-                    <div className="space-y-2">
-                      <Label className="block">Which color group paints each part?</Label>
-                      {template.zones.map((z) => {
-                        const linked = layers.find((l) => l.zone === z.key)?.customizationId ?? NONE
-                        return (
-                          <div key={z.key} className="flex items-center gap-3">
-                            <span className="h-4 w-4 shrink-0 rounded-full border" style={{ background: z.defaultColor }} />
-                            <span className="w-32 shrink-0 text-sm">{z.label}</span>
-                            <GroupSelect groups={colorGroups} value={linked} onChange={(v) => setZoneGroup(z.key, v)} noneLabel="Fixed (default color)" />
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </>
-              )}
-
-              {mode === 'photo' && (
-                <details className="rounded-xl border p-3 [&[open]>summary]:mb-4">
-                  <summary className="cursor-pointer text-sm font-medium">
-                    Parts ({layers.length}) · advanced: replace the photo or masks by hand
-                  </summary>
-                  <div className="space-y-5">
-                  <div>
-                    <Label className="mb-2 block">Base photo</Label>
-                    <div className="flex items-center gap-3">
-                      {base.url && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={base.url} alt="Base" className="h-20 w-20 rounded-lg border object-cover" />
-                      )}
-                      <UploadButton busy={uploading === 'base'} label={base.url ? 'Replace photo' : 'Upload photo'} onFile={(f) => upload(f, 'base')} />
-                    </div>
-                    <p className="mt-1.5 text-xs text-muted-foreground">A clear photo on a plain background detects best.</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="block">Parts</Label>
-                    {layers.map((l) => (
-                      <div key={l.key} className="flex flex-wrap items-center gap-3 rounded-xl border p-2">
-                        {l.maskUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={l.maskUrl} alt="Mask" className="h-12 w-12 rounded border bg-black object-cover" />
-                        ) : (
-                          <span className="flex h-12 w-12 items-center justify-center rounded border border-dashed text-[10px] text-muted-foreground">no mask</span>
-                        )}
-                        <GroupSelect
-                          groups={colorGroups}
-                          value={l.customizationId || NONE}
-                          onChange={(v) => setLayers((prev) => prev.map((x) => (x.key === l.key ? { ...x, customizationId: v === NONE ? '' : v } : x)))}
-                          noneLabel="Choose color group…"
-                        />
-                        <UploadButton busy={uploading === l.key} disabled={!base.url} label={l.maskUrl ? 'Replace mask' : 'Upload mask'} onFile={(f) => upload(f, 'mask', l.key)} />
-                        <Button type="button" variant="ghost" size="icon" onClick={() => setLayers((prev) => prev.filter((x) => x.key !== l.key))} aria-label="Remove part">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+              <div>
+                <Label className="mb-2 block">Illustration</Label>
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+                  {PREVIEW_TEMPLATES.map((t) => (
+                    <button
+                      key={t.key}
+                      type="button"
+                      onClick={() => chooseTemplate(t.key)}
+                      className={cn('rounded-xl border p-2 text-center transition-colors', svgTemplate === t.key ? 'border-primary ring-1 ring-primary' : 'hover:border-muted-foreground')}
+                    >
+                      <div className="aspect-square">
+                        <t.Component colors={Object.fromEntries(t.zones.map((z) => [z.key, z.defaultColor]))} />
                       </div>
-                    ))}
-                    <Button type="button" variant="outline" size="sm" onClick={() => setLayers((prev) => [...prev, { key: nextKey(), customizationId: '' }])}>
-                      <Plus className="h-4 w-4" /> Add part
-                    </Button>
-                    <Hint>
-                      <strong>Making a mask</strong> (free in Photopea or Canva): open your base photo, select the part (e.g. all petals), fill it
-                      <strong> white</strong>, fill everything else <strong>black</strong>, export as PNG at the <strong>same size</strong> as the photo.
-                    </Hint>
-                  </div>
-                  </div>
-                </details>
+                      <p className="mt-1 text-[11px] leading-tight">{t.name}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {template && (
+                <div className="space-y-2">
+                  <Label className="block">Which colour option paints each part of the drawing?</Label>
+                  {template.zones.map((z) => (
+                    <div key={z.key} className="flex items-center gap-3">
+                      <span className="h-4 w-4 shrink-0 rounded-full border" style={{ background: z.defaultColor }} />
+                      <span className="w-32 shrink-0 text-sm">{z.label}</span>
+                      <GroupSelect groups={colorGroups} value={zones.find((l) => l.zone === z.key)?.customizationId ?? NONE} onChange={(v) => setZoneGroup(z.key, v)} noneLabel="Fixed (default colour)" />
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
-
-            {/* Live test */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>Test preview</Label>
@@ -335,35 +229,26 @@ export function PreviewEditor({
                 </Button>
               </div>
               <div className="aspect-square overflow-hidden rounded-xl border bg-blush/40 p-3">
-                {draftPreview ? (
-                  <ColorPreview preview={draftPreview} colors={testColors} alt="Test preview" className="h-full w-full" />
-                ) : (
-                  <p className="p-4 text-center text-xs text-muted-foreground">{mode === 'svg' ? 'Pick an illustration' : 'Upload a base photo'}</p>
-                )}
+                {draftPreview ? <ColorPreview preview={draftPreview} colors={testColors} alt="Test preview" className="h-full w-full" /> : <p className="p-4 text-center text-xs text-muted-foreground">Pick an illustration</p>}
               </div>
             </div>
           </div>
         )}
 
-        <div className="flex justify-end">
-          <Button type="button" onClick={save} disabled={saving}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save color preview
-          </Button>
-        </div>
+        {mode !== 'photo' && (
+          <div className="flex justify-end">
+            <Button type="button" onClick={save} disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} {mode === 'none' ? 'Turn preview off' : 'Save colour preview'}
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   )
 }
 
-/** A color group a customer can actually pick from — the storefront ignores the rest. */
+/** A colour option a customer can actually pick from — the storefront ignores the rest. */
 const isUsableGroup = (g: ProductCustomization) => g.enabled && g.values.some((v) => v.enabled && v.inLibrary !== false)
-
-const layerSignature = (ls: { customizationId: string; zone?: string; maskUrl?: string }[]) =>
-  ls
-    .filter((l) => l.customizationId)
-    .map((l) => `${l.customizationId}|${l.zone ?? ''}|${l.maskUrl ?? ''}`)
-    .sort()
-    .join(',')
 
 interface CheckItem {
   ok: boolean
@@ -382,34 +267,29 @@ function SetupChecklist({
   colorGroups,
   mode,
   svgTemplate,
-  baseUrl,
-  layers,
+  zones,
 }: {
   config: AdminPreviewConfig
   colorGroups: ProductCustomization[]
   mode: PreviewMode
   svgTemplate?: string
-  baseUrl?: string
-  layers: DraftLayer[]
+  zones: DraftZone[]
 }) {
-  const usableGroups = colorGroups.filter(isUsableGroup)
-  const usableIds = new Set(usableGroups.map((g) => g.id))
-  const complete = layers.filter((l) => l.customizationId && (mode === 'svg' ? l.zone : l.maskUrl))
-  const working = complete.filter((l) => usableIds.has(l.customizationId))
-  const brokenLinks = complete.length - working.length
-  const incompleteParts = mode === 'photo' ? layers.filter((l) => !l.customizationId || !l.maskUrl).length : 0
-  const dirty =
-    mode !== config.mode ||
-    (mode === 'svg' && svgTemplate !== config.svgTemplate) ||
-    (mode === 'photo' && baseUrl !== config.baseUrl) ||
-    layerSignature(layers) !== layerSignature(config.layers)
-
+  const usable = new Set(colorGroups.filter(isUsableGroup).map((g) => g.id))
   const offLibrary = colorGroups.filter((g) => g.values.some((v) => v.inLibrary === false))
+  const savedRegions = config.layers.filter((l) => l.maskUrl && l.regionType !== 'background' && l.regionType !== 'fixed' && l.customizationId && usable.has(l.customizationId))
+  const zoneSig = (zs: { customizationId?: string; zone?: string }[]) =>
+    zs
+      .filter((z) => z.zone && z.customizationId)
+      .map((z) => `${z.customizationId}|${z.zone}`)
+      .sort()
+      .join(',')
+  const svgDirty = mode === 'svg' && (config.mode !== 'svg' || svgTemplate !== config.svgTemplate || zoneSig(zones) !== zoneSig(config.layers))
 
   const items: CheckItem[] = [
     {
       ok: config.enabledGlobally,
-      label: 'Live Color Preview is on store-wide',
+      label: 'Live colour preview is on store-wide',
       fix: (
         <>
           Turn on &ldquo;Live Color Preview&rdquo; in{' '}
@@ -420,19 +300,18 @@ function SetupChecklist({
         </>
       ),
     },
-    {
-      ok: usableGroups.length > 0,
-      label: `Product has a Color group${usableGroups.length > 1 ? 's' : ''} customers can pick from${usableGroups.length ? ` (${usableGroups.map((g) => g.label).join(', ')})` : ''}`,
-      fix:
-        colorGroups.length > 0 ? (
-          <>Your Color groups are switched off or have no enabled colors. Enable the group and at least one color in the Customization tab, save the product, then reload this page.</>
-        ) : (
-          <>
-            In the <strong>Customization</strong> tab, add a group with type <strong>Color</strong> for each part (e.g. &ldquo;Petal color&rdquo;, &ldquo;Tassel
-            color&rdquo;) and add some colors. <strong>Save the product, then reload this page</strong> so the group shows up here.
-          </>
-        ),
-    },
+    { ok: mode !== 'none', label: 'A preview type is chosen', fix: <>Pick <strong>Real photo</strong> or <strong>Illustration</strong> below.</> },
+    mode === 'svg'
+      ? {
+          ok: Boolean(getPreviewTemplate(svgTemplate)) && zones.some((z) => usable.has(z.customizationId)),
+          label: 'Illustration parts linked to colour options',
+          fix: <>Choose a drawing and link at least one part to a colour option (make colour options in the Customization tab).</>,
+        }
+      : {
+          ok: config.mode === 'photo' && savedRegions.length > 0,
+          label: savedRegions.length ? `${savedRegions.length} region${savedRegions.length > 1 ? 's' : ''} customers can recolour` : 'Photo regions saved',
+          fix: <>Pick a photo below, add regions, and click <strong>Save</strong> in the region editor.</>,
+        },
     {
       ok: offLibrary.length === 0,
       label: 'Colour options only use your Colors library',
@@ -442,47 +321,21 @@ function SetupChecklist({
           <Link href="/admin/colors" className="font-medium underline">
             Colors library
           </Link>
-          , so customers can&apos;t pick them. In the Customization tab, delete those or change them to a library colour.
+          , so customers can&apos;t pick them.
         </>
       ),
     },
-    {
-      ok: mode !== 'none',
-      label: 'A preview type is chosen',
-      fix: <>Pick <strong>Illustration</strong> (quickest) or <strong>Photo + masks</strong> below.</>,
-    },
-    mode === 'photo'
-      ? { ok: Boolean(baseUrl), label: 'Base photo uploaded', fix: <>Upload a photo of the piece, ideally in white or cream yarn.</> }
-      : { ok: mode === 'svg' && Boolean(getPreviewTemplate(svgTemplate)), label: 'Illustration picked', fix: <>Choose the drawing that matches this piece.</> },
-    {
-      ok: working.length > 0 && brokenLinks === 0 && incompleteParts === 0,
-      label: working.length > 0 ? `${working.length} part${working.length > 1 ? 's' : ''} linked to a color group` : 'At least one part is linked to a color group',
-      fix:
-        brokenLinks > 0 ? (
-          <>{brokenLinks} part{brokenLinks > 1 ? 's are' : ' is'} linked to a Color group that&apos;s switched off. Customers won&apos;t see {brokenLinks > 1 ? 'them' : 'it'} painted.</>
-        ) : incompleteParts > 0 ? (
-          <>{incompleteParts} part{incompleteParts > 1 ? 's need' : ' needs'} both a color group and a mask. Incomplete parts are skipped when you save.</>
-        ) : mode === 'photo' ? (
-          <>Click <strong>Add part</strong>, choose its color group and upload its mask.</>
-        ) : (
-          <>Under &ldquo;Which color group paints each part?&rdquo;, choose a color group for at least one part.</>
-        ),
-    },
-    {
-      ok: !dirty && config.mode !== 'none',
-      label: 'Saved',
-      fix: dirty ? <>You have unsaved changes. Click <strong>Save color preview</strong> at the bottom.</> : <>Nothing saved yet. Finish the steps above and click <strong>Save color preview</strong>.</>,
-    },
+    ...(mode === 'svg' ? [{ ok: !svgDirty, label: 'Saved', fix: <>You have unsaved changes. Click <strong>Save colour preview</strong> at the bottom.</> }] : []),
   ]
 
   const missing = items.filter((i) => !i.ok).length
-  const live = missing === 0
+  const live = missing === 0 && mode !== 'none'
 
   return (
     <div className={cn('rounded-xl border p-3', live ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-amber-500/40 bg-amber-500/5')}>
       <p className="flex items-center gap-2 text-sm font-medium">
         {live ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <AlertCircle className="h-4 w-4 text-amber-600" />}
-        {live ? 'Customers can see the color preview on this product' : `Customers can’t see the preview yet: ${missing} thing${missing > 1 ? 's' : ''} missing`}
+        {live ? 'Customers can see the colour preview on this product' : `Customers can’t see the preview yet: ${missing} thing${missing > 1 ? 's' : ''} missing`}
       </p>
       <ul className="mt-2.5 space-y-1.5">
         {items.map((i) => (
@@ -514,25 +367,6 @@ function GroupSelect({ groups, value, onChange, noneLabel }: { groups: ProductCu
         ))}
       </SelectContent>
     </Select>
-  )
-}
-
-function UploadButton({ label, busy, disabled, onFile }: { label: string; busy: boolean; disabled?: boolean; onFile: (f: File | undefined) => void }) {
-  return (
-    <Button type="button" variant="outline" size="sm" asChild disabled={disabled || busy}>
-      <label className={cn('cursor-pointer', (disabled || busy) && 'pointer-events-none opacity-50')}>
-        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} {label}
-        <input
-          type="file"
-          accept="image/png,image/jpeg,image/webp"
-          className="sr-only"
-          onChange={(e) => {
-            onFile(e.target.files?.[0])
-            e.target.value = ''
-          }}
-        />
-      </label>
-    </Button>
   )
 }
 

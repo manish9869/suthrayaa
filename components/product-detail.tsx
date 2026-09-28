@@ -38,6 +38,7 @@ import { formatPrice, type Product, type Review, type Category } from '@/lib/dat
 import { ReviewForm } from '@/components/review-form'
 import { customizationGroupId, ProductCustomizer, type CustomizerSelection, type ResolvedCustomization } from '@/components/product-customizer'
 import { selectedColorMap } from '@/lib/preview/selected-colors'
+import { colourSections } from '@/lib/preview/sections'
 import { YarnColorPicker } from '@/components/yarn-color-picker'
 import { toast } from 'sonner'
 import { EASE_OUT, Stagger, StaggerItem } from '@/components/motion/reveal'
@@ -104,14 +105,16 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
   const [czSelections, setCzSelections] = useState<Record<string, CustomizerSelection>>({})
   const [customizeOpen, setCustomizeOpen] = useState(false)
   const [customizeLoaded, setCustomizeLoaded] = useState(false)
-  const previewColors = useMemo(() => (previewEnabled ? selectedColorMap(product, czSelections) : {}), [previewEnabled, product, czSelections])
+  const previewColors = useMemo(() => selectedColorMap(product, czSelections), [product, czSelections])
   const hasPickedColor = Object.values(previewColors).some(Boolean)
   // A real-photo preview is shown in the main gallery once a colour is picked (with a toggle
   // back to the original photo); illustrations stay in the small tile + dialog.
   const [showOriginalPhoto, setShowOriginalPhoto] = useState(false)
   const galleryPreview = showPreview && hasPickedColor && product.preview?.mode === 'photo'
+  // Colour options always live in the Customize window, with or without a live preview
   const showGalleryPreview = galleryPreview && !showOriginalPhoto
-  const colourGroups = product.customizations.filter((g) => g.enabled && g.type === 'color')
+  const colourGroups = useMemo(() => colourSections(product.customizations, product.preview).flatMap((s) => s.options), [product.customizations, product.preview])
+  const colourInWindow = usesNewCustomizer && colourGroups.length > 0
   const pickedParts = colourGroups.filter((g) => previewColors[g.id]).length
   const openCustomize = () => {
     setCustomizeLoaded(true)
@@ -151,7 +154,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
         // Flag every unanswered option inline and bring the first one into view
         setShowOptionErrors(true)
         const first = product.customizations.find((c) => c.enabled && c.label === missingRequired[0])
-        if (first && first.type === 'color' && showPreview) openCustomize()
+        if (first && first.type === 'color' && colourInWindow) openCustomize()
         else if (first) document.getElementById(customizationGroupId(first.id))?.scrollIntoView({ behavior: 'smooth', block: 'center' })
         toast.error(missingRequired.length === 1 ? `Please choose ${missingRequired[0].toLowerCase()} first` : `Please choose ${missingRequired.slice(0, -1).map((m) => m.toLowerCase()).join(', ')} and ${missingRequired.at(-1)!.toLowerCase()} first`)
         return
@@ -389,8 +392,8 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
 
               <div className="space-y-6">
                 {usesNewCustomizer && (
-                  <div className={cn(!showPreview && 'rounded-[1.5rem] bg-blush/50 p-5 ring-1 ring-blush', showPreview && 'space-y-5')}>
-                    {showPreview && (
+                  <div className={cn(!colourInWindow && 'rounded-[1.5rem] bg-blush/50 p-5 ring-1 ring-blush', colourInWindow && 'space-y-5')}>
+                    {colourInWindow && (
                       <div className="flex items-center gap-3 rounded-2xl border bg-card p-3">
                         <button
                           type="button"
@@ -398,7 +401,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                           className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-sand"
                           aria-label="Choose your colours"
                         >
-                          {hasPickedColor ? (
+                          {hasPickedColor && showPreview ? (
                             <ColorPreview preview={product.preview!} colors={previewColors} alt={`${product.name} in your colours`} className="absolute inset-0 h-full w-full" onError={() => setPreviewFailed(true)} />
                           ) : (
                             <Image src={product.images[0] ?? '/placeholder.svg'} alt="" fill sizes="56px" className="object-cover" />
@@ -428,16 +431,16 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                     <ProductCustomizer
                       customizations={product.customizations}
                       showErrors={showOptionErrors}
-                      {...(previewEnabled ? { selections: czSelections, onSelectionsChange: setCzSelections } : {})}
-                      hideTypes={showPreview ? ['color'] : []}
-                      bare={showPreview}
+                      {...(colourInWindow ? { selections: czSelections, onSelectionsChange: setCzSelections } : {})}
+                      hideTypes={colourInWindow ? ['color'] : []}
+                      bare={colourInWindow}
                       onChange={(resolved, priceAdjustment, missing) => {
                         setResolvedCustomizations(resolved)
                         setCustomizationPriceAdjustment(priceAdjustment)
                         setMissingRequired(missing)
                       }}
                     />
-                    {showPreview && customizeLoaded && (
+                    {colourInWindow && customizeLoaded && (
                       <CustomizeDialog
                         product={product}
                         open={customizeOpen}

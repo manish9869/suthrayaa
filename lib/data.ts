@@ -16,6 +16,9 @@ export interface CustomizationValue {
   sku?: string
   /** Color groups only: false when the colour isn't in the Colors library (hidden from customers). */
   inLibrary?: boolean
+  /** Color groups only: the Colors library entry and its family (e.g. "Red"), for filtering. */
+  colorId?: string
+  family?: string
 }
 
 export interface ProductCustomization {
@@ -33,14 +36,27 @@ export interface ProductCustomization {
   values: CustomizationValue[]
 }
 
-/** One colorable part of a live color preview, painted by the value chosen in a color group. */
+/** One region of a live colour preview, painted by the value chosen in its colour option.
+ * The mask is the source of truth for which pixels belong to it; the name is informational. */
 export interface PreviewLayer {
   id: string
   customizationId: string
   /** svg mode: the template zone this part fills. */
   zone?: string
-  /** photo mode: black/white mask (white = this part), same aspect ratio as the base photo. */
+  /** photo mode: black/white mask (white = this region), same aspect ratio as the base photo. */
   maskUrl?: string
+  sortOrder: number
+  name?: string
+  regionType?: 'region' | 'fixed' | 'background'
+  groupId?: string
+  allowOverlap?: boolean
+}
+
+/** A named set of regions. sharedColor: one choice colours them all; otherwise one choice each. */
+export interface PreviewGroup {
+  id: string
+  name: string
+  sharedColor: boolean
   sortOrder: number
 }
 
@@ -53,6 +69,7 @@ export interface ProductPreview {
   width?: number
   height?: number
   layers: PreviewLayer[]
+  groups?: PreviewGroup[]
 }
 
 export interface Product {

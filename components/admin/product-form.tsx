@@ -755,6 +755,7 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
             productId={savedProduct?.id}
             customizations={savedProduct?.customizations ?? []}
             productImages={savedProduct?.images ?? []}
+            productColorHexes={savedProduct?.colors ?? []}
             libraryColors={colors}
             onCustomizationsChange={async () => {
               if (!savedProduct) return
