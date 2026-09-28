@@ -11,6 +11,7 @@ import { AccessDenied } from '@/components/admin/access-denied'
 import {
   LayoutDashboard,
   BarChart3,
+  RotateCcw,
   Package,
   FolderTree,
   Palette,
@@ -90,6 +91,7 @@ const navGroups: NavGroup[] = [
     title: 'Sales',
     items: [
       { href: '/admin/orders', label: 'Orders', icon: ShoppingCart, permission: 'orders.view' },
+      { href: '/admin/returns', label: 'Returns', icon: RotateCcw, permission: 'orders.view' },
       { href: '/admin/coupons', label: 'Coupons', icon: Tags, permission: 'coupons.view' },
       { href: '/admin/customers', label: 'Customers', icon: Users, permission: 'customers.view' },
     ],
@@ -178,7 +180,7 @@ const NAV_ICON = 'h-[18px] w-[18px] shrink-0 transition-colors'
  * (no accordions), so the whole console is one glance away. The current page is a raised pill. */
 function SidebarNav({ groups, pathname, onNavigate }: { groups: NavGroup[]; pathname: string; onNavigate?: () => void }) {
   return (
-    <nav className="flex-1 min-h-0 overflow-y-auto px-3 pb-4 pt-1 [scrollbar-width:thin]">
+    <nav className="flex-1 min-h-0 overflow-y-auto px-3 pb-4 pt-1 scrollbar-hide">
       {groups.map((group, gi) => (
         <div key={group.title} className={cn(gi > 0 && 'mt-5')}>
           <p className="px-3 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/40">{group.title}</p>
@@ -211,7 +213,7 @@ function SidebarNav({ groups, pathname, onNavigate }: { groups: NavGroup[]; path
 /** Collapsed icon rail: the same flat list as icons, with a hairline between sections. */
 function SidebarRail({ groups, pathname }: { groups: NavGroup[]; pathname: string }) {
   return (
-    <nav className="flex-1 min-h-0 overflow-y-auto px-2.5 pb-4 pt-1 [scrollbar-width:none]">
+    <nav className="flex-1 min-h-0 overflow-y-auto px-2.5 pb-4 pt-1 scrollbar-hide">
       {groups.map((group, gi) => (
         <div key={group.title} className={cn('space-y-1', gi > 0 && 'mt-3 border-t border-sidebar-border pt-3')}>
           {group.items.map((item) => {
@@ -504,7 +506,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          <main className="flex-1 overflow-y-auto overflow-x-hidden print:overflow-visible">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide print:overflow-visible">
             <div className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8">{children}</div>
           </main>
         </div>

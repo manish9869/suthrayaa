@@ -193,25 +193,28 @@ export type ReportExportSection =
   | 'shipping'
   | 'inventory'
 
-/** Downloads one report section as CSV (server-generated — needs analytics.export). */
-export async function downloadReportCsv(section: ReportExportSection, params: DateRangeParams = {}) {
+/** Downloads a server-generated CSV (the server checks the export permission and audits it). */
+async function downloadAdminCsv(path: string, fallbackName: string) {
   const t = await token()
-  const q = new URLSearchParams(rangeQuery(params))
-  q.set('section', section)
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/analytics/reports/export?${q.toString()}`, {
-    headers: t ? { Authorization: `Bearer ${t}` } : {},
-  })
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${path}`, { headers: t ? { Authorization: `Bearer ${t}` } : {} })
   if (!res.ok) {
     const body = await res.json().catch(() => null)
     throw new Error(body?.error?.message ?? 'Export failed')
   }
-  const filename = /filename="([^"]+)"/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? `suthrayaa-${section}.csv`
+  const filename = /filename="([^"]+)"/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? fallbackName
   const url = URL.createObjectURL(await res.blob())
   const a = document.createElement('a')
   a.href = url
   a.download = filename
   a.click()
   URL.revokeObjectURL(url)
+}
+
+/** Downloads one report section as CSV (server-generated — needs analytics.export). */
+export function downloadReportCsv(section: ReportExportSection, params: DateRangeParams = {}) {
+  const q = new URLSearchParams(rangeQuery(params))
+  q.set('section', section)
+  return downloadAdminCsv(`/admin/analytics/reports/export?${q.toString()}`, `suthrayaa-${section}.csv`)
 }
 
 // ---- Products ----
@@ -519,19 +522,39 @@ export interface AdminOrderSummary {
   placedAt: string | null
   createdAt: string
 }
-export const getAdminOrders = (
-  params: { status?: string; paymentStatus?: string; custom?: boolean; page?: number; limit?: number } = {}
-) => {
-  const q = new URLSearchParams()
-  if (params.status) q.set('status', params.status)
-  if (params.paymentStatus) q.set('paymentStatus', params.paymentStatus)
-  if (params.custom !== undefined) q.set('custom', String(params.custom))
-  if (params.page) q.set('page', String(params.page))
-  if (params.limit) q.set('limit', String(params.limit))
-  return adminFetch<{ items: AdminOrderSummary[]; total: number; page: number; limit: number }>(
-    `/admin/orders?${q.toString()}`
-  )
+export interface AdminOrderListParams {
+  q?: string
+  status?: string
+  paymentStatus?: string
+  paymentMethod?: string
+  custom?: boolean
+  customerId?: string
+  from?: string
+  to?: string
+  minTotal?: number
+  maxTotal?: number
+  sort?: 'date' | 'order' | 'total' | 'status' | 'payment'
+  dir?: 'asc' | 'desc'
+  page?: number
+  limit?: number
 }
+export interface AdminOrderListStats {
+  revenue: number
+  paid: number
+  pendingPayment: number
+  cancelledOrRefunded: number
+  maxTotal: number
+}
+function listQuery(params: object): string {
+  const q = new URLSearchParams()
+  for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== null && v !== '') q.set(k, String(v))
+  return q.toString()
+}
+/** Search, filters, sorting and paging all run on the server. */
+export const getAdminOrders = (params: AdminOrderListParams = {}) =>
+  adminFetch<{ items: AdminOrderSummary[]; total: number; page: number; limit: number; stats: AdminOrderListStats }>(`/admin/orders?${listQuery(params)}`)
+export const exportAdminOrdersCsv = (params: AdminOrderListParams = {}) =>
+  downloadAdminCsv(`/admin/orders/export?${listQuery({ ...params, page: undefined, limit: undefined })}`, 'suthrayaa-orders.csv')
 
 export interface AdminOrderItem {
   id: string
@@ -560,6 +583,7 @@ export interface AdminOrderDetail extends AdminOrderSummary {
   razorpayOrderId: string | null
   razorpayPaymentId: string | null
   courier: string | null
+  trackingUrl: string | null
   adminNotes: string | null
   customerNotes: string | null
   invoiceNumber: string | null
@@ -567,15 +591,57 @@ export interface AdminOrderDetail extends AdminOrderSummary {
   refunds: AdminOrderRefund[]
   /** Statuses the server will accept next — refunds go through refundOrder instead. */
   allowedStatuses: string[]
+  returnRequests: AdminReturnRequest[]
   items: AdminOrderItem[]
   statusHistory: { status: string; note?: string; created_at: string }[]
 }
 export const getAdminOrder = (id: string) => adminFetch<AdminOrderDetail>(`/admin/orders/${id}`)
-export const updateOrderStatus = (id: string, status: string, note?: string, trackingNumber?: string, courier?: string) =>
+export const updateOrderStatus = (id: string, status: string, note?: string, trackingNumber?: string, courier?: string, trackingUrl?: string) =>
   adminFetch<{ ok: boolean; refundRequired?: boolean }>(`/admin/orders/${id}/status`, {
     method: 'PATCH',
-    body: JSON.stringify({ status, note, trackingNumber, courier }),
+    body: JSON.stringify({ status, note, trackingNumber, courier, trackingUrl }),
   })
+// ---- Returns & exchanges ----
+export type ReturnStatus = 'requested' | 'approved' | 'rejected' | 'received' | 'refunded' | 'exchanged' | 'cancelled'
+export interface AdminReturnRequest {
+  id: string
+  orderId: string
+  type: 'return' | 'exchange'
+  status: ReturnStatus
+  statusLabel: string
+  reason: string
+  reasonLabel: string
+  details: string | null
+  adminNote: string | null
+  refundId: string | null
+  items: { orderItemId: string; quantity: number; name: string; image: string | null }[]
+  /** Moves the server will accept next (refunds happen from the order's Refund action) */
+  allowedNext: ('approved' | 'rejected' | 'received' | 'exchanged')[]
+  createdAt: string
+  updatedAt: string
+  resolvedAt: string | null
+}
+export interface AdminReturnListItem extends AdminReturnRequest {
+  order: {
+    id: string
+    orderNumber: string
+    status: string
+    paymentMethod: string
+    paymentStatus: string
+    total: number
+    refundedAmount: number
+    customerName: string | null
+    customerEmail: string | null
+  }
+}
+export const getAdminReturns = (params: { status?: string; page?: number; limit?: number } = {}) => {
+  const q = new URLSearchParams()
+  for (const [k, v] of Object.entries(params)) if (v !== undefined) q.set(k, String(v))
+  return adminFetch<{ items: AdminReturnListItem[]; total: number; openCount: number; page: number; limit: number }>(`/admin/returns?${q.toString()}`)
+}
+export const updateReturnRequest = (id: string, status: 'approved' | 'rejected' | 'received' | 'exchanged', adminNote?: string) =>
+  adminFetch<AdminReturnRequest>(`/admin/returns/${id}`, { method: 'PATCH', body: JSON.stringify({ status, adminNote }) })
+
 export interface AdminOrderRefund {
   id: string
   amount: number
@@ -774,15 +840,35 @@ export interface AdminCustomer {
   firstName: string | null
   lastName: string | null
   createdAt: string
+  /** Paid orders */
   orderCount: number
+  /** Net of refunds */
   totalSpent: number
+  lastOrderAt: string | null
+  marketingOptIn: boolean
 }
-export const getAdminCustomers = (params: { page?: number; limit?: number } = {}) => {
-  const q = new URLSearchParams()
-  q.set('page', String(params.page ?? 1))
-  q.set('limit', String(params.limit ?? 300))
-  return adminFetch<{ items: AdminCustomer[]; total: number; page: number; limit: number }>(`/admin/customers?${q.toString()}`)
+export interface AdminCustomerListParams {
+  q?: string
+  from?: string
+  to?: string
+  minOrders?: number
+  minSpent?: number
+  maxSpent?: number
+  sort?: 'joined' | 'name' | 'orders' | 'spent' | 'lastOrder'
+  dir?: 'asc' | 'desc'
+  page?: number
+  limit?: number
 }
+export const getAdminCustomers = (params: AdminCustomerListParams = {}) =>
+  adminFetch<{
+    items: AdminCustomer[]
+    total: number
+    page: number
+    limit: number
+    stats: { totalSpent: number; avgOrders: number; loyal: number; maxSpent: number }
+  }>(`/admin/customers?${listQuery(params)}`)
+export const exportAdminCustomersCsv = (params: AdminCustomerListParams = {}) =>
+  downloadAdminCsv(`/admin/customers/export?${listQuery({ ...params, page: undefined, limit: undefined })}`, 'suthrayaa-customers.csv')
 
 export interface AdminCustomerOrder {
   id: string

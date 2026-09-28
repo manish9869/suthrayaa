@@ -15,7 +15,7 @@ export default async function OrderConfirmationPage({ searchParams }: OrderConfi
   return (
     <>
       <Navbar categories={categories} />
-      <main className="min-h-screen bg-gradient-to-b from-primary/[0.06] via-transparent to-transparent">
+      <main className="min-h-svh bg-gradient-to-b from-primary/[0.06] via-transparent to-transparent">
         <OrderSuccess orderNumber={order ?? '—'} payment={payment} orderId={id} />
       </main>
       <Footer />

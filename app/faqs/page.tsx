@@ -31,7 +31,7 @@ export default async function FaqsPage() {
               {group.items.map((item, i) => (
                 <AccordionItem key={`${item.question}-${i}`} value={`${g}-${i}`}>
                   <AccordionTrigger>{item.question}</AccordionTrigger>
-                  <AccordionContent className="space-y-2 [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 [&_ul]:list-disc [&_ul]:pl-5">
+                  <AccordionContent className="space-y-2 [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 [&_ul]:list-disc [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-1.5 [&_ol_li]:marker:font-semibold [&_ol_li]:marker:text-primary [&_ul]:pl-5">
                     <Markdown text={item.answer} vars={{ email: contact.email }} />
                   </AccordionContent>
                 </AccordionItem>

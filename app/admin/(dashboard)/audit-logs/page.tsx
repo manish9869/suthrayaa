@@ -23,6 +23,25 @@ const ACTION_TONE: Record<string, DotTone> = {
   USER_DEACTIVATED: 'destructive',
 }
 
+const crud = (prefix: string) => [`${prefix}_CREATED`, `${prefix}_UPDATED`, `${prefix}_DELETED`]
+const AUDIT_ACTION_OPTIONS = [
+  'ADMIN_LOGIN', 'ADMIN_LOGIN_FAILED', 'ADMIN_LOGOUT',
+  'USER_CREATED', 'USER_UPDATED', 'USER_DEACTIVATED', 'USER_DELETED',
+  'ROLE_CREATED', 'ROLE_UPDATED', 'ROLE_DELETED', 'PERMISSIONS_CHANGED',
+  'PRODUCT_CREATED', 'PRODUCT_UPDATED', 'PRODUCT_DELETED',
+  ...crud('CATEGORY'), ...crud('COLOR'), ...crud('OPTION_TEMPLATE'),
+  'ORDER_UPDATED', 'ORDER_CANCELLED', 'ORDER_REFUNDED', 'RETURN_UPDATED',
+  ...crud('COUPON'), ...crud('REVIEW'), ...crud('TESTIMONIAL'), ...crud('HERO_SLIDE'),
+  ...crud('EMAIL_TEMPLATE'), 'EMAIL_SENT', ...crud('SUBSCRIBER'),
+  'SETTINGS_UPDATED', 'CONTENT_UPDATED', 'REPORT_EXPORTED', 'DATA_EXPORTED',
+]
+
+function actionTone(action: string): DotTone {
+  if (ACTION_TONE[action]) return ACTION_TONE[action]
+  if (action.endsWith('_DELETED') || action.endsWith('_FAILED')) return 'destructive'
+  return action.endsWith('_CREATED') ? 'mint' : 'violet'
+}
+
 function actionLabel(action: string) {
   return action
     .split('_')
@@ -35,6 +54,14 @@ function summarize(log: AuditLogEntry): string {
   if (log.metadata && typeof log.metadata === 'object') {
     for (const [k, v] of Object.entries(log.metadata)) {
       if (v == null || (Array.isArray(v) && v.length === 0)) continue
+      if (typeof v === 'object' && !Array.isArray(v)) {
+        // e.g. { changes: { name: 'Summer', value: 20 } } → "changes: name=Summer, value=20"
+        const inner = Object.entries(v as Record<string, unknown>)
+          .filter(([, x]) => x != null)
+          .map(([ik, x]) => `${ik}=${typeof x === 'object' ? JSON.stringify(x) : String(x)}`)
+        if (inner.length) bits.push(`${k}: ${inner.join(', ')}`)
+        continue
+      }
       bits.push(`${k}: ${Array.isArray(v) ? v.join(', ') : String(v)}`)
     }
   }
@@ -70,12 +97,7 @@ function AuditLogsContent() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Actions</SelectItem>
-            {[
-              'USER_CREATED', 'USER_UPDATED', 'USER_DEACTIVATED', 'USER_DELETED',
-              'ROLE_CREATED', 'ROLE_UPDATED', 'ROLE_DELETED', 'PERMISSIONS_CHANGED',
-              'PRODUCT_CREATED', 'PRODUCT_UPDATED', 'PRODUCT_DELETED',
-              'ORDER_UPDATED', 'ORDER_CANCELLED', 'ORDER_REFUNDED', 'SETTINGS_UPDATED', 'CONTENT_UPDATED',
-            ].map((a) => (
+            {AUDIT_ACTION_OPTIONS.map((a) => (
               <SelectItem key={a} value={a}>
                 {actionLabel(a)}
               </SelectItem>
@@ -121,7 +143,7 @@ function AuditLogsContent() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <StatusDot className="normal-case" label={actionLabel(log.action)} tone={ACTION_TONE[log.action] ?? (log.action.endsWith('_CREATED') ? 'mint' : 'violet')} />
+                        <StatusDot className="normal-case" label={actionLabel(log.action)} tone={actionTone(log.action)} />
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm">
                         {log.resource}

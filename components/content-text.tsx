@@ -142,7 +142,8 @@ function inline(text: string, vars: Record<string, string>): ReactNode[] {
 
 /**
  * Block markdown-lite used by policy pages and FAQ answers: blank line = new paragraph,
- * lines starting "- " = bullet list. Output is plain React elements (no HTML injection).
+ * lines starting "- " = bullet list, lines starting "1. ", "2. " … = numbered steps.
+ * Output is plain React elements (no HTML injection).
  */
 export function Markdown({ text, vars = {} }: { text: string; vars?: Record<string, string> }) {
   const blocks = text.replace(/\r\n/g, '\n').split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean)
@@ -150,6 +151,15 @@ export function Markdown({ text, vars = {} }: { text: string; vars?: Record<stri
     <>
       {blocks.map((block, i) => {
         const lines = block.split('\n')
+        if (lines.every((l) => /^\d+\.\s/.test(l.trim()))) {
+          return (
+            <ol key={i}>
+              {lines.map((l, j) => (
+                <li key={j}>{inline(l.trim().replace(/^\d+\.\s+/, ''), vars)}</li>
+              ))}
+            </ol>
+          )
+        }
         if (lines.every((l) => l.trim().startsWith('- '))) {
           return (
             <ul key={i}>

@@ -221,7 +221,7 @@ export function OrderSuccess({ orderNumber, payment, orderId }: { orderNumber: s
                   </ul>
                   <div className="mt-4 space-y-1.5 border-t pt-4 text-sm">
                     {order.discountAmount > 0 && (
-                      <p className="flex justify-between text-emerald-700">
+                      <p className="flex justify-between text-mint-foreground">
                         <span>Discount</span>
                         <span>−{formatPrice(order.discountAmount)}</span>
                       </p>
@@ -259,7 +259,7 @@ export function OrderSuccess({ orderNumber, payment, orderId }: { orderNumber: s
             <div className="space-y-5 md:col-span-2">
               <motion.section {...rise(1.15)} className="rounded-3xl border bg-card p-5">
                 <p className="flex items-center gap-2 font-medium">
-                  {pending ? <Clock className="h-4 w-4 text-amber-600" /> : isCod ? <Banknote className="h-4 w-4 text-primary" /> : <CheckCircle2 className="h-4 w-4 text-emerald-600" />}
+                  {pending ? <Clock className="h-4 w-4 text-gold-foreground" /> : isCod ? <Banknote className="h-4 w-4 text-primary" /> : <CheckCircle2 className="h-4 w-4 text-mint-foreground" />}
                   {pending ? 'Awaiting payment' : isCod ? 'Pay on delivery' : 'Paid online'}
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground">

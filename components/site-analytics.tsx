@@ -118,7 +118,7 @@ export function SiteAnalytics({ gaId, gtmId, pixelId, consentRequired, consentMe
         <div
           role="dialog"
           aria-label="Cookie consent"
-          className="fixed inset-x-3 bottom-3 z-[60] mx-auto flex max-w-xl flex-col gap-3 rounded-2xl bg-card p-4 shadow-[0_20px_50px_-20px_color-mix(in_oklab,var(--shadow-tint)_45%,transparent)] ring-1 ring-border sm:flex-row sm:items-center"
+          className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-[60] mx-auto flex max-w-xl flex-col gap-3 rounded-2xl bg-card p-4 shadow-[0_20px_50px_-20px_color-mix(in_oklab,var(--shadow-tint)_45%,transparent)] ring-1 ring-border sm:flex-row sm:items-center"
         >
           <p className="flex-1 text-sm text-foreground/80">
             {consentMessage || 'We use cookies to improve your experience.'}{' '}

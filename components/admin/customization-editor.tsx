@@ -373,10 +373,10 @@ export function CustomizationEditor({ productId, customizations, colors, onChang
                 )}
               </div>
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditGroup(g)}>
+                <Button variant="ghost" size="icon" aria-label={`Edit ${g.label}`} className="h-7 w-7" onClick={() => openEditGroup(g)}>
                   <Pencil className="h-3.5 w-3.5" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeGroup(g)}>
+                <Button variant="ghost" size="icon" aria-label={`Remove ${g.label}`} className="h-7 w-7" onClick={() => removeGroup(g)}>
                   <Trash2 className="h-3.5 w-3.5 text-destructive" />
                 </Button>
               </div>
@@ -404,10 +404,10 @@ export function CustomizationEditor({ productId, customizations, colors, onChang
                         {v.sku && <span className="text-xs text-muted-foreground">SKU: {v.sku}</span>}
                       </div>
                       <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditValue(g.id, v)}>
+                        <Button variant="ghost" size="icon" aria-label={`Edit option ${v.label}`} className="h-6 w-6" onClick={() => openEditValue(g.id, v)}>
                           <Pencil className="h-3 w-3" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeValue(g.id, v.id)}>
+                        <Button variant="ghost" size="icon" aria-label={`Remove option ${v.label}`} className="h-6 w-6" onClick={() => removeValue(g.id, v.id)}>
                           <Trash2 className="h-3 w-3 text-destructive" />
                         </Button>
                       </div>

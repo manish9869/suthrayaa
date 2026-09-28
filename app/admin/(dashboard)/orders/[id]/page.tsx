@@ -50,6 +50,7 @@ import { StatusDot, type DotTone } from '@/components/admin/status-dot'
 import { StatCard } from '@/components/admin/stat-card'
 import { ProtectedRoute } from '@/components/admin/protected-route'
 import { Can } from '@/components/admin/can'
+import { ReturnRequestCard } from '@/components/admin/return-request-card'
 
 const PAYMENT_DOT: Record<string, DotTone> = {
   paid: 'mint',
@@ -80,6 +81,7 @@ export default function AdminOrderDetailPage() {
   const [updating, setUpdating] = useState(false)
   const [tracking, setTracking] = useState('')
   const [courier, setCourier] = useState('')
+  const [trackingUrl, setTrackingUrl] = useState('')
   const [adminNotes, setAdminNotes] = useState('')
   const [savingNotes, setSavingNotes] = useState(false)
   const [invoiceBusy, setInvoiceBusy] = useState(false)
@@ -98,6 +100,7 @@ export default function AdminOrderDetailPage() {
         setOrder(o)
         setTracking(o.trackingNumber ?? '')
         setCourier(o.courier ?? '')
+        setTrackingUrl(o.trackingUrl ?? '')
         setAdminNotes(o.adminNotes ?? '')
       })
       .finally(() => setLoading(false))
@@ -108,7 +111,7 @@ export default function AdminOrderDetailPage() {
   const handleStatusChange = async (status: string) => {
     setUpdating(true)
     try {
-      const res = await updateOrderStatus(params.id, status, undefined, tracking || undefined, courier || undefined)
+      const res = await updateOrderStatus(params.id, status, undefined, tracking || undefined, courier || undefined, trackingUrl.trim() || undefined)
       if (res.refundRequired) toast.warning('Order cancelled — it was paid online, so issue a refund next')
       else toast.success('Order status updated')
       load()
@@ -122,11 +125,11 @@ export default function AdminOrderDetailPage() {
   const handleSaveShippingDetails = async () => {
     setUpdating(true)
     try {
-      await updateOrderStatus(params.id, order!.status, undefined, tracking || undefined, courier || undefined)
+      await updateOrderStatus(params.id, order!.status, undefined, tracking || undefined, courier || undefined, trackingUrl.trim())
       toast.success('Shipping details saved')
       load()
-    } catch {
-      toast.error('Failed to save shipping details')
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Failed to save shipping details')
     } finally {
       setUpdating(false)
     }
@@ -135,8 +138,9 @@ export default function AdminOrderDetailPage() {
   const refundable = order ? Math.round((order.total - (order.refundedAmount ?? 0)) * 100) / 100 : 0
   const canRefund = !!order && (order.paymentStatus === 'paid' || order.paymentStatus === 'partially_refunded') && refundable > 0
 
-  const openRefund = () => {
-    setRefundAmount(String(refundable))
+  /** Opens the refund dialog; a return passes the value of the items coming back. */
+  const openRefund = (amount?: number) => {
+    setRefundAmount(String(amount && amount < refundable ? Math.round(amount * 100) / 100 : refundable))
     setRefundReason('')
     // Unshipped items can go straight back on the shelf; shipped ones only once returned
     setRefundRestock(!!order && !['shipped', 'delivered'].includes(order.status))
@@ -234,7 +238,7 @@ export default function AdminOrderDetailPage() {
     <ProtectedRoute permission="orders.view">
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => router.push('/admin/orders')}>
+        <Button variant="ghost" size="icon" aria-label="Back to orders" onClick={() => router.push('/admin/orders')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="min-w-0">
@@ -356,6 +360,20 @@ export default function AdminOrderDetailPage() {
                 <div className="space-y-1.5">
                   <Label className="text-xs">Tracking Number</Label>
                   <Input value={tracking} onChange={(e) => setTracking(e.target.value)} />
+                </div>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="tracking-url" className="text-xs">
+                    Tracking link <span className="font-normal text-muted-foreground">(optional)</span>
+                  </Label>
+                  <Input
+                    id="tracking-url"
+                    type="url"
+                    inputMode="url"
+                    value={trackingUrl}
+                    onChange={(e) => setTrackingUrl(e.target.value)}
+                    placeholder="https://… from the courier’s tracking page"
+                  />
+                  <p className="text-xs text-muted-foreground">Shown as a “Track package” button on the customer’s order page and in the shipped email.</p>
                 </div>
               </div>
               <Can permission="orders.update">
@@ -496,6 +514,28 @@ export default function AdminOrderDetailPage() {
             </CardContent>
           </Card>
 
+          {order.returnRequests.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <RotateCcw className="h-4 w-4" /> Returns &amp; exchanges
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {order.returnRequests.map((r) => (
+                  <ReturnRequestCard
+                    key={r.id}
+                    request={r}
+                    // Value of the items coming back, at the price the customer paid
+                    suggestedRefund={r.items.reduce((sum, i) => sum + (order.items.find((it) => it.id === i.orderItemId)?.unitPrice ?? 0) * i.quantity, 0)}
+                    onRefund={canRefund ? openRefund : undefined}
+                    onChanged={load}
+                  />
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
           {(canRefund || order.refunds.length > 0) && (
             <Card>
               <CardHeader>
@@ -526,7 +566,7 @@ export default function AdminOrderDetailPage() {
                 )}
                 {canRefund && (
                   <Can permission="orders.refund">
-                    <Button variant="outline" size="sm" className="w-full" onClick={openRefund}>
+                    <Button variant="outline" size="sm" className="w-full" onClick={() => openRefund()}>
                       <RotateCcw className="h-3.5 w-3.5 mr-2" /> Refund…
                     </Button>
                   </Can>

@@ -60,8 +60,8 @@ export default function AccountOverviewPage() {
       </div>
 
       {awaiting.length > 0 && (
-        <section className="rounded-3xl border border-amber-400/40 bg-amber-50/70 p-5 dark:bg-amber-500/10">
-          <h3 className="flex items-center gap-2 font-semibold text-amber-900 dark:text-amber-200">
+        <section className="rounded-3xl border border-gold/40 bg-gold/10 p-5">
+          <h3 className="flex items-center gap-2 font-semibold text-gold-foreground">
             <CreditCard className="h-4 w-4" /> {awaiting.length === 1 ? 'An order is' : `${awaiting.length} orders are`} waiting for payment
           </h3>
           <ul className="mt-3 space-y-2">

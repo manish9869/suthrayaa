@@ -50,7 +50,7 @@ export default function AuthCallbackPage() {
 
   if (error) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center">
+      <main className="flex min-h-svh flex-col items-center justify-center gap-4 px-4 text-center">
         <h1 className="display text-3xl">Sign-in link problem</h1>
         <p className="max-w-sm text-muted-foreground">{error}</p>
         <Button asChild>

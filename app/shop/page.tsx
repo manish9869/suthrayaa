@@ -19,7 +19,7 @@ export default async function ShopPage() {
   const [products, categories, chrome] = await Promise.all([getAllProducts(), getCategories(), getContentBlock('site.chrome')])
 
   return (
-    <Suspense fallback={<div className="min-h-screen bg-background" aria-label="Loading shop" />}>
+    <Suspense fallback={<div className="min-h-svh bg-background" aria-label="Loading shop" />}>
       <ShopContent products={products} categories={categories} bannerImage={chrome?.shopBannerImage || undefined} />
     </Suspense>
   )

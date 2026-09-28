@@ -85,13 +85,13 @@ export function NavItemsPanel() {
               <TableCell className="text-right">
                 <Can permission="settings.storefront">
                   <div className="flex justify-end gap-1">
-                    <Button variant="ghost" size="icon" disabled={i === 0} onClick={() => move(i, -1)}>
+                    <Button variant="ghost" size="icon" aria-label={`Move ${item.label} up`} disabled={i === 0} onClick={() => move(i, -1)}>
                       <ArrowUp className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" disabled={i === items.length - 1} onClick={() => move(i, 1)}>
+                    <Button variant="ghost" size="icon" aria-label={`Move ${item.label} down`} disabled={i === items.length - 1} onClick={() => move(i, 1)}>
                       <ArrowDown className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id, item.label)}>
+                    <Button variant="ghost" size="icon" aria-label={`Delete ${item.label}`} onClick={() => handleDelete(item.id, item.label)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>

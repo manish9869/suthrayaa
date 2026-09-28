@@ -1,5 +1,5 @@
-import type { Metadata } from 'next'
-import { Playfair_Display, Plus_Jakarta_Sans, Allura, Fraunces } from 'next/font/google'
+import type { Metadata, Viewport } from 'next'
+import { Plus_Jakarta_Sans, Fraunces } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { Toaster } from 'sonner'
 import { StoreSettingsGate } from '@/components/store-settings-gate'
@@ -7,12 +7,6 @@ import { AccountSync } from '@/components/account-sync'
 import { SiteAnalytics } from '@/components/site-analytics'
 import { Suspense } from 'react'
 import './globals.css'
-
-const playfair = Playfair_Display({
-  subsets: ['latin'],
-  variable: '--font-playfair',
-  display: 'swap',
-})
 
 const fraunces = Fraunces({
   subsets: ['latin'],
@@ -29,14 +23,7 @@ const jakarta = Plus_Jakarta_Sans({
   display: 'swap',
 })
 
-const allura = Allura({
-  subsets: ['latin'],
-  weight: '400',
-  variable: '--font-allura',
-  display: 'swap',
-})
-
-const FALLBACK_TITLE = 'Suthrayaa | Crochet Yarn, Kits & Craft Supplies in India'
+const FALLBACK_TITLE = 'Suthrayaa | Handmade Crochet Gifts, Décor & Personalised Keepsakes'
 const FALLBACK_DESCRIPTION =
   'Discover unique handmade crochet creations - personalized keychains, amigurumi toys, home decor, and custom gifts. Each piece tells a story through yarn.'
 
@@ -106,6 +93,12 @@ async function getThemeCss(): Promise<string> {
   }
 }
 
+// The browser chrome (mobile address bar, task switcher) takes the page's own canvas colour,
+// so the storefront reads as one surface instead of sitting under a grey bar.
+export const viewport: Viewport = {
+  themeColor: '#fcfbff',
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getPublicSettings()
   const seo = settings.seo ?? {}
@@ -155,13 +148,13 @@ export default async function RootLayout({
   const legal = settings.legal ?? {}
   const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : undefined)
   return (
-    <html lang="en" data-scroll-behavior="smooth" className={`${playfair.variable} ${fraunces.variable} ${jakarta.variable} ${allura.variable} bg-background`}>
+    <html lang="en" data-scroll-behavior="smooth" className={`${fraunces.variable} ${jakarta.variable} bg-background`}>
       {themeCss && (
         <head>
           <style id="storefront-theme" dangerouslySetInnerHTML={{ __html: themeCss }} />
         </head>
       )}
-      <body className="font-sans antialiased min-h-screen">
+      <body className="font-sans antialiased min-h-svh">
         <StoreSettingsGate>{children}</StoreSettingsGate>
         <AccountSync />
         <Suspense fallback={null}>

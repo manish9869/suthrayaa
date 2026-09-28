@@ -6,7 +6,7 @@ export default async function CheckoutPage() {
   const categories = await getCategories()
 
   return (
-    <Suspense fallback={<div className="min-h-screen bg-background" aria-label="Loading checkout" />}>
+    <Suspense fallback={<div className="min-h-svh bg-background" aria-label="Loading checkout" />}>
       <CheckoutContent categories={categories} />
     </Suspense>
   )

@@ -190,7 +190,7 @@ export default function AdminCustomerDetailPage() {
     <ProtectedRoute permission="customers.view">
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => router.push('/admin/customers')}>
+        <Button variant="ghost" size="icon" aria-label="Back to customers" onClick={() => router.push('/admin/customers')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex-1">

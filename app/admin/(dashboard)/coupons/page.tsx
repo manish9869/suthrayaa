@@ -290,7 +290,7 @@ export default function AdminCouponsPage() {
                       </Button>
                     </Can>
                     <Can permission="coupons.delete">
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(c.id, c.code)}>
+                      <Button variant="ghost" size="icon" aria-label={`Delete coupon ${c.code}`} onClick={() => handleDelete(c.id, c.code)}>
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </Can>

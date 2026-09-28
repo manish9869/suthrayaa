@@ -3,7 +3,7 @@
 import { use, useCallback, useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowLeft, Copy, CreditCard, Download, Gift, HelpCircle, Loader2, Package, RotateCcw, Truck, XCircle } from 'lucide-react'
+import { ArrowLeft, Copy, CreditCard, Download, ExternalLink, Gift, HelpCircle, Loader2, Package, RotateCcw, Truck, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -21,6 +21,7 @@ import { EmptyBlock, useAccount } from '@/components/account/account-shell'
 import { AddressLines } from '@/components/account/address-card'
 import { OrderStatusBadge, OrderTimeline, PaymentStatusText, STATUS_META } from '@/components/account/order-status'
 import { cancelOrder, downloadInvoice, getOrder, type OrderDetail } from '@/lib/api/account'
+import { OrderReturnsPanel } from '@/components/account/order-returns'
 import { usePayOrder } from '@/lib/use-pay-order'
 import { formatPrice } from '@/lib/data'
 import { cn } from '@/lib/utils'
@@ -40,7 +41,7 @@ function Row({ label, value, strong, tone }: { label: React.ReactNode; value: Re
   return (
     <div className={cn('flex items-center justify-between gap-4 py-1.5 text-sm', strong && 'text-base font-semibold')}>
       <span className={strong ? '' : 'text-muted-foreground'}>{label}</span>
-      <span className={cn('tabular-nums', tone === 'green' && 'text-emerald-700')}>{value}</span>
+      <span className={cn('tabular-nums', tone === 'green' && 'text-mint-foreground')}>{value}</span>
     </div>
   )
 }
@@ -168,7 +169,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             <Panel>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-700">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky/10 text-sky-ink">
                     <Truck className="h-5 w-5" />
                   </span>
                   <div>
@@ -176,12 +177,23 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                     <p className="text-lg font-semibold tracking-wide tabular-nums">{order.trackingNumber}</p>
                   </div>
                 </div>
-                <Button variant="outline" size="sm" className="rounded-full" onClick={() => copy(order.trackingNumber!)}>
-                  <Copy className="h-4 w-4" /> Copy
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  {order.trackingUrl && (
+                    <Button asChild size="sm" className="rounded-full">
+                      <a href={order.trackingUrl} target="_blank" rel="noopener noreferrer">
+                        Track package <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" className="rounded-full" onClick={() => copy(order.trackingNumber!)}>
+                    <Copy className="h-4 w-4" /> Copy number
+                  </Button>
+                </div>
               </div>
             </Panel>
           )}
+
+          {order.returns && <OrderReturnsPanel orderId={order.id} returns={order.returns} onChange={load} />}
 
           <Panel title={`Items (${order.itemCount})`}>
             <ul className="divide-y">

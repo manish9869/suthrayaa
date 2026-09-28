@@ -13,7 +13,7 @@ export function FeaturedProducts({ products, heading }: { products: Product[]; h
         <Stagger className="grid grid-cols-2 gap-x-4 gap-y-10 lg:grid-cols-4 lg:gap-x-6">
           {products.slice(0, 4).map((product) => (
             <StaggerItem key={product.id}>
-              <ProductCard product={product} />
+              <ProductCard product={product} listName="Featured" />
             </StaggerItem>
           ))}
         </Stagger>

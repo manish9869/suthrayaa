@@ -13,6 +13,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp
 import { Separator } from '@/components/ui/separator'
 import { Mail, Lock, Eye, EyeOff, Phone, Sparkles, User, Loader2, Check, Circle } from 'lucide-react'
 import { signIn, signUp, requestPasswordReset, changePassword, googleSignInUrl } from '@/lib/api/auth'
+import { analytics } from '@/lib/analytics'
 import { ApiError } from '@/lib/api/http'
 import { toast } from 'sonner'
 import { STOREFRONT_IMAGES } from '@/lib/storefront-images'
@@ -25,7 +26,7 @@ function PasswordRules({ password }: { password: string }) {
   return (
     <ul className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-xs" aria-label="Password requirements">
       {passwordChecks(password).map((c) => (
-        <li key={c.label} className={cn('flex items-center gap-1.5 transition-colors', c.ok ? 'text-emerald-600' : 'text-muted-foreground')}>
+        <li key={c.label} className={cn('flex items-center gap-1.5 transition-colors', c.ok ? 'text-mint-foreground' : 'text-muted-foreground')}>
           {c.ok ? <Check className="h-3.5 w-3.5" /> : <Circle className="h-3 w-3" />}
           {c.label}
         </li>
@@ -103,6 +104,7 @@ export default function LoginPage() {
         setLoading(false)
         return
       }
+      analytics.login('email')
       router.push(redirectTo)
       router.refresh()
       return
@@ -116,6 +118,7 @@ export default function LoginPage() {
       setLoading(false)
       return
     }
+    analytics.signUp('email')
     if (!needsConfirmation) {
       toast.success('Account created — welcome!')
       router.push(redirectTo)
@@ -182,7 +185,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="grid grid-cols-1 min-h-screen lg:grid-cols-2">
+    <main className="grid grid-cols-1 min-h-svh lg:grid-cols-2">
       {/* Editorial side */}
       <aside className="relative hidden overflow-hidden bg-sand lg:block">
         <Image src={sideImage} alt="" fill priority sizes="50vw" className="object-cover" />

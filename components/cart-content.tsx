@@ -26,7 +26,8 @@ import { useHydrated } from '@/lib/hooks/use-hydrated'
 import { formatPrice, type Category } from '@/lib/data'
 import { checkCart, getCheckoutOptions, toCartItemInputs, validateCart, validateCoupon, type CartLineIssue, type CheckoutOptions, type PricedCart } from '@/lib/api/checkout'
 import { toast } from 'sonner'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { analytics, toItem, variantOf } from '@/lib/analytics'
 
 export function CartContent({ categories }: { categories: Category[] }) {
   const { items, updateQuantity, removeItem, getTotalPrice, getItemUnitPrice, clearCart } = useCartStore()
@@ -41,6 +42,12 @@ export function CartContent({ categories }: { categories: Category[] }) {
   const [issues, setIssues] = useState<CartLineIssue[]>([])
   const [checking, setChecking] = useState(false)
   const cartInputs = useMemo(() => toCartItemInputs(items), [items])
+  const viewedCart = useRef(false)
+  useEffect(() => {
+    if (!hydrated || viewedCart.current || items.length === 0) return
+    viewedCart.current = true
+    analytics.viewCart(items.map((i) => toItem(i.product, { quantity: i.quantity, variant: variantOf(i), price: getItemUnitPrice(i) })))
+  }, [hydrated, items, getItemUnitPrice])
   const cartKey = JSON.stringify(cartInputs)
 
   useEffect(() => {
@@ -108,7 +115,7 @@ export function CartContent({ categories }: { categories: Category[] }) {
     return (
       <>
         <Navbar categories={categories} />
-        <main className="min-h-screen" />
+        <main className="min-h-svh" />
       </>
     )
   }
@@ -117,7 +124,7 @@ export function CartContent({ categories }: { categories: Category[] }) {
     return (
       <>
         <Navbar categories={categories} />
-        <main className="min-h-screen">
+        <main className="min-h-svh">
           <div className="container mx-auto px-4 py-16">
             <div className="max-w-md mx-auto text-center">
               <div className="w-32 h-32 rounded-full bg-muted mx-auto mb-6 flex items-center justify-center">
@@ -144,7 +151,7 @@ export function CartContent({ categories }: { categories: Category[] }) {
   return (
     <>
       <Navbar categories={categories} />
-      <main className="min-h-screen">
+      <main className="min-h-svh">
         {/* Breadcrumb */}
         <div className="bg-background py-4 border-b">
           <div className="container mx-auto px-4">
@@ -382,7 +389,7 @@ export function CartContent({ categories }: { categories: Category[] }) {
                       <span>{formatPrice(subtotal)}</span>
                     </div>
                     {discount > 0 && (
-                      <div className="flex justify-between text-sm text-emerald-700">
+                      <div className="flex justify-between text-sm text-mint-foreground">
                         <span>Discount</span>
                         <span>-{formatPrice(discount)}</span>
                       </div>

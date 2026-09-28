@@ -13,7 +13,7 @@ export function NewArrivals({ products, heading }: { products: Product[]; headin
         <Stagger className="grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-3 lg:grid-cols-5 lg:gap-x-5">
           {products.slice(0, 5).map((product) => (
             <StaggerItem key={product.id}>
-              <ProductCard product={product} />
+              <ProductCard product={product} listName="New arrivals" />
             </StaggerItem>
           ))}
         </Stagger>

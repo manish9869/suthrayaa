@@ -38,10 +38,10 @@ export function DataTablePagination({ page, pageCount, total, pageSize, onPageCh
       </p>
       {pageCount > 1 && (
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-8 w-8" disabled={page === 1} onClick={() => onPageChange(1)}>
+          <Button variant="ghost" size="icon" aria-label="First page" className="h-8 w-8" disabled={page === 1} onClick={() => onPageChange(1)}>
             <ChevronsLeft className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" disabled={page === 1} onClick={() => onPageChange(page - 1)}>
+          <Button variant="ghost" size="icon" aria-label="Previous page" className="h-8 w-8" disabled={page === 1} onClick={() => onPageChange(page - 1)}>
             <ChevronLeft className="h-3.5 w-3.5" />
           </Button>
           {pageNumbers().map((n, i) =>
@@ -53,7 +53,7 @@ export function DataTablePagination({ page, pageCount, total, pageSize, onPageCh
               <Button
                 key={n}
                 variant={n === page ? 'secondary' : 'ghost'}
-                size="icon"
+                size="icon" aria-label={`Page ${n}`} aria-current={n === page ? "page" : undefined}
                 className="h-8 w-8 text-xs"
                 onClick={() => onPageChange(n)}
               >
@@ -61,10 +61,10 @@ export function DataTablePagination({ page, pageCount, total, pageSize, onPageCh
               </Button>
             )
           )}
-          <Button variant="ghost" size="icon" className="h-8 w-8" disabled={page === pageCount} onClick={() => onPageChange(page + 1)}>
+          <Button variant="ghost" size="icon" aria-label="Next page" className="h-8 w-8" disabled={page === pageCount} onClick={() => onPageChange(page + 1)}>
             <ChevronRight className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" disabled={page === pageCount} onClick={() => onPageChange(pageCount)}>
+          <Button variant="ghost" size="icon" aria-label="Last page" className="h-8 w-8" disabled={page === pageCount} onClick={() => onPageChange(pageCount)}>
             <ChevronsRight className="h-3.5 w-3.5" />
           </Button>
         </div>

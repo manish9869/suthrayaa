@@ -31,6 +31,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useCartStore, useWishlistStore } from '@/lib/store'
 import { useHydrated } from '@/lib/hooks/use-hydrated'
+import { analytics, toItem } from '@/lib/analytics'
 import { formatPrice, type Product, type Review, type Category } from '@/lib/data'
 import { ReviewForm } from '@/components/review-form'
 import { customizationGroupId, ProductCustomizer, type ResolvedCustomization } from '@/components/product-customizer'
@@ -61,6 +62,12 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
   const [customText, setCustomText] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [zoomOrigin, setZoomOrigin] = useState('50% 50%')
+
+  useEffect(() => {
+    analytics.viewItem(toItem(product))
+    // once per product viewed
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product.id])
 
   // Show a compact buy bar on mobile once the main Add to cart button has scrolled away
   const buyRef = useRef<HTMLDivElement>(null)
@@ -190,7 +197,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
   return (
     <>
       <Navbar categories={categories} />
-      <main className="min-h-screen">
+      <main className="min-h-svh">
         <div className="container mx-auto px-4 pb-8 pt-6">
           {/* Breadcrumb */}
           <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 overflow-hidden text-[13px] text-muted-foreground">
@@ -678,7 +685,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
               <Stagger className="grid grid-cols-2 gap-x-4 gap-y-10 lg:grid-cols-4 lg:gap-x-6">
                 {relatedProducts.map((p) => (
                   <StaggerItem key={p.id}>
-                    <ProductCard product={p} />
+                    <ProductCard product={p} listName="Related products" />
                   </StaggerItem>
                 ))}
               </Stagger>
@@ -694,7 +701,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
               animate={{ y: 0 }}
               exit={{ y: '110%' }}
               transition={{ duration: 0.3, ease: EASE_OUT }}
-              className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 px-4 py-3 backdrop-blur-xl lg:hidden"
+              className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl lg:hidden"
             >
               <div className="flex items-center gap-3">
                 <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-sand">

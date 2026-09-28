@@ -120,6 +120,8 @@ export interface OrderDetail extends OrderSummary {
   giftMessage: string | null
   trackingNumber: string | null
   courier: string | null
+  /** The courier's own tracking page, when the store has added it */
+  trackingUrl: string | null
   paymentReference: string | null
   invoiceNumber: string | null
   invoiceAvailable: boolean
@@ -139,12 +141,53 @@ export interface OrderDetail extends OrderSummary {
     customizations: { label: string; value: string; priceAdjustment: number }[]
   }[]
   statusHistory: { status: string; note: string | null; at: string }[]
+  /** Present on the order detail response (not on the cancel response) */
+  returns?: OrderReturns
+}
+
+export type ReturnReason = 'damaged' | 'defective' | 'wrong_item' | 'not_as_described' | 'changed_mind' | 'size_or_fit' | 'other'
+export const RETURN_REASON_LABELS: Record<ReturnReason, string> = {
+  damaged: 'Arrived damaged',
+  defective: 'Defective or poorly made',
+  wrong_item: 'Wrong item sent',
+  not_as_described: 'Not as described',
+  changed_mind: 'Changed my mind',
+  size_or_fit: 'Size or fit',
+  other: 'Something else',
+}
+/** Reasons that let a personalised / made-to-order piece come back (per the returns policy). */
+export const FAULT_REASONS: ReturnReason[] = ['damaged', 'defective', 'wrong_item']
+
+export interface ReturnRequest {
+  id: string
+  type: 'return' | 'exchange'
+  status: 'requested' | 'approved' | 'rejected' | 'received' | 'refunded' | 'exchanged' | 'cancelled'
+  statusLabel: string
+  reason: ReturnReason
+  reasonLabel: string
+  details: string | null
+  adminNote: string | null
+  items: { orderItemId: string; quantity: number; name: string; image: string | null }[]
+  createdAt: string
+  resolvedAt: string | null
+}
+export interface OrderReturns {
+  canRequest: boolean
+  blockedReason: string | null
+  deadline: string | null
+  items: { orderItemId: string; name: string; image: string | null; quantity: number; available: number; faultOnly: boolean }[]
+  requests: ReturnRequest[]
 }
 
 export const getOrders = () => meFetch<OrderSummary[]>('/orders')
 export const getOrder = (id: string) => meFetch<OrderDetail>(`/orders/${id}`)
 export const cancelOrder = (id: string, reason?: string) =>
   meFetch<OrderDetail>(`/orders/${id}/cancel`, { method: 'POST', body: JSON.stringify({ reason }) })
+export const requestReturn = (
+  orderId: string,
+  input: { type: 'return' | 'exchange'; reason: ReturnReason; details?: string; items: { orderItemId: string; quantity: number }[] }
+) => meFetch<ReturnRequest>(`/orders/${orderId}/returns`, { method: 'POST', body: JSON.stringify(input) })
+export const cancelReturn = (returnId: string) => meFetch<ReturnRequest>(`/returns/${returnId}/cancel`, { method: 'POST' })
 export const payForOrder = (id: string) =>
   meFetch<{ order: { id: string; orderNumber: string; total: number }; razorpay: { orderId: string; amount: number; currency: string; keyId: string } }>(
     `/orders/${id}/pay`,

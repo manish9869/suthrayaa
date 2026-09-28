@@ -23,7 +23,7 @@ export function StaticPageShell({ categories, eyebrow, title, description, image
   return (
     <>
       <Navbar categories={categories} />
-      <main className="min-h-screen">
+      <main className="min-h-svh">
         <section className="relative overflow-hidden">
           <div className="pointer-events-none absolute -left-32 -top-24 h-80 w-80 rounded-full bg-blush/60 blur-3xl" />
           <div className="pointer-events-none absolute -right-20 top-10 h-72 w-72 rounded-full bg-sage/20 blur-3xl" />

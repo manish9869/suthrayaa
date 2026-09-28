@@ -26,126 +26,105 @@ import {
   PhoneCall,
   X,
 } from 'lucide-react'
-import { getAdminCustomers, type AdminCustomer } from '@/lib/api/admin'
+import { getAdminCustomers, exportAdminCustomersCsv, type AdminCustomer, type AdminCustomerListParams } from '@/lib/api/admin'
+import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
+import { ApiError } from '@/lib/api/http'
+import { Can } from '@/components/admin/can'
+import { cn } from '@/lib/utils'
 import { formatPrice } from '@/lib/data'
-import { DateRangeFilter, type DateRangeValue } from '@/components/admin/date-range-filter'
+import { DateRangeFilter, dateRangeToParams, type DateRangeValue } from '@/components/admin/date-range-filter'
 import { StatCard } from '@/components/admin/stat-card'
-import { GLASS_PANEL, exportRowsToCsv } from '@/lib/admin-ui'
+import { GLASS_PANEL } from '@/lib/admin-ui'
 import { toast } from 'sonner'
 import { DataTablePagination } from '@/components/admin/data-table-pagination'
-import { usePaginated } from '@/lib/hooks/use-paginated'
 import { TableLoadingRow } from '@/components/admin/loading-state'
 import { ProtectedRoute } from '@/components/admin/protected-route'
 import { PageHeader } from '@/components/admin/page-header'
 
 const ALL_TIME: DateRangeValue = { days: 3650, label: 'Any time joined' }
 
-type SortKey = 'newest' | 'oldest' | 'spent_desc' | 'orders_desc' | 'name_asc'
+type SortKey = 'newest' | 'oldest' | 'spent_desc' | 'orders_desc' | 'recent_order' | 'name_asc'
 const SORT_LABELS: Record<SortKey, string> = {
   newest: 'Newest First',
   oldest: 'Oldest First',
   spent_desc: 'Highest Spent',
   orders_desc: 'Most Orders',
+  recent_order: 'Ordered Recently',
   name_asc: 'Name (A–Z)',
 }
+const SORT_PARAMS: Record<SortKey, Pick<AdminCustomerListParams, 'sort' | 'dir'>> = {
+  newest: { sort: 'joined', dir: 'desc' },
+  oldest: { sort: 'joined', dir: 'asc' },
+  spent_desc: { sort: 'spent', dir: 'desc' },
+  orders_desc: { sort: 'orders', dir: 'desc' },
+  recent_order: { sort: 'lastOrder', dir: 'desc' },
+  name_asc: { sort: 'name', dir: 'asc' },
+}
+const PAGE_SIZE = 20
 
 export default function AdminCustomersPage() {
   const [customers, setCustomers] = useState<AdminCustomer[]>([])
+  const [total, setTotal] = useState(0)
+  const [stats, setStats] = useState({ totalSpent: 0, avgOrders: 0, loyal: 0, maxSpent: 0 })
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [reloadKey, setReloadKey] = useState(0)
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebouncedValue(search.trim(), 300)
 
   const [joinedRange, setJoinedRange] = useState<DateRangeValue>(ALL_TIME)
   const [minOrders, setMinOrders] = useState<string>('all')
   const [sortKey, setSortKey] = useState<SortKey>('newest')
+  const [page, setPage] = useState(1)
 
-  const maxSpent = useMemo(() => Math.max(1000, ...customers.map((c) => Math.ceil(c.totalSpent / 100) * 100)), [customers])
-  const [spentRange, setSpentRange] = useState<[number, number]>([0, 100000])
-  const [sliderRange, setSliderRange] = useState<[number, number]>([0, 100000])
-  useEffect(() => setSliderRange(spentRange), [spentRange])
-  useEffect(() => {
-    setSpentRange([0, maxSpent])
-    setSliderRange([0, maxSpent])
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [customers.length])
+  const maxSpent = Math.max(1000, Math.ceil(stats.maxSpent / 100) * 100)
+  const [spentRange, setSpentRange] = useState<[number, number] | null>(null)
+  const [sliderRange, setSliderRange] = useState<[number, number]>([0, maxSpent])
+  useEffect(() => setSliderRange(spentRange ?? [0, maxSpent]), [spentRange, maxSpent])
 
-  const load = () => {
-    setLoading(true)
-    getAdminCustomers({ limit: 300 })
-      .then((res) => setCustomers(res.items))
-      .finally(() => setLoading(false))
-  }
-  useEffect(load, [])
-
-  const sinceCutoff = useMemo(() => {
-    if (joinedRange.from) return new Date(joinedRange.from).getTime()
-    if (joinedRange.days && joinedRange.days < 3650) {
-      const d = new Date()
-      d.setDate(d.getDate() - joinedRange.days)
-      return d.getTime()
-    }
-    return null
-  }, [joinedRange])
-  const untilCutoff = useMemo(() => (joinedRange.to ? new Date(`${joinedRange.to}T23:59:59`).getTime() : null), [joinedRange])
-
-  const filtered = useMemo(() => {
-    let result = [...customers]
-    const q = search.trim().toLowerCase()
-    if (q) {
-      result = result.filter((c) => {
-        const name = `${c.firstName ?? ''} ${c.lastName ?? ''}`.toLowerCase()
-        return name.includes(q) || (c.email ?? '').toLowerCase().includes(q) || (c.phone ?? '').includes(q)
-      })
-    }
-    if (sinceCutoff != null) result = result.filter((c) => new Date(c.createdAt).getTime() >= sinceCutoff)
-    if (untilCutoff != null) result = result.filter((c) => new Date(c.createdAt).getTime() <= untilCutoff)
-    if (minOrders !== 'all') {
-      const n = Number(minOrders)
-      result = result.filter((c) => c.orderCount >= n)
-    }
-    result = result.filter((c) => c.totalSpent >= spentRange[0] && c.totalSpent <= spentRange[1])
-
-    result.sort((a, b) => {
-      switch (sortKey) {
-        case 'oldest':
-          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        case 'spent_desc':
-          return b.totalSpent - a.totalSpent
-        case 'orders_desc':
-          return b.orderCount - a.orderCount
-        case 'name_asc':
-          return `${a.firstName ?? ''}${a.lastName ?? ''}`.localeCompare(`${b.firstName ?? ''}${b.lastName ?? ''}`)
-        case 'newest':
-        default:
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      }
-    })
-    return result
-  }, [customers, search, sinceCutoff, untilCutoff, minOrders, spentRange, sortKey])
-
-  const { pageItems, page, setPage, pageCount, total: pageTotal } = usePaginated(filtered, 15)
-
-  const stats = useMemo(
+  const params: AdminCustomerListParams = useMemo(
     () => ({
-      totalSpent: filtered.reduce((sum, c) => sum + c.totalSpent, 0),
-      avgOrders: filtered.length ? filtered.reduce((sum, c) => sum + c.orderCount, 0) / filtered.length : 0,
-      loyal: filtered.filter((c) => c.orderCount >= 5).length,
+      q: debouncedSearch || undefined,
+      ...dateRangeToParams(joinedRange),
+      minOrders: minOrders === 'all' ? undefined : Number(minOrders),
+      minSpent: spentRange && spentRange[0] > 0 ? spentRange[0] : undefined,
+      maxSpent: spentRange && spentRange[1] < maxSpent ? spentRange[1] : undefined,
+      ...SORT_PARAMS[sortKey],
     }),
-    [filtered]
+    [debouncedSearch, joinedRange, minOrders, spentRange, maxSpent, sortKey]
   )
+  useEffect(() => setPage(1), [params])
 
-  const handleExport = () => {
-    exportRowsToCsv(
-      `customers-${new Date().toISOString().slice(0, 10)}.csv`,
-      ['Name', 'Email', 'Phone', 'Orders', 'Total Spent', 'Joined'],
-      filtered.map((c) => [
-        c.firstName || c.lastName ? `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() : 'Unnamed',
-        c.email ?? '',
-        c.phone ?? '',
-        c.orderCount,
-        c.totalSpent,
-        new Date(c.createdAt).toLocaleDateString('en-IN'),
-      ])
-    )
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    setError(null)
+    getAdminCustomers({ ...params, page, limit: PAGE_SIZE })
+      .then((res) => {
+        if (cancelled) return
+        setCustomers(res.items)
+        setTotal(res.total)
+        setStats(res.stats)
+      })
+      .catch((err) => !cancelled && setError(err instanceof ApiError ? err.message : 'Could not load customers'))
+      .finally(() => !cancelled && setLoading(false))
+    return () => {
+      cancelled = true
+    }
+  }, [params, page, reloadKey])
+  const load = () => setReloadKey((k) => k + 1)
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE))
+
+  const [exporting, setExporting] = useState(false)
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      await exportAdminCustomersCsv(params)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Export failed')
+    } finally {
+      setExporting(false)
+    }
   }
 
   const handleCopyEmail = async (email: string) => {
@@ -160,12 +139,12 @@ export default function AdminCustomersPage() {
   const activeFilterCount =
     (joinedRange.label !== ALL_TIME.label ? 1 : 0) +
     (minOrders !== 'all' ? 1 : 0) +
-    (spentRange[0] > 0 || spentRange[1] < maxSpent ? 1 : 0)
+    (spentRange && (spentRange[0] > 0 || spentRange[1] < maxSpent) ? 1 : 0)
 
   const clearFilters = () => {
     setJoinedRange(ALL_TIME)
     setMinOrders('all')
-    setSpentRange([0, maxSpent])
+    setSpentRange(null)
   }
 
   return (
@@ -173,22 +152,24 @@ export default function AdminCustomersPage() {
     <div className="space-y-6">
       <PageHeader
         title="Customers"
-        description={`${filtered.length} of ${customers.length} registered customers`}
+        description={`${total.toLocaleString('en-IN')} registered customer${total === 1 ? '' : 's'}${activeFilterCount || debouncedSearch ? ' match' : ''}`}
         actions={
           <>
           <Button variant="outline" size="sm" onClick={load} disabled={loading}>
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0}>
-            <FileDown className="h-3.5 w-3.5" /> Export
-          </Button>
+          <Can permission="customers.export">
+            <Button variant="outline" size="sm" onClick={handleExport} disabled={total === 0 || exporting}>
+              <FileDown className="h-3.5 w-3.5" /> {exporting ? 'Exporting…' : 'Export'}
+            </Button>
+          </Can>
           </>
         }
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Users} label={`Shown of ${customers.length}`} value={filtered.length} tone="primary" />
-        <StatCard icon={Wallet} label="Total Spent (shown)" value={formatPrice(stats.totalSpent)} tone="mint" />
+        <StatCard icon={Users} label="Customers" value={total.toLocaleString('en-IN')} tone="primary" />
+        <StatCard icon={Wallet} label="Net spent" value={formatPrice(stats.totalSpent)} subtitle="Paid orders, minus refunds" tone="mint" />
         <StatCard icon={ShoppingBag} label="Avg Orders / Customer" value={stats.avgOrders.toFixed(1)} tone="gold" />
         <StatCard icon={Crown} label="Loyal Customers (5+ orders)" value={stats.loyal} tone="violet" />
       </div>
@@ -232,7 +213,7 @@ export default function AdminCustomersPage() {
           <PopoverTrigger asChild>
             <Button variant="outline" className="h-10 rounded-xl font-normal">
               <Wallet className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-              {spentRange[0] > 0 || spentRange[1] < maxSpent ? `${formatPrice(spentRange[0])} – ${formatPrice(spentRange[1])}` : 'Any spend'}
+              {spentRange && (spentRange[0] > 0 || spentRange[1] < maxSpent) ? `${formatPrice(spentRange[0])} – ${formatPrice(spentRange[1])}` : 'Any spend'}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-72 p-4" align="start">
@@ -252,7 +233,7 @@ export default function AdminCustomersPage() {
         )}
       </div>
 
-      <div className={`${GLASS_PANEL} overflow-x-auto`}>
+      <div className={cn(GLASS_PANEL, 'overflow-x-auto transition-opacity', loading && customers.length > 0 && 'opacity-60')} aria-busy={loading}>
         <Table>
           <TableHeader>
             <TableRow>
@@ -265,16 +246,25 @@ export default function AdminCustomersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading ? (
+            {loading && customers.length === 0 ? (
               <TableLoadingRow colSpan={6} />
-            ) : filtered.length === 0 ? (
+            ) : error ? (
+              <TableRow>
+                <TableCell colSpan={6} className="py-8 text-center">
+                  <p className="text-sm text-destructive">{error}</p>
+                  <Button variant="outline" size="sm" className="mt-3" onClick={load}>
+                    <RefreshCw className="h-3.5 w-3.5" /> Try again
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ) : customers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                  No customers match these filters
+                  {activeFilterCount || debouncedSearch ? 'No customers match these filters' : 'No customers yet — they appear here when people sign up'}
                 </TableCell>
               </TableRow>
             ) : (
-              pageItems.map((c) => (
+              customers.map((c) => (
                 <TableRow key={c.id}>
                   <TableCell className="font-medium">
                     <Link href={`/admin/customers/${c.id}`} className="text-primary hover:underline flex items-center gap-1.5">
@@ -341,7 +331,7 @@ export default function AdminCustomersPage() {
             )}
           </TableBody>
         </Table>
-        <DataTablePagination page={page} pageCount={pageCount} total={pageTotal} pageSize={15} onPageChange={setPage} />
+        <DataTablePagination page={Math.min(page, pageCount)} pageCount={pageCount} total={total} pageSize={PAGE_SIZE} onPageChange={setPage} />
       </div>
     </div>
     </ProtectedRoute>

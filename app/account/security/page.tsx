@@ -14,11 +14,11 @@ import { isStrongPassword, passwordChecks, passwordStrength } from '@/lib/valida
 import { cn } from '@/lib/utils'
 
 const STRENGTH = [
-  { label: 'Too weak', color: 'bg-red-500' },
-  { label: 'Weak', color: 'bg-red-500' },
-  { label: 'Fair', color: 'bg-amber-500' },
-  { label: 'Good', color: 'bg-emerald-500' },
-  { label: 'Strong', color: 'bg-emerald-600' },
+  { label: 'Too weak', color: 'bg-destructive' },
+  { label: 'Weak', color: 'bg-destructive' },
+  { label: 'Fair', color: 'bg-gold' },
+  { label: 'Good', color: 'bg-mint-foreground' },
+  { label: 'Strong', color: 'bg-mint-foreground' },
 ]
 
 function PasswordInput({ id, value, onChange, error, autoComplete, placeholder }: { id: string; value: string; onChange: (v: string) => void; error?: string; autoComplete: string; placeholder?: string }) {
@@ -175,7 +175,7 @@ export default function SecurityPage() {
                 </div>
                 <ul className="grid gap-1 text-[13px]">
                   {checks.map((c) => (
-                    <li key={c.label} className={cn('flex items-center gap-2', c.ok ? 'text-emerald-700' : 'text-muted-foreground')}>
+                    <li key={c.label} className={cn('flex items-center gap-2', c.ok ? 'text-mint-foreground' : 'text-muted-foreground')}>
                       {c.ok ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />} {c.label}
                     </li>
                   ))}

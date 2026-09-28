@@ -39,7 +39,7 @@ export function BestSellers({ products: bestSellers, heading }: { products: Prod
             <Stagger className="flex gap-5">
               {bestSellers.map((product) => (
                 <StaggerItem key={product.id} className="w-[64vw] shrink-0 snap-start sm:w-[300px]">
-                  <ProductCard product={product} />
+                  <ProductCard product={product} listName="Best sellers" />
                 </StaggerItem>
               ))}
             </Stagger>

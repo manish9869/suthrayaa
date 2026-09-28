@@ -267,7 +267,7 @@ function UsersPageContent() {
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
+                          <Button variant="ghost" size="icon" aria-label="User actions">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -323,7 +323,7 @@ function UsersPageContent() {
               </p>
               <div className="flex items-center gap-2">
                 <Input readOnly value={inviteLink} className="font-mono text-xs" />
-                <Button variant="outline" size="icon" onClick={copyLink}>
+                <Button variant="outline" size="icon" aria-label={linkCopied ? "Invite link copied" : "Copy invite link"} onClick={copyLink}>
                   {linkCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                 </Button>
               </div>
