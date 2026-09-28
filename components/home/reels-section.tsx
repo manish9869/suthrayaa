@@ -4,8 +4,9 @@ import { useEffect, useRef, useState } from 'react'
 import { mediaUrl } from '@/lib/media'
 import Link from 'next/link'
 import { motion, useReducedMotion } from 'framer-motion'
-import { ArrowUpRight, Pause, Play } from 'lucide-react'
+import { ArrowUpRight, ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react'
 import { EASE_OUT } from '@/components/motion/reveal'
+import { cn } from '@/lib/utils'
 import { SectionHeading } from './section-heading'
 import type { SectionHeadingContent, SiteContent } from '@/lib/content'
 
@@ -106,9 +107,42 @@ function ReelCard({ reel, index }: { reel: Reel; index: number }) {
   )
 }
 
+/** Horizontal reel row: swipe on touch; on desktop, arrow buttons + an edge fade show there's more. */
+function useScrollEdges() {
+  const ref = useRef<HTMLUListElement>(null)
+  const [edges, setEdges] = useState({ prev: false, next: false })
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const update = () => setEdges({ prev: el.scrollLeft > 4, next: el.scrollLeft + el.clientWidth < el.scrollWidth - 4 })
+    update()
+    el.addEventListener('scroll', update, { passive: true })
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => {
+      el.removeEventListener('scroll', update)
+      ro.disconnect()
+    }
+  }, [])
+
+  const scrollBy = (dir: 1 | -1) => {
+    const el = ref.current
+    if (el) el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: 'smooth' })
+  }
+  return { ref, edges, scrollBy }
+}
+
+const FADE = '56px'
+
 export function ReelsSection({ content, heading }: { content?: SiteContent['home.reels']; heading?: SectionHeadingContent | null }) {
   const reels = (content?.items ?? FALLBACK_REELS).filter((r) => r.videoUrl || r.videoWebmUrl || r.poster)
+  const { ref, edges, scrollBy } = useScrollEdges()
   if (reels.length === 0) return null
+
+  const mask = `linear-gradient(to right, ${edges.prev ? 'transparent' : '#000'}, #000 ${FADE}, #000 calc(100% - ${FADE}), ${edges.next ? 'transparent' : '#000'})`
+  const arrow = 'absolute top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border bg-card/95 text-foreground shadow-md backdrop-blur transition-[opacity,transform] duration-200 hover:scale-105 hover:border-primary hover:text-primary active:scale-95 [@media(hover:hover)]:sm:flex'
+
   return (
     <section className="py-16 lg:py-24">
       <div className="container mx-auto px-4">
@@ -122,11 +156,33 @@ export function ReelsSection({ content, heading }: { content?: SiteContent['home
           content={heading}
         />
       </div>
-      <ul className="container mx-auto flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {reels.map((reel, i) => (
-          <ReelCard key={`${reel.title}-${i}`} reel={reel} index={i} />
-        ))}
-      </ul>
+      <div className="container relative mx-auto">
+        <ul
+          ref={ref}
+          style={{ maskImage: mask, WebkitMaskImage: mask }}
+          className="flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-4 px-4 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {reels.map((reel, i) => (
+            <ReelCard key={`${reel.title}-${i}`} reel={reel} index={i} />
+          ))}
+        </ul>
+        <button
+          type="button"
+          aria-label="Previous reels"
+          onClick={() => scrollBy(-1)}
+          className={cn(arrow, 'left-1', !edges.prev && 'pointer-events-none opacity-0')}
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <button
+          type="button"
+          aria-label="More reels"
+          onClick={() => scrollBy(1)}
+          className={cn(arrow, 'right-1', !edges.next && 'pointer-events-none opacity-0')}
+        >
+          <ChevronRight className="h-5 w-5" />
+        </button>
+      </div>
     </section>
   )
 }
