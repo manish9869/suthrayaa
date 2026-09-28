@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Heart, ShoppingBag, Star, Check, Plus, SlidersHorizontal } from 'lucide-react'
+import { Heart, ShoppingBag, Star, Check, Plus, SlidersHorizontal, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useCartStore, useWishlistStore } from '@/lib/store'
@@ -13,7 +13,7 @@ import { useHydrated } from '@/lib/hooks/use-hydrated'
 import { analytics, toItem } from '@/lib/analytics'
 import { formatPrice, type Product } from '@/lib/data'
 import { toast } from 'sonner'
-import { isOutOfStock, needsOptions } from '@/lib/product-rules'
+import { isCustomizable, isOutOfStock, needsOptions } from '@/lib/product-rules'
 
 interface ProductCardProps {
   product: Product
@@ -32,6 +32,7 @@ export function ProductCard({ product, className, listName = 'Product list' }: P
   const router = useRouter()
   const chooseFirst = needsOptions(product)
   const soldOut = isOutOfStock(product)
+  const customizable = isCustomizable(product)
 
   const handleAddToCart = () => {
     if (soldOut) return
@@ -108,6 +109,11 @@ export function ProductCard({ product, className, listName = 'Product list' }: P
           )}
           {product.newArrival && (
             <span className="rounded-full bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground">New</span>
+          )}
+          {!soldOut && customizable && (
+            <span className="flex items-center gap-1 rounded-full bg-card/90 px-2.5 py-1 text-[11px] font-semibold text-foreground backdrop-blur">
+              <Sparkles className="h-3 w-3 text-primary" /> Customisable
+            </span>
           )}
           {soldOut && <span className="rounded-full bg-card/90 px-2.5 py-1 text-[11px] font-medium text-foreground/70 backdrop-blur">Sold out</span>}
           {!soldOut && product.trackInventory !== false && product.stock < 5 && product.stock > 0 && (

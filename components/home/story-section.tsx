@@ -19,7 +19,7 @@ const FALLBACK: SiteContent['home.story'] = {
     { text: 'Suthrayaa was born from a passion for the timeless art of crochet. What started as a hobby has blossomed into a mission to bring handcrafted joy to homes across India.' },
     { text: 'The name "Suthrayaa" comes from the Sanskrit word for thread — the beautiful threads that connect us all. Every piece is made to order with premium, eco-friendly yarn, so it’s crafted specially for you.' },
   ],
-  image: '/editorial/story-hands.webp',
+  image: '/refresh/story-hands.webp',
   imageAlt: 'Hands crocheting in the Suthrayaa studio',
   secondaryImage: '/editorial/scene-hair.webp',
   badgeValue: '100%',

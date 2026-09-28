@@ -14,6 +14,7 @@ import { NewArrivals } from '@/components/home/new-arrivals'
 import { LogoIntro } from '@/components/home/logo-intro'
 import { ReelsSection } from '@/components/home/reels-section'
 import { ConvertibleShowcase } from '@/components/home/convertible-showcase'
+import { CustomizeShowcase } from '@/components/home/customize-showcase'
 import { ProductGridSection } from '@/components/home/product-grid-section'
 import { CollectionsSection } from '@/components/home/collections-section'
 import { NewsletterSignup } from '@/components/newsletter-signup'
@@ -36,6 +37,7 @@ const FALLBACK_SECTION_ORDER = [
   'new_arrivals',
   'best_sellers',
   'convertible_showcase',
+  'customize_showcase',
   'promotional_banner',
   'testimonials',
   'instagram',
@@ -92,6 +94,7 @@ export default async function HomePage() {
     new_arrivals: () => <NewArrivals products={newArrivals} heading={headingFor('new_arrivals')} />,
     best_sellers: () => <BestSellers products={bestsellers} heading={headingFor('best_sellers')} />,
     convertible_showcase: () => <ConvertibleShowcase content={content['home.convertible']} />,
+    customize_showcase: () => <CustomizeShowcase />,
     promotional_banner: () => <PromoSection products={[...bestsellers, ...featuredProducts]} content={content['home.promo']} />,
     trending: () => (
       <ProductGridSection products={trending} heading={headingFor('trending')} eyebrow="Top rated this season" title="Trending" accent="now" href="/shop?sort=rating" />

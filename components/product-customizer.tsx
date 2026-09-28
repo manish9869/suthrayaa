@@ -25,6 +25,10 @@ interface ProductCustomizerProps {
   onChange: (resolved: ResolvedCustomization[], priceAdjustment: number, missingRequired: string[]) => void
   /** Once the customer has tried to add to cart, unanswered required groups are flagged. */
   showErrors?: boolean
+  /** Optional controlled mode — lets two customizers (page + Customize dialog) share one
+   * set of choices. Omit both to keep the default self-managed state. */
+  selections?: Record<string, CustomizerSelection>
+  onSelectionsChange?: (next: Record<string, CustomizerSelection>) => void
 }
 
 /** DOM id of a customization group — used to scroll to the first missing one. */
@@ -37,8 +41,14 @@ export const customizationGroupId = (id: string) => `cz-${id}`
  * (e.g. "Add Name? Yes" -> shows a text field) and live price adjustment. The backend
  * always re-validates and recomputes price at checkout; this is display-only.
  */
-export function ProductCustomizer({ customizations, onChange, showErrors = false }: ProductCustomizerProps) {
-  const [selections, setSelections] = useState<Record<string, CustomizerSelection>>({})
+export function ProductCustomizer({ customizations, onChange, showErrors = false, selections: controlled, onSelectionsChange }: ProductCustomizerProps) {
+  const [internal, setInternal] = useState<Record<string, CustomizerSelection>>({})
+  const isControlled = controlled !== undefined && onSelectionsChange !== undefined
+  const selections = isControlled ? controlled : internal
+  const setSelections = (update: (prev: Record<string, CustomizerSelection>) => Record<string, CustomizerSelection>) => {
+    if (isControlled) onSelectionsChange(update(controlled))
+    else setInternal(update)
+  }
 
   const groups = useMemo(
     () => [...customizations].filter((c) => c.enabled).sort((a, b) => a.sortOrder - b.sortOrder),

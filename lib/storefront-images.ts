@@ -17,13 +17,15 @@ export const STOREFRONT_IMAGES = {
   heroBags: mediaUrl('/editorial/scene-bags.webp'),
   // sections
   megaMenu: mediaUrl('/editorial/scene-sunflowers.webp'),
-  promoBanner: mediaUrl('/editorial/scene-flatlay.webp'),
+  // `/refresh/*` are local (public/) until uploaded to the site-media bucket
+  promoBanner: '/refresh/promo-flatlay.webp',
   dealOfDay: mediaUrl('/editorial/scene-star.webp'),
-  story: mediaUrl('/editorial/story-hands.webp'),
+  story: '/refresh/story-hands.webp',
   storySecondary: mediaUrl('/editorial/scene-hair.webp'),
-  authSide: mediaUrl('/editorial/scene-devghar.webp'),
-  shopBanner: mediaUrl('/editorial/scene-flatlay.webp'),
-  aboutHero: mediaUrl('/editorial/story-hands.webp'),
+  authSide: '/refresh/auth-corner.webp',
+  shopBanner: '/refresh/promo-flatlay.webp',
+  aboutHero: '/refresh/story-hands.webp',
+  customize: ['/refresh/customize-banner.webp', '/refresh/customize-colours.webp', '/refresh/customize-name.webp'],
   instagram: [
     mediaUrl('/editorial/scene-garland.webp'),
     mediaUrl('/editorial/scene-keychains.webp'),

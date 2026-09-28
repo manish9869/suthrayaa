@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -27,6 +28,7 @@ import {
   ChevronRight,
   Package,
   Sparkles,
+  Palette,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useCartStore, useWishlistStore } from '@/lib/store'
@@ -34,7 +36,8 @@ import { useHydrated } from '@/lib/hooks/use-hydrated'
 import { analytics, toItem } from '@/lib/analytics'
 import { formatPrice, type Product, type Review, type Category } from '@/lib/data'
 import { ReviewForm } from '@/components/review-form'
-import { customizationGroupId, ProductCustomizer, type ResolvedCustomization } from '@/components/product-customizer'
+import { customizationGroupId, ProductCustomizer, type CustomizerSelection, type ResolvedCustomization } from '@/components/product-customizer'
+import { selectedColorMap } from '@/lib/preview/selected-colors'
 import { YarnColorPicker } from '@/components/yarn-color-picker'
 import { toast } from 'sonner'
 import { EASE_OUT, Stagger, StaggerItem } from '@/components/motion/reveal'
@@ -48,6 +51,11 @@ interface ProductDetailProps {
 }
 
 const LIGHT_HEXES = ['#FFFFFF', '#F5F5DC', '#FFE5B5', '#FFB5BA']
+
+// Live color preview ("Customize & Preview") — an optional, admin-switchable add-on. Loaded
+// on demand, so products without a preview never download any of it.
+const CustomizeDialog = dynamic(() => import('@/components/customize/customize-dialog'), { ssr: false })
+const ColorPreview = dynamic(() => import('@/components/customize/color-preview').then((m) => m.ColorPreview), { ssr: false })
 
 export function ProductDetail({ product, reviews, relatedProducts, categories }: ProductDetailProps) {
   const rules = product.customizationOptions
@@ -86,6 +94,22 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
   const [customizationPriceAdjustment, setCustomizationPriceAdjustment] = useState(0)
   const [missingRequired, setMissingRequired] = useState<string[]>([])
   const [showOptionErrors, setShowOptionErrors] = useState(false)
+
+  // Optional live color preview — product.preview only exists when the admin has switched
+  // the feature on and set it up for this product. If it ever fails to render it hides
+  // itself, and the regular customizer above keeps working exactly as before.
+  const previewEnabled = usesNewCustomizer && Boolean(product.preview?.layers.length)
+  const [previewFailed, setPreviewFailed] = useState(false)
+  const showPreview = previewEnabled && !previewFailed
+  const [czSelections, setCzSelections] = useState<Record<string, CustomizerSelection>>({})
+  const [customizeOpen, setCustomizeOpen] = useState(false)
+  const [customizeLoaded, setCustomizeLoaded] = useState(false)
+  const previewColors = useMemo(() => (previewEnabled ? selectedColorMap(product, czSelections) : {}), [previewEnabled, product, czSelections])
+  const hasPickedColor = Object.values(previewColors).some(Boolean)
+  const openCustomize = () => {
+    setCustomizeLoaded(true)
+    setCustomizeOpen(true)
+  }
 
   const { addItem, openCart } = useCartStore()
   const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlistStore()
@@ -319,15 +343,66 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
               <div className="space-y-6">
                 {usesNewCustomizer && (
                   <div className="rounded-[1.5rem] bg-blush/50 p-5 ring-1 ring-blush">
+                    {showPreview && (
+                      <div className="mb-4 flex items-center gap-3 rounded-2xl bg-background p-3 ring-1 ring-border">
+                        {hasPickedColor ? (
+                          <button
+                            type="button"
+                            onClick={openCustomize}
+                            className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-blush/60 p-1"
+                            aria-label="Open your design preview"
+                          >
+                            <ColorPreview preview={product.preview!} colors={previewColors} alt={`${product.name} — your design`} className="h-full w-full" onError={() => setPreviewFailed(true)} />
+                          </button>
+                        ) : (
+                          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-blush/60">
+                            <Palette className="h-6 w-6 text-primary" />
+                          </span>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold">{hasPickedColor ? 'Your design' : 'See it before we make it'}</p>
+                          <p className="text-xs text-muted-foreground">Try yarn colors and preview your piece live</p>
+                        </div>
+                        <Button type="button" size="sm" className="shrink-0 rounded-full" onClick={openCustomize}>
+                          <Sparkles className="h-4 w-4" />
+                          <span className="hidden min-[400px]:inline">Customize &amp; Preview</span>
+                          <span className="min-[400px]:hidden">Preview</span>
+                        </Button>
+                      </div>
+                    )}
                     <ProductCustomizer
                       customizations={product.customizations}
                       showErrors={showOptionErrors}
+                      {...(previewEnabled ? { selections: czSelections, onSelectionsChange: setCzSelections } : {})}
                       onChange={(resolved, priceAdjustment, missing) => {
                         setResolvedCustomizations(resolved)
                         setCustomizationPriceAdjustment(priceAdjustment)
                         setMissingRequired(missing)
                       }}
                     />
+                    {showPreview && customizeLoaded && (
+                      <CustomizeDialog
+                        product={product}
+                        open={customizeOpen}
+                        onOpenChange={setCustomizeOpen}
+                        selections={czSelections}
+                        onSelectionsChange={setCzSelections}
+                        onCustomizerChange={(resolved, priceAdjustment, missing) => {
+                          setResolvedCustomizations(resolved)
+                          setCustomizationPriceAdjustment(priceAdjustment)
+                          setMissingRequired(missing)
+                        }}
+                        resolved={resolvedCustomizations}
+                        missingRequired={missingRequired}
+                        quantity={quantity}
+                        outOfStock={outOfStock}
+                        onAddToCart={handleAddToCart}
+                        onPreviewError={() => {
+                          setPreviewFailed(true)
+                          setCustomizeOpen(false)
+                        }}
+                      />
+                    )}
                   </div>
                 )}
 

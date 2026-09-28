@@ -32,6 +32,7 @@ import {
   type ProductType,
 } from '@/lib/api/admin'
 import { CustomizationEditor } from '@/components/admin/customization-editor'
+import { PreviewEditor } from '@/components/admin/preview-editor'
 import { ColorYarnSwatch } from '@/components/color-yarn-swatch'
 import { Can } from '@/components/admin/can'
 import { getTaxCategories, type TaxCategory } from '@/lib/api/settings'
@@ -371,6 +372,7 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
           <TabsTrigger value="media">Media</TabsTrigger>
           <TabsTrigger value="pricing">Pricing</TabsTrigger>
           <TabsTrigger value="customization">Customization</TabsTrigger>
+          <TabsTrigger value="color-preview">Color Preview</TabsTrigger>
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
           <TabsTrigger value="shipping">Shipping</TabsTrigger>
           <TabsTrigger value="seo">SEO</TabsTrigger>
@@ -742,6 +744,11 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* ---- Live color preview (optional add-on, switchable in Settings → Storefront) ---- */}
+        <TabsContent value="color-preview" className="pt-4">
+          <PreviewEditor productId={savedProduct?.id} customizations={savedProduct?.customizations ?? []} />
         </TabsContent>
 
         {/* ---- Inventory ---- */}

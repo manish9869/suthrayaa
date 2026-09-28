@@ -27,6 +27,7 @@ import {
   AlertTriangle,
   PackageX,
   Wallet,
+  Sparkles,
 } from 'lucide-react'
 import {
   getAdminProducts,
@@ -41,6 +42,7 @@ import {
 } from '@/lib/api/admin'
 import { flattenCategoryTree, collectDescendantSlugs } from '@/lib/utils/admin-category-tree'
 import { formatPrice } from '@/lib/data'
+import { isCustomizable } from '@/lib/product-rules'
 import { toast } from 'sonner'
 import { GLASS_PANEL, exportRowsToCsv } from '@/lib/admin-ui'
 import { SortableTh } from '@/components/admin/sortable-th'
@@ -86,6 +88,7 @@ export default function AdminProductsPage() {
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [stockFilter, setStockFilter] = useState<string>('all')
   const [featuredOnly, setFeaturedOnly] = useState(false)
+  const [customizableOnly, setCustomizableOnly] = useState(false)
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000])
   // Live drag position, decoupled from priceRange (which drives the filtered table) so
   // dragging doesn't force a full re-filter on every tick — only on release.
@@ -122,9 +125,10 @@ export default function AdminProductsPage() {
     if (stockFilter === 'low_stock') result = result.filter((p) => p.stock > 0 && p.stock <= p.lowStockThreshold)
     if (stockFilter === 'out_of_stock') result = result.filter((p) => p.stock <= 0)
     if (featuredOnly) result = result.filter((p) => p.featured)
+    if (customizableOnly) result = result.filter(isCustomizable)
     result = result.filter((p) => p.price >= priceRange[0] && p.price <= priceRange[1])
     return result
-  }, [products, categories, categoryFilter, statusFilter, typeFilter, stockFilter, featuredOnly, priceRange])
+  }, [products, categories, categoryFilter, statusFilter, typeFilter, stockFilter, featuredOnly, customizableOnly, priceRange])
 
   const { sorted, sortKey, direction, toggleSort } = useSortableData(filtered, {
     name: (p) => p.name,
@@ -144,6 +148,7 @@ export default function AdminProductsPage() {
     (typeFilter !== 'all' ? 1 : 0) +
     (stockFilter !== 'all' ? 1 : 0) +
     (featuredOnly ? 1 : 0) +
+    (customizableOnly ? 1 : 0) +
     (priceRange[0] > 0 || priceRange[1] < 5000 ? 1 : 0)
 
   const clearFilters = () => {
@@ -152,6 +157,7 @@ export default function AdminProductsPage() {
     setTypeFilter('all')
     setStockFilter('all')
     setFeaturedOnly(false)
+    setCustomizableOnly(false)
     setPriceRange([0, 5000])
   }
 
@@ -334,6 +340,14 @@ export default function AdminProductsPage() {
           Featured only
         </Button>
 
+        <Button
+          variant="outline"
+          className={`h-10 rounded-xl font-normal ${customizableOnly ? 'border-primary/40 !bg-primary/10 text-primary' : ''}`}
+          onClick={() => setCustomizableOnly((v) => !v)}
+        >
+          <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Customizable only
+        </Button>
+
         {activeFilterCount > 0 && (
           <Button variant="ghost" size="sm" onClick={clearFilters}>
             <X className="h-3.5 w-3.5 mr-1.5" /> Clear filters
@@ -380,6 +394,11 @@ export default function AdminProductsPage() {
                       {p.featured && (
                         <Badge variant="outline" className="text-[10px] px-1">
                           Featured
+                        </Badge>
+                      )}
+                      {isCustomizable(p) && (
+                        <Badge variant="outline" className="gap-1 border-primary/30 bg-primary/5 px-1 text-[10px] text-primary" title="Customers can customize this product">
+                          <Sparkles className="h-2.5 w-2.5" /> Customizable
                         </Badge>
                       )}
                     </div>

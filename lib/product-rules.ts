@@ -15,6 +15,14 @@ export function needsOptions(product: Product): boolean {
   return required || legacyText || chooseColour
 }
 
+/** True when the product page offers customization: an enabled option group, or the legacy
+ * text personalization switch (only used when there are no option groups). */
+export function isCustomizable(product: Product): boolean {
+  const groups = product.customizations ?? []
+  if (groups.length > 0) return groups.some((c) => c.enabled)
+  return product.isCustomizable && !!product.customizationOptions?.allowText
+}
+
 /** Same stock rule as the backend: only limits when tracked and backorders are off. */
 export function isOutOfStock(product: Product): boolean {
   if (product.status === 'out_of_stock') return true

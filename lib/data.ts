@@ -31,6 +31,28 @@ export interface ProductCustomization {
   values: CustomizationValue[]
 }
 
+/** One colorable part of a live color preview, painted by the value chosen in a color group. */
+export interface PreviewLayer {
+  id: string
+  customizationId: string
+  /** svg mode: the template zone this part fills. */
+  zone?: string
+  /** photo mode: black/white mask (white = this part), same aspect ratio as the base photo. */
+  maskUrl?: string
+  sortOrder: number
+}
+
+/** Optional live color preview ("Customize & Preview"). Only present when the admin has
+ * switched the feature on AND configured this product — absent otherwise. */
+export interface ProductPreview {
+  mode: 'photo' | 'svg'
+  svgTemplate?: string
+  baseUrl?: string
+  width?: number
+  height?: number
+  layers: PreviewLayer[]
+}
+
 export interface Product {
   id: string
   sku?: string | null
@@ -59,6 +81,7 @@ export interface Product {
   /** New admin-controlled customization engine — independent of the legacy fields above. */
   customizable: boolean
   customizations: ProductCustomization[]
+  preview?: ProductPreview
   /** Lowest possible total price once required customizations are factored in. */
   fromPrice?: number
   stock: number

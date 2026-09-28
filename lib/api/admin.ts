@@ -556,6 +556,15 @@ export const getAdminOrders = (params: AdminOrderListParams = {}) =>
 export const exportAdminOrdersCsv = (params: AdminOrderListParams = {}) =>
   downloadAdminCsv(`/admin/orders/export?${listQuery({ ...params, page: undefined, limit: undefined })}`, 'suthrayaa-orders.csv')
 
+export interface OrderPreviewSnapshot {
+  mode: 'photo' | 'svg'
+  svgTemplate?: string
+  baseUrl?: string
+  width?: number
+  height?: number
+  layers: { customizationId: string; partLabel: string; zone?: string; maskUrl?: string; hex?: string; colorName?: string }[]
+}
+
 export interface AdminOrderItem {
   id: string
   productId: string | null
@@ -567,7 +576,9 @@ export interface AdminOrderItem {
   lineTotal: number
   selectedColor?: string
   customText?: string
-  customizations: { label: string; type: string; valueLabel?: string; textValue?: string; priceAdjustment: number }[]
+  customizations: { customizationId?: string; label: string; type: string; valueLabel?: string; value?: string; textValue?: string; priceAdjustment: number }[]
+  /** What the customer saw in "Customize & Preview", frozen at order time (absent otherwise). */
+  previewSnapshot?: OrderPreviewSnapshot
 }
 export interface AdminOrderDetail extends AdminOrderSummary {
   subtotal: number
