@@ -1,24 +1,28 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { mediaUrl } from '@/lib/media'
 import Link from 'next/link'
 import { motion, useReducedMotion } from 'framer-motion'
 import { ArrowUpRight, Pause, Play } from 'lucide-react'
 import { EASE_OUT } from '@/components/motion/reveal'
 import { SectionHeading } from './section-heading'
+import type { SectionHeadingContent, SiteContent } from '@/lib/content'
 
-/** Short vertical product reels rendered from the studio scenes (public/reels). */
-const REELS = [
-  { id: 'devghar', title: 'Devghar garlands', tag: 'Pooja', href: '/shop?category=devghar-collection-v2' },
-  { id: 'torans', title: 'Door torans', tag: 'Home décor', href: '/shop?search=toran' },
-  { id: 'bottle', title: 'Star → bottle holder', tag: '2-in-1', href: '/shop?search=bottle' },
-  { id: 'flowers', title: 'Forever flowers', tag: 'Flowers', href: '/shop?category=flowers-floral' },
-  { id: 'hair', title: 'Gajra & hairbands', tag: 'Hair', href: '/shop?search=hair' },
-  { id: 'gifts', title: 'Keychains & totes', tag: 'Gifts', href: '/shop?search=keychain' },
-  { id: 'home', title: 'Coasters & mats', tag: 'Table', href: '/shop?search=coaster' },
-]
+type Reel = SiteContent['home.reels']['items'][number]
 
-function ReelCard({ reel, index }: { reel: (typeof REELS)[number]; index: number }) {
+// Built-in reels (site-media bucket, see lib/media.ts), used only if the content API is unreachable (edit in Admin → Storefront Content)
+const FALLBACK_REELS: Reel[] = [
+  ['devghar', 'Devghar garlands', 'Pooja', '/shop?category=devghar-collection-v2'],
+  ['torans', 'Door torans', 'Home décor', '/shop?search=toran'],
+  ['bottle', 'Star → bottle holder', '2-in-1', '/shop?search=bottle'],
+  ['flowers', 'Forever flowers', 'Flowers', '/shop?category=flowers-floral'],
+  ['hair', 'Gajra & hairbands', 'Hair', '/shop?search=hair'],
+  ['gifts', 'Keychains & totes', 'Gifts', '/shop?search=keychain'],
+  ['home', 'Coasters & mats', 'Table', '/shop?search=coaster'],
+].map(([id, title, tag, href]) => ({ title, tag, href, videoUrl: `/reels/${id}.mp4`, videoWebmUrl: `/reels/${id}.webm`, poster: `/reels/${id}.webp` }))
+
+function ReelCard({ reel, index }: { reel: Reel; index: number }) {
   const reduce = useReducedMotion()
   const ref = useRef<HTMLVideoElement>(null)
   const [playing, setPlaying] = useState(false)
@@ -59,10 +63,10 @@ function ReelCard({ reel, index }: { reel: (typeof REELS)[number]; index: number
       transition={{ duration: 0.6, delay: (index % 4) * 0.07, ease: EASE_OUT }}
       className="w-[64vw] max-w-[250px] shrink-0 snap-start sm:w-[230px]"
     >
-      <div className="group relative aspect-[9/16] overflow-hidden rounded-[1.75rem] bg-sand shadow-[0_24px_50px_-30px_rgb(49_32_140/0.55)] ring-1 ring-border">
+      <div className="group relative aspect-[9/16] overflow-hidden rounded-[1.75rem] bg-sand shadow-[0_24px_50px_-30px_color-mix(in_oklab,var(--shadow-tint)_55%,transparent)] ring-1 ring-border">
         <video
           ref={ref}
-          poster={`/reels/${reel.id}.webp`}
+          poster={mediaUrl(reel.poster) || undefined}
           muted
           loop
           playsInline
@@ -73,8 +77,8 @@ function ReelCard({ reel, index }: { reel: (typeof REELS)[number]; index: number
           aria-label={`${reel.title} reel`}
         >
           {/* WebM (VP9) first for Chromium builds without H.264; MP4 for Safari/iOS */}
-          <source src={`/reels/${reel.id}.webm`} type="video/webm" />
-          <source src={`/reels/${reel.id}.mp4`} type="video/mp4" />
+          {reel.videoWebmUrl && <source src={mediaUrl(reel.videoWebmUrl)} type="video/webm" />}
+          {reel.videoUrl && <source src={mediaUrl(reel.videoUrl)} type="video/mp4" />}
         </video>
         {/* legibility wash */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-ink/75 to-transparent" />
@@ -87,7 +91,7 @@ function ReelCard({ reel, index }: { reel: (typeof REELS)[number]; index: number
         >
           {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5 translate-x-px" />}
         </button>
-        <Link href={reel.href} className="absolute inset-x-3 bottom-3 flex items-end justify-between gap-2 text-white">
+        <Link href={reel.href || '/shop'} className="absolute inset-x-3 bottom-3 flex items-end justify-between gap-2 text-white">
           <span className="font-serif text-lg leading-tight">{reel.title}</span>
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/20 backdrop-blur transition-colors group-hover:bg-white group-hover:text-primary">
             <ArrowUpRight className="h-4 w-4" />
@@ -102,7 +106,9 @@ function ReelCard({ reel, index }: { reel: (typeof REELS)[number]; index: number
   )
 }
 
-export function ReelsSection() {
+export function ReelsSection({ content, heading }: { content?: SiteContent['home.reels']; heading?: SectionHeadingContent | null }) {
+  const reels = (content?.items ?? FALLBACK_REELS).filter((r) => r.videoUrl || r.videoWebmUrl || r.poster)
+  if (reels.length === 0) return null
   return (
     <section className="py-16 lg:py-24">
       <div className="container mx-auto px-4">
@@ -113,11 +119,12 @@ export function ReelsSection() {
           description="Short clips of our pieces — tap one to shop the collection."
           href="/shop"
           linkLabel="Shop all"
+          content={heading}
         />
       </div>
       <ul className="container mx-auto flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {REELS.map((reel, i) => (
-          <ReelCard key={reel.id} reel={reel} index={i} />
+        {reels.map((reel, i) => (
+          <ReelCard key={`${reel.title}-${i}`} reel={reel} index={i} />
         ))}
       </ul>
     </section>

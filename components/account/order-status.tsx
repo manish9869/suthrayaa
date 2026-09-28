@@ -18,19 +18,19 @@ export const STATUS_META: Record<string, { label: string; tone: Tone; note: stri
 
 const TONE: Record<Tone, string> = {
   violet: 'bg-primary/10 text-primary ring-primary/20',
-  green: 'bg-emerald-500/10 text-emerald-700 ring-emerald-600/20',
-  amber: 'bg-amber-400/15 text-amber-800 ring-amber-500/25',
-  red: 'bg-red-500/10 text-red-700 ring-red-600/20',
+  green: 'bg-mint text-mint-foreground ring-mint-foreground/20',
+  amber: 'bg-gold/20 text-gold-foreground ring-gold/40',
+  red: 'bg-destructive/10 text-destructive-ink ring-destructive/20',
   muted: 'bg-muted text-muted-foreground ring-border',
-  sky: 'bg-sky-500/10 text-sky-700 ring-sky-600/20',
+  sky: 'bg-sky/10 text-sky-ink ring-sky/20',
 }
 const DOT: Record<Tone, string> = {
   violet: 'bg-primary',
-  green: 'bg-emerald-600',
-  amber: 'bg-amber-500',
-  red: 'bg-red-600',
+  green: 'bg-mint-foreground',
+  amber: 'bg-gold',
+  red: 'bg-destructive',
   muted: 'bg-muted-foreground',
-  sky: 'bg-sky-600',
+  sky: 'bg-sky',
 }
 
 export function OrderStatusBadge({ status, className }: { status: string; className?: string }) {
@@ -48,7 +48,7 @@ export function PaymentStatusText({ status, method }: { status: string; method: 
   const map: Record<string, string> = { paid: 'Paid', pending: method === 'cod' ? 'Pay on delivery' : 'Awaiting payment', failed: 'Payment failed', refunded: 'Refunded', partially_refunded: 'Partly refunded' }
   return (
     <span>
-      {how} · <span className={cn(status === 'paid' && 'text-emerald-700', status === 'failed' && 'text-red-700')}>{map[status] ?? status}</span>
+      {how} · <span className={cn(status === 'paid' && 'text-mint-foreground', status === 'failed' && 'text-destructive-ink')}>{map[status] ?? status}</span>
     </span>
   )
 }
@@ -66,7 +66,7 @@ const RANK: Record<string, number> = { pending_payment: 0, confirmed: 1, in_prod
 export function OrderTimeline({ status, history, placedAt }: { status: OrderStatus; history: { status: string; at: string }[]; placedAt: string | null }) {
   if (status === 'cancelled' || status === 'refunded' || status === 'partially_refunded') {
     return (
-      <div className="flex items-center gap-3 rounded-2xl bg-red-500/[0.06] p-4 text-sm text-red-800 ring-1 ring-inset ring-red-500/15">
+      <div className="flex items-center gap-3 rounded-2xl bg-destructive/[0.06] p-4 text-sm text-destructive-ink ring-1 ring-inset ring-destructive/20">
         <XCircle className="h-5 w-5 shrink-0" />
         <span>{STATUS_META[status]?.note}</span>
       </div>

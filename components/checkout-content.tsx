@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { analytics, toItem, variantOf } from '@/lib/analytics'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -107,7 +108,7 @@ function StepCard({
     <motion.section
       layout
       transition={{ layout: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } }}
-      className={cn('overflow-hidden rounded-3xl border bg-card transition-shadow', state === 'active' && 'shadow-[0_18px_50px_-30px_rgb(49_32_140/0.45)] ring-1 ring-primary/15')}
+      className={cn('overflow-hidden rounded-3xl border bg-card transition-shadow', state === 'active' && 'shadow-[0_18px_50px_-30px_color-mix(in_oklab,var(--shadow-tint)_45%,transparent)] ring-1 ring-primary/15')}
     >
       <header className="flex items-center gap-3 px-5 py-4 sm:px-6">
         <span
@@ -367,6 +368,18 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
   }, [hydrated, checkingCart, reprice])
 
   // ---- totals (server first, local estimate while loading) ----
+  // GA4 checkout funnel — product and money data only, never the address or contact details
+  const gaItems = useMemo(
+    () => items.map((i) => toItem(i.product, { quantity: i.quantity, variant: variantOf(i), price: getItemUnitPrice(i) })),
+    [items, getItemUnitPrice]
+  )
+  const beganCheckout = useRef(false)
+  useEffect(() => {
+    if (!hydrated || beganCheckout.current || gaItems.length === 0) return
+    beganCheckout.current = true
+    analytics.beginCheckout(gaItems, couponCode)
+  }, [hydrated, gaItems, couponCode])
+
   const localSubtotal = getTotalPrice()
   const subtotal = priced?.subtotal ?? localSubtotal
   const discount = priced?.discount ?? 0
@@ -431,6 +444,7 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
   const completeDelivery = () => {
     if (giftMessage.length > 300) return
     setCompleted((c) => new Set(c).add('delivery'))
+    analytics.addShippingInfo(gaItems, shippingMethod, couponCode)
     goTo('payment')
   }
 
@@ -453,6 +467,7 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
       return
     }
     setPlacing(true)
+    analytics.addPaymentInfo(gaItems, paymentMethod === 'cod' ? 'Cash on Delivery' : 'Online (Razorpay)', couponCode)
     try {
       const shippingAddress = { ...toApiAddress(shipAddress), email: email.trim() }
       const billingAddress = billingSame ? undefined : toApiAddress(billAddress)
@@ -474,6 +489,17 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
       }
 
       const finish = (kind: 'paid' | 'pending', payment: 'cod' | 'online' | 'pending') => {
+        // A COD order is a completed purchase; an online one only once it's paid
+        if (kind === 'paid') {
+          analytics.purchase({
+            transactionId: result.order.orderNumber,
+            value: total,
+            tax: priced?.taxAmount ?? 0,
+            shipping: shippingCost ?? 0,
+            coupon: couponCode,
+            items: gaItems,
+          })
+        }
         setFinishing(kind)
         router.push(`/order-confirmation?order=${result.order.orderNumber}&payment=${payment}${user ? `&id=${result.order.id}` : ''}`)
         // Cleared behind the confirming screen; the thank-you page also clears it on arrival
@@ -512,7 +538,7 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
     return (
       <>
         <Navbar categories={categories} />
-        <main className="min-h-screen" />
+        <main className="min-h-svh" />
       </>
     )
   }
@@ -573,11 +599,11 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
       {/* coupon */}
       <div className="border-t pt-4">
         {couponCode ? (
-          <div className="flex items-center justify-between rounded-2xl bg-emerald-500/[0.08] px-3.5 py-2.5 text-sm">
-            <span className="flex items-center gap-2 font-medium text-emerald-800">
+          <div className="flex items-center justify-between rounded-2xl bg-mint px-3.5 py-2.5 text-sm">
+            <span className="flex items-center gap-2 font-medium text-mint-foreground">
               <Tag className="h-4 w-4" /> {couponCode.toUpperCase()} applied
             </span>
-            <button type="button" onClick={() => { setCouponCode(undefined); setCouponInput('') }} className="rounded-full p-1 text-emerald-800 hover:bg-emerald-500/10" aria-label="Remove coupon">
+            <button type="button" onClick={() => { setCouponCode(undefined); setCouponInput('') }} className="rounded-full p-1 text-mint-foreground hover:bg-mint" aria-label="Remove coupon">
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -616,7 +642,7 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
           <span className="tabular-nums">{formatPrice(subtotal)}</span>
         </div>
         {discount > 0 && (
-          <div className="flex justify-between text-emerald-700">
+          <div className="flex justify-between text-mint-foreground">
             <span>Discount</span>
             <span className="tabular-nums">−{formatPrice(discount)}</span>
           </div>
@@ -626,7 +652,7 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
             <Truck className="h-3.5 w-3.5" /> Shipping
           </span>
           <span className="tabular-nums">
-            {shippingCost === null || !shipAddress.state ? <span className="text-muted-foreground">{shipAddress.state ? '…' : 'Enter address'}</span> : shippingCost === 0 ? <span className="text-emerald-700">Free</span> : formatPrice(shippingCost)}
+            {shippingCost === null || !shipAddress.state ? <span className="text-muted-foreground">{shipAddress.state ? '…' : 'Enter address'}</span> : shippingCost === 0 ? <span className="text-mint-foreground">Free</span> : formatPrice(shippingCost)}
           </span>
         </div>
         {giftWrap && (
@@ -657,7 +683,7 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
   return (
     <>
       <Navbar categories={categories} />
-      <main className="min-h-screen bg-gradient-to-b from-primary/[0.04] to-transparent">
+      <main className="min-h-svh bg-gradient-to-b from-primary/[0.04] to-transparent">
         <div className="container mx-auto px-4 py-6 sm:py-10">
           <nav aria-label="Breadcrumb" className="mb-4 flex items-center gap-1.5 text-sm text-muted-foreground">
             <Link href="/cart" className="hover:text-foreground">Cart</Link>
@@ -888,7 +914,7 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
                             <div className="flex-1">
                               <p className="flex items-center justify-between gap-2 font-medium">
                                 {m === 'standard' ? 'Standard' : 'Express'}
-                                <span className="tabular-nums">{fee === undefined ? '…' : fee === 0 ? <span className="text-emerald-700">Free</span> : formatPrice(fee)}</span>
+                                <span className="tabular-nums">{fee === undefined ? '…' : fee === 0 ? <span className="text-mint-foreground">Free</span> : formatPrice(fee)}</span>
                               </p>
                               <p className="mt-0.5 text-sm text-muted-foreground">
                                 {m === 'standard' ? (days ? `${days.min}–${days.max} days after dispatch` : 'Reliable courier delivery') : 'Priority dispatch with a faster courier'}
@@ -898,7 +924,7 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
                         )
                       })}
                     </div>
-                    {priced?.shipping?.freeShippingApplied && <p className="flex items-center gap-2 text-sm text-emerald-700"><Check className="h-4 w-4" /> You’ve unlocked free shipping</p>}
+                    {priced?.shipping?.freeShippingApplied && <p className="flex items-center gap-2 text-sm text-mint-foreground"><Check className="h-4 w-4" /> You’ve unlocked free shipping</p>}
                     <p className="text-xs text-muted-foreground">Handmade and made-to-order pieces are dispatched once they’re finished — see each product for its making time.</p>
 
                     <div className="rounded-2xl bg-secondary/15 p-4">
@@ -975,7 +1001,7 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
                       })}
                     </div>
                     {paymentError && <p role="alert" className="text-sm font-medium text-destructive">{paymentError}</p>}
-                    {orderLimitError && <p role="alert" className="rounded-2xl bg-amber-400/15 px-4 py-3 text-sm text-amber-900">{orderLimitError}</p>}
+                    {orderLimitError && <p role="alert" className="rounded-2xl bg-gold/20 px-4 py-3 text-sm text-gold-foreground">{orderLimitError}</p>}
 
                     <div className="flex items-center gap-3 rounded-2xl bg-muted/60 p-4 text-sm">
                       <ShieldCheck className="h-5 w-5 shrink-0 text-primary" />
@@ -1008,7 +1034,7 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
 
             {/* ---------- summary ---------- */}
             <aside className="hidden lg:block">
-              <div className="sticky top-28 rounded-3xl border bg-card p-6 shadow-[0_18px_50px_-34px_rgb(49_32_140/0.45)]">
+              <div className="sticky top-28 rounded-3xl border bg-card p-6 shadow-[0_18px_50px_-34px_color-mix(in_oklab,var(--shadow-tint)_45%,transparent)]">
                 <h2 className="mb-4 flex items-center justify-between text-[17px] font-semibold">
                   Order summary
                   <Link href="/cart" className="text-sm font-semibold text-primary hover:underline">

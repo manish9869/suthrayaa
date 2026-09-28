@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useCartStore, useWishlistStore } from '@/lib/store'
 import { useHydrated } from '@/lib/hooks/use-hydrated'
+import { analytics, toItem } from '@/lib/analytics'
 import { formatPrice, type Product } from '@/lib/data'
 import { toast } from 'sonner'
 import { isOutOfStock, needsOptions } from '@/lib/product-rules'
@@ -17,9 +18,11 @@ import { isOutOfStock, needsOptions } from '@/lib/product-rules'
 interface ProductCardProps {
   product: Product
   className?: string
+  /** Names the list this card is shown in, for analytics ("Shop", "Best sellers", …). */
+  listName?: string
 }
 
-export function ProductCard({ product, className }: ProductCardProps) {
+export function ProductCard({ product, className, listName = 'Product list' }: ProductCardProps) {
   const { addItem, openCart } = useCartStore()
   const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlistStore()
   const hydrated = useHydrated()
@@ -67,7 +70,12 @@ export function ProductCard({ product, className }: ProductCardProps) {
     // Interactive buttons (wishlist, quick-add) are SIBLINGS of the image Link, not nested
     // inside it — a <button> inside an <a> is invalid HTML and produced unreliable click
     // targeting (clicks meant for the link could silently land on a hover-only button instead).
-    <div className={cn('group relative', className)}>
+    <div
+      className={cn('group relative', className)}
+      onClickCapture={(e) => {
+        if ((e.target as HTMLElement).closest('a[href^="/product/"]')) analytics.selectItem(listName, toItem(product))
+      }}
+    >
       <div className="relative aspect-[4/5] overflow-hidden rounded-[1.4rem] bg-sand">
         <Link href={href} className="absolute inset-0 z-0" aria-label={product.name}>
           <Image

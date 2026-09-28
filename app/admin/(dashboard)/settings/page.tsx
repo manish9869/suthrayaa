@@ -426,7 +426,7 @@ function TaxCategoriesPanel({ categories, onChanged }: { categories: TaxCategory
               </TableCell>
               <TableCell className="text-right">
                 <Can permission="settings.tax">
-                  <Button variant="ghost" size="icon" onClick={() => handleDelete(c.id, c.name)}>
+                  <Button variant="ghost" size="icon" aria-label={`Delete ${c.name}`} onClick={() => handleDelete(c.id, c.name)}>
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </Can>

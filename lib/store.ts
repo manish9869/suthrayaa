@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Product } from './data'
+import { analytics, toItem, variantOf } from './analytics'
 
 export interface CartCustomizationSelection {
   customizationId: string
@@ -72,6 +73,17 @@ const matches = (item: CartItem, productId: string, selectedColor: string, custo
   item.customText === customText &&
   customizationsKey(item.customizations) === customizationsKey(customizations)
 
+const unitPrice = (product: Product, customizations?: CartCustomizationSelection[]) =>
+  product.price + (customizations ?? []).reduce((sum, c) => sum + c.priceAdjustment, 0)
+
+/** GA4 event for `quantity` units of a cart line being added or removed. */
+function trackCartChange(kind: 'add' | 'remove', item: Pick<CartItem, 'product' | 'selectedColor' | 'customizations'>, quantity: number) {
+  if (quantity <= 0) return
+  const ga = toItem(item.product, { quantity, variant: variantOf(item), price: unitPrice(item.product, item.customizations) })
+  if (kind === 'add') analytics.addToCart(ga)
+  else analytics.removeFromCart(ga)
+}
+
 /** The checkout API accepts up to 20 of one line. */
 export const MAX_LINE_QTY = 20
 
@@ -83,6 +95,7 @@ export const useCartStore = create<CartState>()(
 
       addItem: (product, selectedColor, customText, customizations, quantity = 1) => {
         const qty = Math.max(1, Math.floor(quantity))
+        const before = get().items.find((item) => matches(item, product.id, selectedColor, customText, customizations))?.quantity ?? 0
         set((state) => {
           const existingIndex = state.items.findIndex((item) =>
             matches(item, product.id, selectedColor, customText, customizations)
@@ -98,9 +111,12 @@ export const useCartStore = create<CartState>()(
             items: [...state.items, { product, quantity: Math.min(MAX_LINE_QTY, qty), selectedColor, customText, customizations }],
           }
         })
+        trackCartChange('add', { product, selectedColor, customizations }, Math.min(MAX_LINE_QTY, before + qty) - before)
       },
 
       removeItem: (productId, selectedColor, customText, customizations) => {
+        const line = get().items.find((item) => matches(item, productId, selectedColor, customText, customizations))
+        if (line) trackCartChange('remove', line, line.quantity)
         set((state) => ({
           items: state.items.filter((item) => !matches(item, productId, selectedColor, customText, customizations)),
         }))
@@ -112,6 +128,11 @@ export const useCartStore = create<CartState>()(
           return
         }
 
+        const line = get().items.find((item) => matches(item, productId, selectedColor, customText, customizations))
+        if (line) {
+          const delta = Math.min(MAX_LINE_QTY, quantity) - line.quantity
+          trackCartChange(delta > 0 ? 'add' : 'remove', line, Math.abs(delta))
+        }
         set((state) => ({
           items: state.items.map((item) =>
             matches(item, productId, selectedColor, customText, customizations) ? { ...item, quantity: Math.min(MAX_LINE_QTY, quantity) } : item
@@ -129,10 +150,7 @@ export const useCartStore = create<CartState>()(
         return get().items.reduce((total, item) => total + item.quantity, 0)
       },
 
-      getItemUnitPrice: (item) => {
-        const adjustments = (item.customizations ?? []).reduce((sum, c) => sum + c.priceAdjustment, 0)
-        return item.product.price + adjustments
-      },
+      getItemUnitPrice: (item) => unitPrice(item.product, item.customizations),
 
       getTotalPrice: () => {
         return get().items.reduce(
@@ -167,12 +185,14 @@ export const useWishlistStore = create<WishlistState>()(
       items: [],
       
       addItem: (product) => {
+        if (get().items.some((item) => item.id === product.id)) return
         set((state) => {
           if (state.items.some(item => item.id === product.id)) {
             return state
           }
           return { items: [...state.items, product] }
         })
+        analytics.addToWishlist(toItem(product))
       },
       
       removeItem: (productId) => {

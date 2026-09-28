@@ -13,7 +13,9 @@ import {
   fetchInvoicePreviewBlob,
   getInvoiceSettings,
   updateInvoiceSettings,
+  getThemeAdmin,
   type AdminInvoiceSettings,
+  type ThemeAdminState,
 } from '@/lib/api/admin'
 import { PageLoader } from '@/components/admin/loading-state'
 import { ProtectedRoute } from '@/components/admin/protected-route'
@@ -95,11 +97,29 @@ function ToggleRow({
   )
 }
 
+/** Accent choices for the live theme: the reference palette, or its theme-matched version. */
+function accentsFor(themeAccents: ThemeAdminState['invoiceAccents'] | undefined) {
+  if (!themeAccents) return ACCENTS
+  return ACCENTS.map((a) => ({ ...a, label: themeAccents[a.value].name, color: themeAccents[a.value].label, soft: themeAccents[a.value].soft }))
+}
+
 export default function InvoiceSettingsPage() {
   const [saved, setSaved] = useState<Settings | null>(null)
   const [draft, setDraft] = useState<Settings | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  // Invoice colours follow the storefront theme (Admin → Theme); the fixed accent choices below
+  // only apply while the default theme is live.
+  const [storeTheme, setStoreTheme] = useState<{ name: string; isDefault: boolean; accents: ThemeAdminState['invoiceAccents'] } | null>(null)
+  useEffect(() => {
+    getThemeAdmin()
+      .then((t) => {
+        const all = [...t.presets, ...t.customThemes]
+        setStoreTheme({ name: all.find((x) => x.id === t.activeId)?.name ?? 'Default', isDefault: t.activeId === t.defaultId, accents: t.invoiceAccents })
+      })
+      .catch(() => setStoreTheme(null))
+  }, [])
+  const accents = accentsFor(storeTheme?.accents)
 
   useEffect(() => {
     getInvoiceSettings()
@@ -229,17 +249,27 @@ export default function InvoiceSettingsPage() {
           <div className="min-w-0 space-y-6">
             <Section title="Look & feel" description="Header style, accent colour and the line under your name.">
               <div className="space-y-6">
+                {storeTheme && (
+                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/40 px-3 py-2.5 text-sm">
+                    <span>
+                      Colours follow your store theme: <strong>{storeTheme.name}</strong>
+                    </span>
+                    <Link href="/admin/theme" className="text-xs font-medium text-primary hover:underline">
+                      Change theme →
+                    </Link>
+                  </div>
+                )}
                 <div>
                   <Label className="mb-2.5 block">Header</Label>
                   <div className="grid grid-cols-2 gap-3">
                     {(
                       [
-                        { value: 'dark', label: 'Ink', note: 'Deep indigo band, white logo' },
-                        { value: 'light', label: 'Lilac', note: 'Light band, colour logo' },
+                        { value: 'dark', label: 'Dark', note: 'Deep theme-colour band, white logo' },
+                        { value: 'light', label: 'Light', note: 'Soft tinted band, colour logo' },
                       ] as const
                     ).map((o) => {
                       const active = draft.headerStyle === o.value
-                      const accent = ACCENTS.find((a) => a.value === draft.accent) ?? ACCENTS[0]
+                      const accent = accents.find((a) => a.value === draft.accent) ?? accents[0]
                       return (
                         <button
                           key={o.value}
@@ -283,8 +313,13 @@ export default function InvoiceSettingsPage() {
 
                 <div>
                   <Label className="mb-2.5 block">Accent colour</Label>
+                  {storeTheme && !storeTheme.isDefault && (
+                    <p className="mb-2.5 text-xs text-muted-foreground">
+                      These colours are matched to the <strong>{storeTheme.name}</strong> theme.
+                    </p>
+                  )}
                   <div className="flex flex-wrap gap-2">
-                    {ACCENTS.map((a) => {
+                    {accents.map((a) => {
                       const active = draft.accent === a.value
                       return (
                         <button

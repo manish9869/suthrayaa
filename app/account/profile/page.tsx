@@ -9,14 +9,15 @@ import { Switch } from '@/components/ui/switch'
 import { AccountPageHeader, useAccount } from '@/components/account/account-shell'
 import { Field, invalidProps } from '@/components/account/field'
 import { fieldErrorsFrom, updateProfile } from '@/lib/api/account'
-import { createSupabaseBrowserClient } from '@/lib/supabase/client'
+import { changeEmail as requestEmailChange } from '@/lib/api/auth'
+import { ApiError } from '@/lib/api/http'
 import { isValidIndianMobile } from '@/lib/india'
 import { hasErrors, validateEmail } from '@/lib/validation'
 import { cn } from '@/lib/utils'
 
 function Card({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-3xl border bg-card p-5 shadow-[0_1px_2px_rgb(49_32_140/0.04)] sm:p-7">
+    <section className="rounded-3xl border bg-card p-5 shadow-[0_1px_2px_color-mix(in_oklab,var(--shadow-tint)_4%,transparent)] sm:p-7">
       <h3 className="text-[17px] font-semibold">{title}</h3>
       {description && <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>}
       <div className="mt-5">{children}</div>
@@ -74,14 +75,15 @@ export default function ProfilePage() {
     setEmailError(err)
     if (err) return
     setEmailSending(true)
-    const supabase = createSupabaseBrowserClient()
-    const { error } = await supabase.auth.updateUser({ email: newEmail.trim() }, { emailRedirectTo: `${window.location.origin}/auth/callback?next=/account/profile` })
-    setEmailSending(false)
-    if (error) {
-      setEmailError(error.message)
-      return
+    try {
+      // Supabase emails a confirmation link; it lands on /auth/callback → back to this page
+      await requestEmailChange(newEmail.trim())
+      setEmailSent(true)
+    } catch (err) {
+      setEmailError(err instanceof ApiError ? err.message : 'Could not start the email change')
+    } finally {
+      setEmailSending(false)
     }
-    setEmailSent(true)
   }
 
   const input = (k: 'firstName' | 'lastName' | 'phone', props: React.ComponentProps<typeof Input> = {}) => {

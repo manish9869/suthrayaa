@@ -80,3 +80,13 @@ export function DateRangeFilter({ value, onChange }: { value: DateRangeValue; on
     </Popover>
   )
 }
+
+/** Explicit from/to dates (YYYY-MM-DD, local) for a range, or {} for "any time" (≥ 10 years). */
+export function dateRangeToParams(value: DateRangeValue): { from?: string; to?: string } {
+  if (value.from && value.to) return { from: value.from, to: value.to }
+  if (!value.days || value.days >= 3650) return {}
+  const to = new Date()
+  const from = new Date()
+  from.setDate(from.getDate() - (value.days - 1))
+  return { from: format(from, 'yyyy-MM-dd'), to: format(to, 'yyyy-MM-dd') }
+}

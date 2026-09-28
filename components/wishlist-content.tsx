@@ -44,7 +44,7 @@ export function WishlistContent({ categories }: { categories: Category[] }) {
     return (
       <>
         <Navbar categories={categories} />
-        <main className="min-h-screen" />
+        <main className="min-h-svh" />
       </>
     )
   }
@@ -53,7 +53,7 @@ export function WishlistContent({ categories }: { categories: Category[] }) {
     return (
       <>
         <Navbar categories={categories} />
-        <main className="min-h-screen">
+        <main className="min-h-svh">
           <div className="container mx-auto px-4 py-16">
             <div className="max-w-md mx-auto text-center">
               <div className="w-32 h-32 rounded-full bg-muted mx-auto mb-6 flex items-center justify-center">
@@ -80,7 +80,7 @@ export function WishlistContent({ categories }: { categories: Category[] }) {
   return (
     <>
       <Navbar categories={categories} />
-      <main className="min-h-screen">
+      <main className="min-h-svh">
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center gap-3 mb-8">
             <Heart className="h-6 w-6 text-destructive fill-current" />

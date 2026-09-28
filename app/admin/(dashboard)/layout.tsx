@@ -10,6 +10,8 @@ import { RbacProvider, useRbac } from '@/lib/rbac/rbac-context'
 import { AccessDenied } from '@/components/admin/access-denied'
 import {
   LayoutDashboard,
+  BarChart3,
+  RotateCcw,
   Package,
   FolderTree,
   Palette,
@@ -17,6 +19,11 @@ import {
   Tags,
   Users,
   MessageSquareQuote,
+  Star,
+  Layers,
+  LayoutTemplate,
+  Send,
+  Paintbrush,
   Image as ImageIcon,
   Mail,
   History,
@@ -66,7 +73,10 @@ interface NavGroup {
 const navGroups: NavGroup[] = [
   {
     title: 'Overview',
-    items: [{ href: '/admin', label: 'Dashboard', icon: LayoutDashboard, permission: 'analytics.view' }],
+    items: [
+      { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, permission: 'analytics.view' },
+      { href: '/admin/analytics', label: 'Analytics & Reports', icon: BarChart3, permission: 'analytics.view' },
+    ],
   },
   {
     title: 'Catalog',
@@ -74,12 +84,14 @@ const navGroups: NavGroup[] = [
       { href: '/admin/products', label: 'Products', icon: Package, permission: 'products.view' },
       { href: '/admin/categories', label: 'Categories', icon: FolderTree, permission: 'categories.view' },
       { href: '/admin/colors', label: 'Colors', icon: Palette, permission: 'colors.view' },
+      { href: '/admin/customization-templates', label: 'Option Templates', icon: Layers, permission: 'products.view' },
     ],
   },
   {
     title: 'Sales',
     items: [
       { href: '/admin/orders', label: 'Orders', icon: ShoppingCart, permission: 'orders.view' },
+      { href: '/admin/returns', label: 'Returns', icon: RotateCcw, permission: 'orders.view' },
       { href: '/admin/coupons', label: 'Coupons', icon: Tags, permission: 'coupons.view' },
       { href: '/admin/customers', label: 'Customers', icon: Users, permission: 'customers.view' },
     ],
@@ -87,6 +99,8 @@ const navGroups: NavGroup[] = [
   {
     title: 'Content',
     items: [
+      { href: '/admin/storefront-content', label: 'Storefront Content', icon: LayoutTemplate, permission: 'content.view' },
+      { href: '/admin/reviews', label: 'Product Reviews', icon: Star, permission: 'reviews.view' },
       { href: '/admin/testimonials', label: 'Testimonials', icon: MessageSquareQuote, permission: 'content.view' },
       { href: '/admin/hero-slides', label: 'Hero Slides', icon: ImageIcon, permission: 'banners.view' },
     ],
@@ -96,6 +110,7 @@ const navGroups: NavGroup[] = [
     items: [
       { href: '/admin/emails/templates', label: 'Email Templates', icon: Mail, permission: 'emails.view' },
       { href: '/admin/emails/logs', label: 'Email Logs', icon: History, permission: 'emails.view' },
+      { href: '/admin/newsletter', label: 'Newsletter', icon: Send, permission: 'customers.view' },
     ],
   },
   {
@@ -104,6 +119,7 @@ const navGroups: NavGroup[] = [
       { href: '/admin/users', label: 'Users & Roles', icon: ShieldCheck, permission: 'users.view', aliases: ['/admin/roles'] },
       { href: '/admin/audit-logs', label: 'Audit Logs', icon: ScrollText, permission: 'audit_logs.view' },
       { href: '/admin/settings', label: 'Site Settings', icon: Settings2, permission: 'settings.view' },
+      { href: '/admin/theme', label: 'Theme', icon: Paintbrush, permission: 'settings.view' },
       { href: '/admin/settings/invoice', label: 'Invoice Settings', icon: Receipt, permission: 'settings.view' },
     ],
   },
@@ -140,9 +156,9 @@ function isActive(pathname: string, item: NavItem | string) {
 function BrandMark({ collapsed = false }: { collapsed?: boolean }) {
   return (
     <Link href="/admin" className="flex items-center gap-3" title="Suthrayaa Admin">
-      {/* The storefront logo, inverted to white on the indigo sidebar (as in the storefront footer) */}
-      <span className="relative h-10 w-10 shrink-0">
-        <Image src="/logo.png" alt="" fill sizes="40px" className="object-contain brightness-0 invert" />
+      {/* Brand yarn-ball icon (same as the favicon) — the full logo's lettering is illegible at this size */}
+      <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl ring-1 ring-white/10">
+        <Image src="/icon-192.png" alt="" fill sizes="40px" className="object-cover" />
       </span>
       {!collapsed && (
         <span className="leading-tight">
@@ -164,7 +180,7 @@ const NAV_ICON = 'h-[18px] w-[18px] shrink-0 transition-colors'
  * (no accordions), so the whole console is one glance away. The current page is a raised pill. */
 function SidebarNav({ groups, pathname, onNavigate }: { groups: NavGroup[]; pathname: string; onNavigate?: () => void }) {
   return (
-    <nav className="flex-1 min-h-0 overflow-y-auto px-3 pb-4 pt-1 [scrollbar-width:thin]">
+    <nav className="flex-1 min-h-0 overflow-y-auto px-3 pb-4 pt-1 scrollbar-hide">
       {groups.map((group, gi) => (
         <div key={group.title} className={cn(gi > 0 && 'mt-5')}>
           <p className="px-3 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/40">{group.title}</p>
@@ -197,7 +213,7 @@ function SidebarNav({ groups, pathname, onNavigate }: { groups: NavGroup[]; path
 /** Collapsed icon rail: the same flat list as icons, with a hairline between sections. */
 function SidebarRail({ groups, pathname }: { groups: NavGroup[]; pathname: string }) {
   return (
-    <nav className="flex-1 min-h-0 overflow-y-auto px-2.5 pb-4 pt-1 [scrollbar-width:none]">
+    <nav className="flex-1 min-h-0 overflow-y-auto px-2.5 pb-4 pt-1 scrollbar-hide">
       {groups.map((group, gi) => (
         <div key={group.title} className={cn('space-y-1', gi > 0 && 'mt-3 border-t border-sidebar-border pt-3')}>
           {group.items.map((item) => {
@@ -377,11 +393,11 @@ function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <PortalContainerContext.Provider value={portalContainer}>
-      <div ref={setPortalContainer} className={cn('admin h-screen flex bg-background text-foreground overflow-hidden', theme === 'dark' && 'dark')}>
+      <div ref={setPortalContainer} className={cn('admin h-screen flex bg-background text-foreground overflow-hidden print:h-auto print:overflow-visible', theme === 'dark' && 'dark')}>
         {/* Desktop sidebar */}
         <aside
           className={cn(
-            'hidden lg:flex flex-shrink-0 flex-col h-full border-r border-sidebar-border transition-[width] duration-300 ease-out',
+            'hidden lg:flex flex-shrink-0 flex-col h-full border-r border-sidebar-border transition-[width] duration-300 ease-out print:!hidden',
             collapsed ? 'w-[76px]' : 'w-[264px]'
           )}
         >
@@ -402,9 +418,9 @@ function AdminShell({ children }: { children: React.ReactNode }) {
           </SheetContent>
         </Sheet>
 
-        <div className="flex-1 min-w-0 flex flex-col h-full">
+        <div className="flex-1 min-w-0 flex flex-col h-full print:h-auto">
           {/* Top bar */}
-          <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b bg-card/80 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
+          <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b bg-card/80 px-4 backdrop-blur-xl sm:px-6 lg:px-8 print:hidden">
             <Button variant="ghost" size="icon" className="lg:hidden -ml-1" onClick={() => setMobileNavOpen(true)} aria-label="Open navigation">
               <Menu className="h-5 w-5" />
             </Button>
@@ -490,7 +506,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          <main className="flex-1 overflow-y-auto overflow-x-hidden">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide print:overflow-visible">
             <div className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8">{children}</div>
           </main>
         </div>
@@ -537,7 +553,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     if (authLoading) return
-    if (!user) router.replace(`/admin/login?redirect=${pathname}`)
+    if (!user) router.replace(`/admin/login?redirect=${encodeURIComponent(pathname)}`)
   }, [user, authLoading, pathname, router])
 
   if (authLoading || !user) {

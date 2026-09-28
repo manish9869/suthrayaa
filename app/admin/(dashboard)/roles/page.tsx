@@ -127,7 +127,7 @@ function RolesPageContent() {
                       </Button>
                       {!r.isSystemRole && (
                         <Can permission="roles.delete">
-                          <Button variant="ghost" size="icon" onClick={() => handleDelete(r)} disabled={r.userCount > 0}>
+                          <Button variant="ghost" size="icon" aria-label={r.userCount > 0 ? `Can’t delete ${r.name} — users still have this role` : `Delete role ${r.name}`} onClick={() => handleDelete(r)} disabled={r.userCount > 0}>
                             <Trash2 className="h-4 w-4 text-muted-foreground" />
                           </Button>
                         </Can>

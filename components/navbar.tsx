@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
-import { Menu, X, ShoppingBag, Heart, Search, User, ChevronDown, ArrowRight, Truck, RotateCcw, ShieldCheck, Sparkles, Package, MapPin, LogOut } from 'lucide-react'
+import { Menu, X, ShoppingBag, Heart, Search, User, ChevronDown, ArrowRight, Package, MapPin, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -18,6 +18,8 @@ import { CartDrawer } from './cart-drawer'
 import { getPublicNavItems, getPublicSiteSettings } from '@/lib/api/settings'
 import { STOREFRONT_IMAGES } from '@/lib/storefront-images'
 import { EASE_OUT } from '@/components/motion/reveal'
+import { ContentIcon } from '@/components/content-text'
+import { getContentBlock, type SiteContent } from '@/lib/content'
 
 interface NavLinkItem {
   href: string
@@ -32,12 +34,18 @@ const FALLBACK_NAV_LINKS: NavLinkItem[] = [
   { href: '/contact', label: 'Contact' },
 ]
 
-const PERKS = [
-  { icon: Truck, text: 'Free shipping on orders over ₹999' },
-  { icon: RotateCcw, text: 'Easy 7-day returns' },
-  { icon: ShieldCheck, text: 'Secure & safe payments' },
-  { icon: Sparkles, text: 'Handmade to order in India' },
-]
+// Built-in copy/images, used only if the content API is unreachable (Admin → Storefront Content → Site-wide)
+const FALLBACK_CHROME: SiteContent['site.chrome'] = {
+  perks: [
+    { icon: 'truck', text: 'Free shipping on orders over ₹999' },
+    { icon: 'rotate-ccw', text: 'Easy 7-day returns' },
+    { icon: 'shield-check', text: 'Secure & safe payments' },
+    { icon: 'sparkles', text: 'Handmade to order in India' },
+  ],
+  megaMenuImage: STOREFRONT_IMAGES.megaMenu,
+  shopBannerImage: STOREFRONT_IMAGES.shopBanner,
+  authImage: STOREFRONT_IMAGES.authSide,
+}
 
 interface AnnouncementState {
   text: string
@@ -84,7 +92,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
   // client-side (public, unauthenticated endpoints) with hardcoded fallbacks so the header is
   // never empty/broken if the settings API hiccups or hasn't been configured yet.
   const [navLinks, setNavLinks] = useState<NavLinkItem[]>(FALLBACK_NAV_LINKS)
-  const [logoUrl, setLogoUrl] = useState<string>(STOREFRONT_IMAGES.logo)
+  const [logoUrl, setLogoUrl] = useState<string>(STOREFRONT_IMAGES.logoMark)
   const [announcement, setAnnouncement] = useState<AnnouncementState | null>(null)
 
   useEffect(() => {
@@ -99,6 +107,12 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
         // Keep the hardcoded fallback nav so the header is never empty.
       })
   }, [])
+
+  const [chrome, setChrome] = useState<SiteContent['site.chrome']>(FALLBACK_CHROME)
+  useEffect(() => {
+    getContentBlock('site.chrome').then((c) => c && setChrome(c))
+  }, [])
+  const PERKS = chrome.perks
 
   useEffect(() => {
     getPublicSiteSettings()
@@ -225,9 +239,9 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
           ) : (
             <>
               <div className="hidden h-9 items-center justify-between px-8 text-[12.5px] font-medium tracking-wide lg:flex container mx-auto">
-                {PERKS.map((p) => (
-                  <span key={p.text} className="flex items-center gap-2 opacity-90">
-                    <p.icon className="h-3.5 w-3.5" /> {p.text}
+                {PERKS.map((p, i) => (
+                  <span key={`${p.text}-${i}`} className="flex items-center gap-2 opacity-90">
+                    <ContentIcon name={p.icon} className="h-3.5 w-3.5" /> {p.text}
                   </span>
                 ))}
               </div>
@@ -235,7 +249,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
                 <div className="marquee gap-10 pr-10 text-[12px] font-medium">
                   {[...PERKS, ...PERKS].map((p, i) => (
                     <span key={i} className="flex shrink-0 items-center gap-2">
-                      <p.icon className="h-3.5 w-3.5" /> {p.text}
+                      <ContentIcon name={p.icon} className="h-3.5 w-3.5" /> {p.text}
                     </span>
                   ))}
                 </div>
@@ -249,7 +263,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
           className={cn(
             'relative border-b transition-[background-color,border-color,box-shadow] duration-300',
             isScrolled || megaOpen || isSearchOpen
-              ? 'border-border/70 bg-background/85 shadow-[0_8px_30px_-18px_rgb(49_32_140/0.35)] backdrop-blur-xl'
+              ? 'border-border/70 bg-background/85 shadow-[0_8px_30px_-18px_color-mix(in_oklab,var(--shadow-tint)_35%,transparent)] backdrop-blur-xl'
               : 'border-transparent bg-background'
           )}
         >
@@ -273,7 +287,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
                         setIsMobileMenuOpen(false)
                       }}
                     >
-                      <Image src={logoUrl} alt="Suthrayaa" width={96} height={51} className="h-11 w-auto" />
+                      <Image src={logoUrl} alt="Suthrayaa" width={48} height={48} className="h-12 w-12 object-contain" />
                     </Link>
                   </div>
                   <div className="flex-1 overflow-auto px-3 py-4">
@@ -382,9 +396,14 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
               </SheetContent>
             </Sheet>
 
-            {/* Logo */}
-            <Link href="/" className="flex shrink-0 items-center gap-2.5" onClick={handleHomeClick} aria-label="Suthrayaa home">
-              <Image src={logoUrl} alt="Suthrayaa" width={104} height={55} className="h-14 w-auto lg:h-[60px]" priority />
+            {/* Logo — centred between the menu and action buttons below lg, left-aligned on desktop */}
+            <Link
+              href="/"
+              className="flex shrink-0 items-center max-lg:absolute max-lg:left-1/2 max-lg:top-1/2 max-lg:-translate-x-1/2 max-lg:-translate-y-1/2"
+              onClick={handleHomeClick}
+              aria-label="Suthrayaa home"
+            >
+              <Image src={logoUrl} alt="Suthrayaa" width={64} height={64} className="h-[52px] w-[52px] object-contain lg:h-[60px] lg:w-[60px]" priority />
             </Link>
 
             {/* Desktop navigation */}
@@ -518,7 +537,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
                 transition={panelTransition}
                 onMouseEnter={openMega}
                 onMouseLeave={closeMegaSoon}
-                className="absolute inset-x-0 top-full hidden border-b bg-background/95 shadow-[0_24px_50px_-30px_rgb(49_32_140/0.45)] backdrop-blur-xl lg:block"
+                className="absolute inset-x-0 top-full hidden border-b bg-background/95 shadow-[0_24px_50px_-30px_color-mix(in_oklab,var(--shadow-tint)_45%,transparent)] backdrop-blur-xl lg:block"
               >
                 <div className="container mx-auto grid grid-cols-[1fr_320px] gap-10 px-4 py-8">
                   <div>
@@ -554,7 +573,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
                     </div>
                   </div>
                   <Link href="/shop?sort=newest" className="group relative block overflow-hidden rounded-3xl bg-primary text-primary-foreground">
-                    <Image src={STOREFRONT_IMAGES.megaMenu} alt="" fill sizes="320px" className="zoom-img object-cover object-top opacity-70" />
+                    <Image src={chrome.megaMenuImage || STOREFRONT_IMAGES.megaMenu} alt="" fill sizes="320px" className="zoom-img object-cover object-top opacity-70" />
                     <div className="absolute inset-0 bg-gradient-to-t from-primary via-primary/40 to-transparent" />
                     <div className="relative flex h-full min-h-[220px] flex-col justify-end p-6">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-foreground/75">New season</p>
@@ -577,7 +596,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
                 transition={panelTransition}
-                className="absolute inset-x-0 top-full border-b bg-background/95 shadow-[0_24px_50px_-30px_rgb(49_32_140/0.45)] backdrop-blur-xl"
+                className="absolute inset-x-0 top-full border-b bg-background/95 shadow-[0_24px_50px_-30px_color-mix(in_oklab,var(--shadow-tint)_45%,transparent)] backdrop-blur-xl"
               >
                 <div className="container mx-auto max-w-3xl px-4 py-6">
                   <div className="flex items-center gap-3 rounded-full border bg-card px-5 py-1 shadow-sm focus-within:ring-2 focus-within:ring-ring/30">

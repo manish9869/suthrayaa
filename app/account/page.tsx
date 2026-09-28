@@ -17,7 +17,7 @@ const ACTIVE = ['pending_payment', 'confirmed', 'in_production', 'ready', 'shipp
 
 function Stat({ icon: Icon, label, value, href }: { icon: React.ElementType; label: string; value: React.ReactNode; href: string }) {
   return (
-    <Link href={href} className="group rounded-3xl border bg-card p-4 transition-shadow hover:shadow-[0_14px_40px_-24px_rgb(49_32_140/0.35)] sm:p-5">
+    <Link href={href} className="group rounded-3xl border bg-card p-4 transition-shadow hover:shadow-[0_14px_40px_-24px_color-mix(in_oklab,var(--shadow-tint)_35%,transparent)] sm:p-5">
       <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
         <Icon className="h-5 w-5" />
       </span>
@@ -60,8 +60,8 @@ export default function AccountOverviewPage() {
       </div>
 
       {awaiting.length > 0 && (
-        <section className="rounded-3xl border border-amber-400/40 bg-amber-50/70 p-5 dark:bg-amber-500/10">
-          <h3 className="flex items-center gap-2 font-semibold text-amber-900 dark:text-amber-200">
+        <section className="rounded-3xl border border-gold/40 bg-gold/10 p-5">
+          <h3 className="flex items-center gap-2 font-semibold text-gold-foreground">
             <CreditCard className="h-4 w-4" /> {awaiting.length === 1 ? 'An order is' : `${awaiting.length} orders are`} waiting for payment
           </h3>
           <ul className="mt-3 space-y-2">

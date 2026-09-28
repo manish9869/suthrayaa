@@ -9,18 +9,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { DualRangeSlider } from '@/components/ui/dual-range-slider'
 import { Search, SlidersHorizontal, Sparkles, RefreshCw, Download, Mail, FileDown, ShoppingCart, IndianRupee, Clock, XCircle, Eye, Copy, X } from 'lucide-react'
-import { getAdminOrders, fetchInvoicePdfBlob, emailInvoice, type AdminOrderSummary } from '@/lib/api/admin'
+import {
+  getAdminOrders,
+  exportAdminOrdersCsv,
+  fetchInvoicePdfBlob,
+  emailInvoice,
+  type AdminOrderSummary,
+  type AdminOrderListParams,
+  type AdminOrderListStats,
+} from '@/lib/api/admin'
 import { formatPrice } from '@/lib/data'
-import { DateRangeFilter, type DateRangeValue } from '@/components/admin/date-range-filter'
+import { DateRangeFilter, dateRangeToParams, type DateRangeValue } from '@/components/admin/date-range-filter'
 import { StatCard } from '@/components/admin/stat-card'
 import { StatusDot, DOT_CLASSES, type DotTone } from '@/components/admin/status-dot'
-import { GLASS_PANEL, exportRowsToCsv } from '@/lib/admin-ui'
+import { GLASS_PANEL } from '@/lib/admin-ui'
 import { toast } from 'sonner'
 import { SortableTh } from '@/components/admin/sortable-th'
 import { DataTablePagination } from '@/components/admin/data-table-pagination'
 import { TableLoadingRow } from '@/components/admin/loading-state'
-import { useSortableData } from '@/lib/hooks/use-sortable-data'
-import { usePaginated } from '@/lib/hooks/use-paginated'
+import type { SortDirection } from '@/lib/hooks/use-sortable-data'
+import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
+import { ApiError } from '@/lib/api/http'
 import { ProtectedRoute } from '@/components/admin/protected-route'
 import { Can } from '@/components/admin/can'
 import { OrderPreviewSheet } from '@/components/admin/order-preview-sheet'
@@ -57,82 +66,78 @@ function initialsOf(name: string) {
 }
 const ALL_TIME: DateRangeValue = { days: 3650, label: 'Any time' }
 
+const PAGE_SIZE = 20
+type SortKey = NonNullable<AdminOrderListParams['sort']>
+
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<AdminOrderSummary[]>([])
+  const [total, setTotal] = useState(0)
+  const [stats, setStats] = useState<AdminOrderListStats>({ revenue: 0, paid: 0, pendingPayment: 0, cancelledOrRefunded: 0, maxTotal: 0 })
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [reloadKey, setReloadKey] = useState(0)
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebouncedValue(search.trim(), 300)
 
   const [status, setStatus] = useState<string>('all')
   const [paymentStatus, setPaymentStatus] = useState<string>('all')
   const [custom, setCustom] = useState<string>('all')
   const [placedRange, setPlacedRange] = useState<DateRangeValue>(ALL_TIME)
+  const [sortKey, setSortKey] = useState<SortKey>('date')
+  const [direction, setDirection] = useState<SortDirection>('desc')
+  const [page, setPage] = useState(1)
 
-  const maxTotal = useMemo(() => Math.max(1000, ...orders.map((o) => Math.ceil(o.total / 100) * 100)), [orders])
-  const [totalRange, setTotalRange] = useState<[number, number]>([0, 100000])
-  const [sliderRange, setSliderRange] = useState<[number, number]>([0, 100000])
-  useEffect(() => setSliderRange(totalRange), [totalRange])
+  // The slider's upper bound comes from the largest order in the store (sent by the server)
+  const maxTotal = Math.max(1000, Math.ceil(stats.maxTotal / 100) * 100)
+  const [totalRange, setTotalRange] = useState<[number, number] | null>(null)
+  const [sliderRange, setSliderRange] = useState<[number, number]>([0, maxTotal])
+  useEffect(() => setSliderRange(totalRange ?? [0, maxTotal]), [totalRange, maxTotal])
+
+  const params: AdminOrderListParams = useMemo(
+    () => ({
+      q: debouncedSearch || undefined,
+      status: status === 'all' ? undefined : status,
+      paymentStatus: paymentStatus === 'all' ? undefined : paymentStatus,
+      custom: custom === 'all' ? undefined : custom === 'custom',
+      ...dateRangeToParams(placedRange),
+      minTotal: totalRange && totalRange[0] > 0 ? totalRange[0] : undefined,
+      maxTotal: totalRange && totalRange[1] < maxTotal ? totalRange[1] : undefined,
+      sort: sortKey,
+      dir: direction,
+    }),
+    [debouncedSearch, status, paymentStatus, custom, placedRange, totalRange, maxTotal, sortKey, direction]
+  )
+
+  // Any filter or sort change starts again from page 1
+  useEffect(() => setPage(1), [params])
+
   useEffect(() => {
-    setTotalRange([0, maxTotal])
-    setSliderRange([0, maxTotal])
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orders.length])
-
-  const load = () => {
+    let cancelled = false
     setLoading(true)
-    getAdminOrders({ limit: 300 })
-      .then((res) => setOrders(res.items))
-      .finally(() => setLoading(false))
+    setError(null)
+    getAdminOrders({ ...params, page, limit: PAGE_SIZE })
+      .then((res) => {
+        if (cancelled) return
+        setOrders(res.items)
+        setTotal(res.total)
+        setStats(res.stats)
+      })
+      .catch((err) => !cancelled && setError(err instanceof ApiError ? err.message : 'Could not load orders'))
+      .finally(() => !cancelled && setLoading(false))
+    return () => {
+      cancelled = true
+    }
+  }, [params, page, reloadKey])
+  const load = () => setReloadKey((k) => k + 1)
+
+  const toggleSort = (key: string) => {
+    if (key === sortKey) setDirection((d) => (d === 'asc' ? 'desc' : 'asc'))
+    else {
+      setSortKey(key as SortKey)
+      setDirection(key === 'order' || key === 'status' || key === 'payment' ? 'asc' : 'desc')
+    }
   }
-  useEffect(load, [])
-
-  const sinceCutoff = useMemo(() => {
-    if (placedRange.from) return new Date(placedRange.from).getTime()
-    if (placedRange.days && placedRange.days < 3650) {
-      const d = new Date()
-      d.setDate(d.getDate() - placedRange.days)
-      return d.getTime()
-    }
-    return null
-  }, [placedRange])
-  const untilCutoff = useMemo(() => (placedRange.to ? new Date(`${placedRange.to}T23:59:59`).getTime() : null), [placedRange])
-
-  const filtered = useMemo(() => {
-    let result = [...orders]
-    const q = search.trim().toLowerCase()
-    if (q) {
-      result = result.filter(
-        (o) => o.orderNumber.toLowerCase().includes(q) || (o.customerName ?? '').toLowerCase().includes(q) || (o.trackingNumber ?? '').toLowerCase().includes(q)
-      )
-    }
-    if (status !== 'all') result = result.filter((o) => o.status === status)
-    if (paymentStatus !== 'all') result = result.filter((o) => o.paymentStatus === paymentStatus)
-    if (custom !== 'all') result = result.filter((o) => (custom === 'custom' ? o.isCustomOrder : !o.isCustomOrder))
-    if (sinceCutoff != null) result = result.filter((o) => new Date(o.createdAt).getTime() >= sinceCutoff)
-    if (untilCutoff != null) result = result.filter((o) => new Date(o.createdAt).getTime() <= untilCutoff)
-    result = result.filter((o) => o.total >= totalRange[0] && o.total <= totalRange[1])
-    return result
-  }, [orders, search, status, paymentStatus, custom, sinceCutoff, untilCutoff, totalRange])
-
-  const { sorted, sortKey, direction, toggleSort } = useSortableData(filtered, {
-    order: (o) => o.orderNumber,
-    customer: (o) => o.customerName,
-    items: (o) => o.itemCount,
-    total: (o) => o.total,
-    payment: (o) => o.paymentStatus,
-    status: (o) => o.status,
-    date: (o) => o.createdAt,
-  })
-  const { pageItems, page, setPage, pageCount, total: pageTotal } = usePaginated(sorted, 15)
-
-  const stats = useMemo(() => {
-    const paid = filtered.filter((o) => o.paymentStatus === 'paid')
-    return {
-      revenue: paid.reduce((sum, o) => sum + o.total, 0),
-      paid: paid.length,
-      pending: filtered.filter((o) => o.paymentStatus === 'pending').length,
-      cancelledOrRefunded: filtered.filter((o) => ['cancelled', 'refunded', 'partially_refunded'].includes(o.status)).length,
-    }
-  }, [filtered])
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null)
   const [previewId, setPreviewId] = useState<string | null>(null)
@@ -167,21 +172,16 @@ export default function AdminOrdersPage() {
     }
   }
 
-  const handleExport = () => {
-    exportRowsToCsv(
-      `orders-${new Date().toISOString().slice(0, 10)}.csv`,
-      ['Order', 'Customer', 'Items', 'Total', 'Payment', 'Status', 'Tracking', 'Date'],
-      filtered.map((o) => [
-        o.orderNumber,
-        o.customerName ?? 'Guest',
-        o.itemCount,
-        o.total,
-        o.paymentStatus,
-        o.status.replace(/_/g, ' '),
-        o.trackingNumber ?? '',
-        new Date(o.createdAt).toLocaleString('en-IN'),
-      ])
-    )
+  const [exporting, setExporting] = useState(false)
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      await exportAdminOrdersCsv(params)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Export failed')
+    } finally {
+      setExporting(false)
+    }
   }
 
   const activeFilterCount =
@@ -189,14 +189,14 @@ export default function AdminOrdersPage() {
     (paymentStatus !== 'all' ? 1 : 0) +
     (custom !== 'all' ? 1 : 0) +
     (placedRange.label !== ALL_TIME.label ? 1 : 0) +
-    (totalRange[0] > 0 || totalRange[1] < maxTotal ? 1 : 0)
+    (totalRange && (totalRange[0] > 0 || totalRange[1] < maxTotal) ? 1 : 0)
 
   const clearFilters = () => {
     setStatus('all')
     setPaymentStatus('all')
     setCustom('all')
     setPlacedRange(ALL_TIME)
-    setTotalRange([0, maxTotal])
+    setTotalRange(null)
   }
 
   return (
@@ -204,23 +204,25 @@ export default function AdminOrdersPage() {
     <div className="space-y-6">
       <PageHeader
         title="Orders"
-        description={`${filtered.length} of ${orders.length} orders · click a row for a quick look`}
+        description={`${total.toLocaleString('en-IN')} order${total === 1 ? '' : 's'}${activeFilterCount || debouncedSearch ? ' match' : ''} · click a row for a quick look`}
         actions={
           <>
           <Button variant="outline" size="sm" onClick={load} disabled={loading}>
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0}>
-            <FileDown className="h-3.5 w-3.5" /> Export
-          </Button>
+          <Can permission="orders.export">
+            <Button variant="outline" size="sm" onClick={handleExport} disabled={total === 0 || exporting}>
+              <FileDown className="h-3.5 w-3.5" /> {exporting ? 'Exporting…' : 'Export'}
+            </Button>
+          </Can>
           </>
         }
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={ShoppingCart} label={`Shown of ${orders.length}`} value={filtered.length} tone="primary" />
-        <StatCard icon={IndianRupee} label="Revenue (shown)" value={formatPrice(stats.revenue)} tone="mint" />
-        <StatCard icon={Clock} label="Pending Payment" value={stats.pending} tone="gold" />
+        <StatCard icon={ShoppingCart} label="Orders" value={total.toLocaleString('en-IN')} subtitle={`${stats.paid.toLocaleString('en-IN')} paid`} tone="primary" />
+        <StatCard icon={IndianRupee} label="Net revenue" value={formatPrice(stats.revenue)} subtitle="Collected, minus refunds" tone="mint" />
+        <StatCard icon={Clock} label="Payment Pending" value={stats.pendingPayment} subtitle="COD to collect or awaiting payment" tone="gold" />
         <StatCard icon={XCircle} label="Cancelled / Refunded" value={stats.cancelledOrRefunded} tone="destructive" />
       </div>
 
@@ -280,7 +282,7 @@ export default function AdminOrdersPage() {
           <PopoverTrigger asChild>
             <Button variant="outline" className="h-10 rounded-xl font-normal">
               <SlidersHorizontal className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-              {totalRange[0] > 0 || totalRange[1] < maxTotal ? `${formatPrice(totalRange[0])} – ${formatPrice(totalRange[1])}` : 'Any total'}
+              {totalRange && (totalRange[0] > 0 || totalRange[1] < maxTotal) ? `${formatPrice(totalRange[0])} – ${formatPrice(totalRange[1])}` : 'Any total'}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-72 p-4" align="start">
@@ -300,13 +302,13 @@ export default function AdminOrdersPage() {
         )}
       </div>
 
-      <div className={`${GLASS_PANEL} overflow-x-auto`}>
+      <div className={cn(GLASS_PANEL, 'overflow-x-auto transition-opacity', loading && orders.length > 0 && 'opacity-60')} aria-busy={loading}>
         <Table>
           <TableHeader>
             <TableRow>
               <SortableTh label="Order" sortKey="order" activeKey={sortKey} direction={direction} onSort={toggleSort} className="pl-5" />
-              <SortableTh label="Customer" sortKey="customer" activeKey={sortKey} direction={direction} onSort={toggleSort} />
-              <SortableTh label="Items" sortKey="items" activeKey={sortKey} direction={direction} onSort={toggleSort} />
+              <TableHead>Customer</TableHead>
+              <TableHead>Items</TableHead>
               <SortableTh label="Total" sortKey="total" activeKey={sortKey} direction={direction} onSort={toggleSort} />
               <SortableTh label="Payment" sortKey="payment" activeKey={sortKey} direction={direction} onSort={toggleSort} />
               <SortableTh label="Status" sortKey="status" activeKey={sortKey} direction={direction} onSort={toggleSort} />
@@ -316,16 +318,25 @@ export default function AdminOrdersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading ? (
+            {loading && orders.length === 0 ? (
               <TableLoadingRow colSpan={9} />
-            ) : filtered.length === 0 ? (
+            ) : error ? (
+              <TableRow>
+                <TableCell colSpan={9} className="py-8 text-center">
+                  <p className="text-sm text-destructive">{error}</p>
+                  <Button variant="outline" size="sm" className="mt-3" onClick={load}>
+                    <RefreshCw className="h-3.5 w-3.5" /> Try again
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ) : orders.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
-                  No orders match these filters
+                  {activeFilterCount || debouncedSearch ? 'No orders match these filters' : 'No orders yet — they appear here as customers check out'}
                 </TableCell>
               </TableRow>
             ) : (
-              pageItems.map((o) => (
+              orders.map((o) => (
                 <TableRow
                   key={o.id}
                   onClick={(e) => {
@@ -390,7 +401,7 @@ export default function AdminOrdersPage() {
             )}
           </TableBody>
         </Table>
-        <DataTablePagination page={page} pageCount={pageCount} total={pageTotal} pageSize={15} onPageChange={setPage} />
+        <DataTablePagination page={Math.min(page, pageCount)} pageCount={pageCount} total={total} pageSize={PAGE_SIZE} onPageChange={setPage} />
       </div>
 
       <OrderPreviewSheet

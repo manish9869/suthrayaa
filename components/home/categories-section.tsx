@@ -5,15 +5,16 @@ import type { Category } from '@/lib/data'
 import { buildCategoryTree, totalProductCount } from '@/lib/utils/category-tree'
 import { Stagger, StaggerItem } from '@/components/motion/reveal'
 import { SectionHeading } from './section-heading'
+import type { SectionHeadingContent } from '@/lib/content'
 
-export function CategoriesSection({ categories }: { categories: Category[] }) {
+export function CategoriesSection({ categories, heading }: { categories: Category[]; heading?: SectionHeadingContent | null }) {
   const topLevel = buildCategoryTree(categories).filter((c) => c.showOnHomepage)
   if (topLevel.length === 0) return null
 
   return (
     <section className="py-20 lg:py-28">
       <div className="container mx-auto px-4">
-        <SectionHeading eyebrow="Explore the collection" title="Shop by" accent="category" href="/shop" linkLabel="Browse all" />
+        <SectionHeading eyebrow="Explore the collection" title="Shop by" accent="category" href="/shop" linkLabel="Browse all" content={heading} />
         <Stagger className="-mx-4 flex snap-x snap-mandatory gap-5 overflow-x-auto px-4 pb-2 scrollbar-hide sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 md:grid-cols-5 lg:grid-cols-6">
           {topLevel.map((category) => (
             <StaggerItem key={category.id} className="w-[42vw] shrink-0 snap-start sm:w-auto">

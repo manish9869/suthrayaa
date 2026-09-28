@@ -213,7 +213,7 @@ export function YarnColorPicker({
                 {/* contact shadow — shrinks as the ball lifts */}
                 <motion.span
                   aria-hidden
-                  className="mt-0.5 block h-1.5 w-8 rounded-[50%] bg-[rgb(49_32_140/0.22)] blur-[2px]"
+                  className="mt-0.5 block h-1.5 w-8 rounded-[50%] bg-[color-mix(in_oklab,var(--shadow-tint)_22%,transparent)] blur-[2px]"
                   initial={false}
                   animate={{ opacity: selected ? 0.9 : 0.6 }}
                   transition={{ duration: 0.3, ease: EASE_OUT }}

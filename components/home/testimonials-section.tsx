@@ -7,8 +7,20 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import type { Testimonial } from '@/lib/data'
 import { Reveal, EASE_OUT } from '@/components/motion/reveal'
+import { AccentText } from '@/components/content-text'
+import type { SectionHeadingContent, SiteContent } from '@/lib/content'
 
-export function TestimonialsSection({ testimonials }: { testimonials: Testimonial[] }) {
+const clean = (v?: string | null) => (v && v.trim() ? v.trim() : undefined)
+
+export function TestimonialsSection({
+  testimonials,
+  heading,
+  content,
+}: {
+  testimonials: Testimonial[]
+  heading?: SectionHeadingContent | null
+  content?: SiteContent['home.testimonials']
+}) {
   const [[index, direction], setState] = useState<[number, number]>([0, 1])
   const [paused, setPaused] = useState(false)
   const reduce = useReducedMotion()
@@ -26,16 +38,18 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
   const avg = testimonials.reduce((s, x) => s + x.rating, 0) / count
 
   return (
-    <section className="py-20 lg:py-28" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+    <section id="testimonials" className="scroll-mt-24 py-20 lg:py-28" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
           <Reveal className="flex flex-col justify-between">
             <div>
-              <p className="eyebrow">Kind words</p>
+              <p className="eyebrow">{clean(heading?.subtitle) ?? 'Kind words'}</p>
               <h2 className="display mt-4 text-[2.4rem] sm:text-5xl">
-                Loved by <em className="font-normal italic text-primary">our community</em>
+                <AccentText text={clean(heading?.title) ?? 'Loved by *our community*'} />
               </h2>
-              <p className="mt-4 max-w-sm text-[15px] text-muted-foreground">Real stories from people who’ve gifted, cuddled and kept our handmade pieces.</p>
+              <p className="mt-4 max-w-sm text-[15px] text-muted-foreground">
+                {clean(heading?.description) ?? 'Real stories from people who’ve gifted, cuddled and kept our handmade pieces.'}
+              </p>
             </div>
             <div className="mt-10 flex items-end gap-4">
               <p className="display text-7xl text-primary">{avg.toFixed(1)}</p>
@@ -45,7 +59,7 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
                     <Star key={i} className={cn('h-4 w-4', i < Math.round(avg) ? 'fill-gold text-gold' : 'text-muted-foreground/30')} />
                   ))}
                 </div>
-                <p className="mt-1 text-sm text-muted-foreground">Average from happy customers</p>
+                <p className="mt-1 text-sm text-muted-foreground">{content?.ratingCaption || 'Average from happy customers'}</p>
               </div>
             </div>
           </Reveal>

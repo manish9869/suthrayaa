@@ -11,7 +11,7 @@ export default async function AccountLayout({ children }: { children: React.Reac
   return (
     <>
       <Navbar categories={categories} />
-      <main className="min-h-screen">
+      <main className="min-h-svh">
         <AccountShell>{children}</AccountShell>
       </main>
       <Footer />

@@ -344,8 +344,8 @@ export function ProductForm({ product, defaultCategoryId }: ProductFormProps) {
       const result = await uploadProductImage(product.id, file)
       setImages((prev) => [...prev, { id: result.id, url: result.url }])
       toast.success('Image uploaded')
-    } catch {
-      toast.error('Image upload failed')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Image upload failed')
     } finally {
       setUploading(false)
       e.target.value = ''

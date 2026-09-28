@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { StatCard, ChangeBadge } from '@/components/admin/stat-card'
 import { StatusDot, type DotTone } from '@/components/admin/status-dot'
 import { SegmentedControl } from '@/components/admin/segmented-control'
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, type TooltipProps } from 'recharts'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, type TooltipContentProps } from 'recharts'
 import {
   IndianRupee,
   ShoppingBag,
@@ -24,6 +24,7 @@ import {
   Boxes,
   Users,
   Clock,
+  BarChart3,
 } from 'lucide-react'
 import {
   getAnalyticsSummary,
@@ -143,7 +144,7 @@ function initialsOf(name: string) {
     .join('')
 }
 
-function TrendTooltip({ active, payload, metric }: TooltipProps<number, string> & { metric: TrendMetric }) {
+function TrendTooltip({ active, payload, metric }: Partial<TooltipContentProps<number, string>> & { metric: TrendMetric }) {
   if (!active || !payload?.length) return null
   const row = payload[0].payload as { date: string; value: number; orders?: number }
   return (
@@ -232,7 +233,7 @@ export default function AdminDashboardPage() {
       getOrderStatusBreakdown(params),
       getInventorySummary(),
       getTopProducts(5, params),
-      getCustomizationPopularity(),
+      getCustomizationPopularity(params),
       getStockAlerts(),
       // Recent orders are a convenience panel — a role without orders.view just doesn't get it
       canViewOrders ? getAdminOrders({ limit: 6 }).catch(() => noOrders) : Promise.resolve(noOrders),
@@ -309,6 +310,11 @@ export default function AdminDashboardPage() {
           <div className="flex flex-wrap items-center gap-2">
             <SegmentedControl options={QUICK_RANGES} value={activeQuick} onChange={(v) => setRange({ days: Number(v), label: QUICK_LABELS[v] })} />
             <DateRangeFilter value={range} onChange={setRange} />
+            <Button asChild variant="outline" className="rounded-xl">
+              <Link href="/admin/analytics">
+                <BarChart3 className="h-4 w-4" /> Reports
+              </Link>
+            </Button>
             <Button onClick={handleExport} className="rounded-xl">
               <FileDown className="h-4 w-4" /> Export
             </Button>
@@ -319,7 +325,7 @@ export default function AdminDashboardPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <StatCard
             icon={IndianRupee}
-            label="Total Revenue"
+            label="Net Revenue"
             value={formatPrice(summary?.revenue ?? 0)}
             change={summary?.revenueChangePct}
             changeLabel="vs prev."
@@ -340,7 +346,7 @@ export default function AdminDashboardPage() {
             label="Avg. Order Value"
             value={formatPrice(summary?.avgOrderValue ?? 0)}
             trend={aovTrend}
-            subtitle={`${(summary?.pendingOrders ?? 0).toLocaleString('en-IN')} orders awaiting payment`}
+            subtitle={`${(summary?.openOrders ?? 0).toLocaleString('en-IN')} open orders to fulfil`}
             tone="gold"
           />
           <StatCard
@@ -703,7 +709,7 @@ export default function AdminDashboardPage() {
               <CardTitle className="text-base flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-muted-foreground" /> Personalization
               </CardTitle>
-              <CardDescription>Share of line items customized</CardDescription>
+              <CardDescription>Share of paid items customized · {range.label.toLowerCase()}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-4">
@@ -731,9 +737,9 @@ export default function AdminDashboardPage() {
                 </div>
                 <div className="rounded-xl border px-3 py-2">
                   <p className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
-                    <Clock className="h-3 w-3" /> Pending
+                    <Clock className="h-3 w-3" /> To fulfil
                   </p>
-                  <p className="text-lg font-semibold tabular-nums">{(summary?.pendingOrders ?? 0).toLocaleString('en-IN')}</p>
+                  <p className="text-lg font-semibold tabular-nums">{(summary?.openOrders ?? 0).toLocaleString('en-IN')}</p>
                 </div>
               </div>
             </CardContent>

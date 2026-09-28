@@ -55,9 +55,15 @@
   --cream: #fcfbff;
   --sand: #f3efff;
   --ink: #1c1642;
+  /* Tint for the soft coloured shadows (follows the active theme — see app/layout.tsx) */
+  --shadow-tint: #31208c;
 
   --destructive: #e5484d;
   --destructive-foreground: #ffffff;
+  /* Status text on light surfaces — the fills above are too light for small text (AA 4.5:1) */
+  --destructive-ink: #b42318;
+  --sky: #2f7fd6;
+  --sky-ink: #1d5fa8;
 
   --border: #e8e3f5;
   --input: #e8e3f5;
@@ -229,7 +235,6 @@
 @theme inline {
   --font-sans: var(--font-jakarta), 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-fraunces), 'Fraunces', Georgia, serif;
-  --font-script: 'Allura', cursive;
   --font-mono: 'Geist Mono', 'Geist Mono Fallback', monospace;
   
   --color-background: var(--background);
@@ -278,6 +283,8 @@
   --ease-out-quint: var(--ease-out);
   --color-teal: var(--teal);
   --color-sky: var(--sky);
+  --color-sky-ink: var(--sky-ink);
+  --color-destructive-ink: var(--destructive-ink);
   
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -302,6 +309,10 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  /* No grey flash on tap — buttons give their own press feedback (.tap-bounce) */
+  html {
+    -webkit-tap-highlight-color: transparent;
   }
   
   /* Custom selection color */
@@ -404,8 +415,8 @@
   .tap-bounce:active { transform: scale(0.95); }
 
   /* One-shot pop for things that just changed (cart count, wishlist heart, applied filter). */
-  .animate-pop-in { animation: pop-in 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
-  @keyframes pop-in { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+  .animate-pop-in { animation: pop-in 280ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+  @keyframes pop-in { 0% { transform: scale(0.6); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 
   @media (prefers-reduced-motion: reduce) {
     .motif, .hero-widget, .hero-doodle { animation: none; }
@@ -485,7 +496,7 @@
   @media (hover: hover) and (pointer: fine) {
     .group:hover .zoom-img { transform: scale(1.045); }
     .lift { transition: transform 300ms var(--ease-out), box-shadow 300ms var(--ease-out); }
-    .lift:hover { transform: translateY(-4px); box-shadow: 0 18px 40px -22px rgb(76 47 214 / 0.35); }
+    .lift:hover { transform: translateY(-4px); box-shadow: 0 18px 40px -22px color-mix(in oklab, var(--accent-foreground) 35%, transparent); }
   }
   /* Underline that draws in from the left */
   .link-underline { background: linear-gradient(currentColor, currentColor) no-repeat 0 100% / 0% 1px; transition: background-size 300ms var(--ease-out); }
@@ -531,7 +542,7 @@
   .admin [data-slot='card'] {
     border-radius: 1.1rem;
     border-color: color-mix(in oklab, var(--primary) 9%, var(--border));
-    box-shadow: 0 1px 2px rgb(49 32 140 / 0.05), 0 10px 28px -18px rgb(49 32 140 / 0.22);
+    box-shadow: 0 1px 2px color-mix(in oklab, var(--shadow-tint) 5%, transparent), 0 10px 28px -18px color-mix(in oklab, var(--shadow-tint) 22%, transparent);
   }
   .admin.dark [data-slot='card'] {
     border-color: var(--border);
@@ -574,7 +585,7 @@
      two-layer shadow so white panels separate from the lilac canvas. */
   .admin .admin-panel {
     border-color: color-mix(in oklab, var(--primary) 9%, var(--border));
-    box-shadow: 0 1px 2px rgb(49 32 140 / 0.05), 0 10px 28px -18px rgb(49 32 140 / 0.22);
+    box-shadow: 0 1px 2px color-mix(in oklab, var(--shadow-tint) 5%, transparent), 0 10px 28px -18px color-mix(in oklab, var(--shadow-tint) 22%, transparent);
   }
   .admin.dark .admin-panel {
     border-color: var(--border);
@@ -584,8 +595,10 @@
   .admin [data-slot='table-cell'] {
     font-variant-numeric: tabular-nums;
   }
+  /* Vertical scrollbars are hidden across the console (wheel, trackpad, touch and keyboard still
+     scroll); the horizontal one stays so wide tables visibly scroll sideways for mouse users. */
   .admin ::-webkit-scrollbar {
-    width: 10px;
+    width: 0;
     height: 10px;
   }
   .admin ::-webkit-scrollbar-thumb {

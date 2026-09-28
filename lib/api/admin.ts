@@ -1,14 +1,9 @@
 import { apiFetch } from './http'
-import { createSupabaseBrowserClient } from '@/lib/supabase/client'
+import { getAccessToken } from '@/lib/auth/session'
 import type { Product } from '@/lib/data'
 
-async function token(): Promise<string | undefined> {
-  const supabase = createSupabaseBrowserClient()
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-  return session?.access_token
-}
+/** Bearer token from the auth session (refreshed via the backend when needed). */
+const token = getAccessToken
 
 async function adminFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   return apiFetch<T>(path, { ...options, token: await token(), revalidate: false })
@@ -53,15 +48,25 @@ function rangeQuery(params: DateRangeParams = {}): string {
 }
 
 export interface AnalyticsSummary {
+  /** Net revenue: collected order totals minus refunds (COD counts once delivered). */
   revenue: number
   revenueChangePct: number | null
+  grossSales: number
+  refunds: number
+  /** Orders placed — abandoned online payment attempts aren't orders. */
   orderCount: number
   orderCountChangePct: number | null
   avgOrderValue: number
+  avgOrderValueChangePct: number | null
   newCustomers: number
   newCustomersChangePct: number | null
   totalCustomers: number
+  /** Orders to fulfil right now (confirmed / making / ready). */
+  openOrders: number
+  /** @deprecated same as openOrders */
   pendingOrders: number
+  cancelledOrders: number
+  codToCollectValue: number
   totalTransactions: number
   successfulTransactions: number
   failedTransactions: number
@@ -105,12 +110,112 @@ export const getTopProducts = (limit = 10, params: DateRangeParams = {}) => {
     `/admin/analytics/top-products?${q.toString()}`
   )
 }
-export const getCustomizationPopularity = () =>
-  adminFetch<{ total: number; customized: number; percentage: number }>('/admin/analytics/customization-popularity')
+export const getCustomizationPopularity = (params: DateRangeParams = {}) =>
+  adminFetch<{ total: number; customized: number; percentage: number }>(`/admin/analytics/customization-popularity?${rangeQuery(params)}`)
 export const getStockAlerts = () =>
   adminFetch<{ id: string; name: string; slug: string; stock: number; low_stock_threshold: number }[]>(
     '/admin/analytics/stock-alerts'
   )
+
+// ---- Analytics & Reports ----
+export interface ReportSummary {
+  placedOrders: number
+  paidOrders: number
+  grossSales: number
+  refunds: number
+  netRevenue: number
+  discounts: number
+  shipping: number
+  tax: number
+  unitsSold: number
+  avgOrderValue: number
+  cancelledOrders: number
+  cancelledValue: number
+  cancellationRatePct: number
+  codToCollectOrders: number
+  codToCollectValue: number
+}
+export interface AnalyticsReport {
+  range: { from: string; to: string; days: number; timezone: string; previousFrom: string; previousTo: string }
+  summary: ReportSummary
+  previous: ReportSummary
+  changes: Record<'netRevenue' | 'grossSales' | 'placedOrders' | 'avgOrderValue' | 'unitsSold' | 'refunds' | 'cancelledOrders' | 'discounts', number | null>
+  series: { date: string; orders: number; paidOrders: number; revenue: number; grossSales: number; signups: number }[]
+  products: { productId: string | null; name: string; sku: string | null; unitsSold: number; revenue: number; orders: number }[]
+  variants: { productId: string | null; name: string; variant: string; unitsSold: number; revenue: number }[]
+  categories: { categoryId: string | null; name: string; unitsSold: number; revenue: number; products: number }[]
+  customization: { items: number; customized: number; percentage: number; customizedRevenue: number; topOptions: { label: string; value: string; count: number }[] }
+  payments: {
+    methods: { method: string; orders: number; paidOrders: number; revenue: number }[]
+    attempts: { total: number; collected: number; successRatePct: number; byStatus: { status: string; count: number; amount: number }[] }
+  }
+  coupons: { couponId: string; code: string; orders: number; discount: number; sales: number; avgDiscount: number }[]
+  refunds: {
+    count: number
+    amount: number
+    byMethod: { method: string; count: number; amount: number }[]
+    recent: { id: string; orderId: string; orderNumber: string | null; amount: number; method: string; status: string; reason: string | null; createdAt: string }[]
+  }
+  customers: {
+    newSignups: number
+    newSignupsChangePct: number | null
+    buyers: number
+    firstTimeBuyers: number
+    returningBuyers: number
+    repeatRatePct: number
+    guestOrders: number
+    topCustomers: { customerId: string | null; name: string; email: string | null; orders: number; spent: number; returning: boolean }[]
+  }
+  tax: { state: string; orders: number; taxableValue: number; cgst: number; sgst: number; igst: number; totalTax: number; invoiceValue: number }[]
+  shipping: {
+    freeShippingOrders: number
+    byState: { state: string; orders: number; shippingCollected: number; sales: number }[]
+    byMethod: { method: string; orders: number; shippingCollected: number }[]
+  }
+  inventory: {
+    summary: InventorySummary & { inventoryCostValue: number }
+    alerts: { id: string; name: string; sku: string | null; stock: number; low_stock_threshold: number }[]
+    products: { id: string; name: string; sku: string | null; status: string; stock: number; lowStockThreshold: number; tracked: boolean; price: number; costPrice: number | null }[]
+  }
+}
+export const getAnalyticsReport = (params: DateRangeParams = {}) => adminFetch<AnalyticsReport>(`/admin/analytics/reports?${rangeQuery(params)}`)
+
+export type ReportExportSection =
+  | 'sales'
+  | 'products'
+  | 'variants'
+  | 'categories'
+  | 'payments'
+  | 'coupons'
+  | 'refunds'
+  | 'customers'
+  | 'gst'
+  | 'shipping'
+  | 'inventory'
+
+/** Downloads a server-generated CSV (the server checks the export permission and audits it). */
+async function downloadAdminCsv(path: string, fallbackName: string) {
+  const t = await token()
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${path}`, { headers: t ? { Authorization: `Bearer ${t}` } : {} })
+  if (!res.ok) {
+    const body = await res.json().catch(() => null)
+    throw new Error(body?.error?.message ?? 'Export failed')
+  }
+  const filename = /filename="([^"]+)"/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? fallbackName
+  const url = URL.createObjectURL(await res.blob())
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+/** Downloads one report section as CSV (server-generated — needs analytics.export). */
+export function downloadReportCsv(section: ReportExportSection, params: DateRangeParams = {}) {
+  const q = new URLSearchParams(rangeQuery(params))
+  q.set('section', section)
+  return downloadAdminCsv(`/admin/analytics/reports/export?${q.toString()}`, `suthrayaa-${section}.csv`)
+}
 
 // ---- Products ----
 export interface AdminProductListItem extends Product {
@@ -205,18 +310,32 @@ export const deleteProduct = (id: string) => adminFetch<void>(`/admin/products/$
 export const duplicateProduct = (id: string) =>
   adminFetch<AdminProductListItem>(`/admin/products/${id}/duplicate`, { method: 'POST' })
 
-export async function uploadProductImage(productId: string, file: File) {
+/** Must match the backend's MAX_IMAGE_UPLOAD_BYTES (kept under Vercel's 4.5 MB body cap). */
+export const MAX_IMAGE_UPLOAD_BYTES = 4 * 1024 * 1024
+
+/** Multipart image upload to an admin endpoint (JSON apiFetch can't send files). */
+async function uploadAdminImage<T>(path: string, file: File): Promise<T> {
+  if (file.size > MAX_IMAGE_UPLOAD_BYTES) throw new Error('Image is too large — please use one under 4 MB')
   const form = new FormData()
   form.append('image', file)
   const t = await token()
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/products/${productId}/images`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${path}`, {
     method: 'POST',
     headers: t ? { Authorization: `Bearer ${t}` } : {},
     body: form,
   })
-  if (!res.ok) throw new Error('Image upload failed')
-  return res.json() as Promise<{ id: string; url: string; thumbnailUrl: string; sortOrder: number; isPrimary: boolean }>
+  if (!res.ok) {
+    const body = await res.json().catch(() => null)
+    throw new Error(res.status === 413 ? 'Image is too large — please use one under 4 MB' : body?.error?.message ?? 'Image upload failed')
+  }
+  return res.json() as Promise<T>
 }
+
+export const uploadProductImage = (productId: string, file: File) =>
+  uploadAdminImage<{ id: string; url: string; thumbnailUrl: string; sortOrder: number; isPrimary: boolean }>(
+    `/admin/products/${productId}/images`,
+    file
+  )
 export const deleteProductImage = (productId: string, imageId: string) =>
   adminFetch<void>(`/admin/products/${productId}/images/${imageId}`, { method: 'DELETE' })
 
@@ -342,14 +461,19 @@ export interface AdminTestimonial {
   is_published: boolean
   sort_order: number
 }
-export const getAdminTestimonials = () => adminFetch<AdminTestimonial[]>('/admin/testimonials')
-export const createTestimonial = (input: {
+export interface TestimonialInput {
   customerName: string
   location?: string
   content: string
   rating: number
   productPurchased?: string
-}) => adminFetch<AdminTestimonial>('/admin/testimonials', { method: 'POST', body: JSON.stringify(input) })
+  isPublished?: boolean
+}
+export const getAdminTestimonials = () => adminFetch<AdminTestimonial[]>('/admin/testimonials')
+export const createTestimonial = (input: TestimonialInput) =>
+  adminFetch<AdminTestimonial>('/admin/testimonials', { method: 'POST', body: JSON.stringify(input) })
+export const updateTestimonial = (id: string, input: Partial<TestimonialInput>) =>
+  adminFetch<AdminTestimonial>(`/admin/testimonials/${id}`, { method: 'PATCH', body: JSON.stringify(input) })
 export const deleteTestimonial = (id: string) => adminFetch<void>(`/admin/testimonials/${id}`, { method: 'DELETE' })
 
 export interface AdminHeroSlide {
@@ -363,9 +487,23 @@ export interface AdminHeroSlide {
   sort_order: number
   is_active: boolean
 }
+/** Request body shape (camelCase) — the list endpoint returns raw snake_case rows (AdminHeroSlide). */
+export interface HeroSlideInput {
+  title: string
+  subtitle?: string
+  description?: string
+  imageUrl?: string
+  ctaLabel?: string
+  ctaHref?: string
+  sortOrder?: number
+  isActive?: boolean
+}
 export const getAdminHeroSlides = () => adminFetch<AdminHeroSlide[]>('/admin/hero-slides')
-export const createHeroSlide = (input: Partial<AdminHeroSlide> & { title: string }) =>
+export const createHeroSlide = (input: HeroSlideInput) =>
   adminFetch<AdminHeroSlide>('/admin/hero-slides', { method: 'POST', body: JSON.stringify(input) })
+export const updateHeroSlide = (id: string, input: Partial<HeroSlideInput>) =>
+  adminFetch<AdminHeroSlide>(`/admin/hero-slides/${id}`, { method: 'PATCH', body: JSON.stringify(input) })
+export const uploadHeroSlideImage = (file: File) => uploadAdminImage<{ url: string }>('/admin/hero-slides/upload-image', file)
 export const deleteHeroSlide = (id: string) => adminFetch<void>(`/admin/hero-slides/${id}`, { method: 'DELETE' })
 
 // ---- Orders ----
@@ -384,19 +522,39 @@ export interface AdminOrderSummary {
   placedAt: string | null
   createdAt: string
 }
-export const getAdminOrders = (
-  params: { status?: string; paymentStatus?: string; custom?: boolean; page?: number; limit?: number } = {}
-) => {
-  const q = new URLSearchParams()
-  if (params.status) q.set('status', params.status)
-  if (params.paymentStatus) q.set('paymentStatus', params.paymentStatus)
-  if (params.custom !== undefined) q.set('custom', String(params.custom))
-  if (params.page) q.set('page', String(params.page))
-  if (params.limit) q.set('limit', String(params.limit))
-  return adminFetch<{ items: AdminOrderSummary[]; total: number; page: number; limit: number }>(
-    `/admin/orders?${q.toString()}`
-  )
+export interface AdminOrderListParams {
+  q?: string
+  status?: string
+  paymentStatus?: string
+  paymentMethod?: string
+  custom?: boolean
+  customerId?: string
+  from?: string
+  to?: string
+  minTotal?: number
+  maxTotal?: number
+  sort?: 'date' | 'order' | 'total' | 'status' | 'payment'
+  dir?: 'asc' | 'desc'
+  page?: number
+  limit?: number
 }
+export interface AdminOrderListStats {
+  revenue: number
+  paid: number
+  pendingPayment: number
+  cancelledOrRefunded: number
+  maxTotal: number
+}
+function listQuery(params: object): string {
+  const q = new URLSearchParams()
+  for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== null && v !== '') q.set(k, String(v))
+  return q.toString()
+}
+/** Search, filters, sorting and paging all run on the server. */
+export const getAdminOrders = (params: AdminOrderListParams = {}) =>
+  adminFetch<{ items: AdminOrderSummary[]; total: number; page: number; limit: number; stats: AdminOrderListStats }>(`/admin/orders?${listQuery(params)}`)
+export const exportAdminOrdersCsv = (params: AdminOrderListParams = {}) =>
+  downloadAdminCsv(`/admin/orders/export?${listQuery({ ...params, page: undefined, limit: undefined })}`, 'suthrayaa-orders.csv')
 
 export interface AdminOrderItem {
   id: string
@@ -425,17 +583,80 @@ export interface AdminOrderDetail extends AdminOrderSummary {
   razorpayOrderId: string | null
   razorpayPaymentId: string | null
   courier: string | null
+  trackingUrl: string | null
   adminNotes: string | null
   customerNotes: string | null
   invoiceNumber: string | null
+  refundedAmount: number
+  refunds: AdminOrderRefund[]
+  /** Statuses the server will accept next — refunds go through refundOrder instead. */
+  allowedStatuses: string[]
+  returnRequests: AdminReturnRequest[]
   items: AdminOrderItem[]
   statusHistory: { status: string; note?: string; created_at: string }[]
 }
 export const getAdminOrder = (id: string) => adminFetch<AdminOrderDetail>(`/admin/orders/${id}`)
-export const updateOrderStatus = (id: string, status: string, note?: string, trackingNumber?: string, courier?: string) =>
-  adminFetch<{ ok: boolean }>(`/admin/orders/${id}/status`, {
+export const updateOrderStatus = (id: string, status: string, note?: string, trackingNumber?: string, courier?: string, trackingUrl?: string) =>
+  adminFetch<{ ok: boolean; refundRequired?: boolean }>(`/admin/orders/${id}/status`, {
     method: 'PATCH',
-    body: JSON.stringify({ status, note, trackingNumber, courier }),
+    body: JSON.stringify({ status, note, trackingNumber, courier, trackingUrl }),
+  })
+// ---- Returns & exchanges ----
+export type ReturnStatus = 'requested' | 'approved' | 'rejected' | 'received' | 'refunded' | 'exchanged' | 'cancelled'
+export interface AdminReturnRequest {
+  id: string
+  orderId: string
+  type: 'return' | 'exchange'
+  status: ReturnStatus
+  statusLabel: string
+  reason: string
+  reasonLabel: string
+  details: string | null
+  adminNote: string | null
+  refundId: string | null
+  items: { orderItemId: string; quantity: number; name: string; image: string | null }[]
+  /** Moves the server will accept next (refunds happen from the order's Refund action) */
+  allowedNext: ('approved' | 'rejected' | 'received' | 'exchanged')[]
+  createdAt: string
+  updatedAt: string
+  resolvedAt: string | null
+}
+export interface AdminReturnListItem extends AdminReturnRequest {
+  order: {
+    id: string
+    orderNumber: string
+    status: string
+    paymentMethod: string
+    paymentStatus: string
+    total: number
+    refundedAmount: number
+    customerName: string | null
+    customerEmail: string | null
+  }
+}
+export const getAdminReturns = (params: { status?: string; page?: number; limit?: number } = {}) => {
+  const q = new URLSearchParams()
+  for (const [k, v] of Object.entries(params)) if (v !== undefined) q.set(k, String(v))
+  return adminFetch<{ items: AdminReturnListItem[]; total: number; openCount: number; page: number; limit: number }>(`/admin/returns?${q.toString()}`)
+}
+export const updateReturnRequest = (id: string, status: 'approved' | 'rejected' | 'received' | 'exchanged', adminNote?: string) =>
+  adminFetch<AdminReturnRequest>(`/admin/returns/${id}`, { method: 'PATCH', body: JSON.stringify({ status, adminNote }) })
+
+export interface AdminOrderRefund {
+  id: string
+  amount: number
+  method: 'razorpay' | 'manual'
+  razorpayRefundId: string | null
+  status: 'pending' | 'processed' | 'failed'
+  reason: string | null
+  restocked: boolean
+  createdAt: string
+}
+/** Full refund when `amount` is omitted. Online orders are refunded through Razorpay. */
+export const refundOrder = (id: string, input: { amount?: number; reason: string; restock?: boolean }) =>
+  adminFetch<{ refund: AdminOrderRefund; refundedAmount: number; paymentStatus: string }>(`/admin/orders/${id}/refund`, {
+    method: 'POST',
+    body: JSON.stringify(input),
   })
 export const updateOrderNotes = (id: string, input: { adminNotes?: string; customerNotes?: string }) =>
   adminFetch<{ ok: boolean }>(`/admin/orders/${id}/notes`, { method: 'PATCH', body: JSON.stringify(input) })
@@ -587,17 +808,28 @@ export interface AdminCoupon {
   value: number
   min_subtotal: number
   max_uses: number | null
+  max_uses_per_customer?: number | null
   uses_count: number
+  starts_at?: string | null
+  expires_at?: string | null
   is_active: boolean
 }
-export const getAdminCoupons = () => adminFetch<AdminCoupon[]>('/admin/coupons')
-export const createCoupon = (input: {
+export interface CouponInput {
   code: string
   type: 'percent' | 'flat'
   value: number
   minSubtotal?: number
-  maxUses?: number
-}) => adminFetch<AdminCoupon>('/admin/coupons', { method: 'POST', body: JSON.stringify(input) })
+  maxUses?: number | null
+  maxUsesPerCustomer?: number | null
+  startsAt?: string | null
+  expiresAt?: string | null
+  isActive?: boolean
+}
+export const getAdminCoupons = () => adminFetch<AdminCoupon[]>('/admin/coupons')
+export const createCoupon = (input: CouponInput) =>
+  adminFetch<AdminCoupon>('/admin/coupons', { method: 'POST', body: JSON.stringify(input) })
+export const updateCoupon = (id: string, input: Partial<CouponInput>) =>
+  adminFetch<AdminCoupon>(`/admin/coupons/${id}`, { method: 'PATCH', body: JSON.stringify(input) })
 export const deleteCoupon = (id: string) => adminFetch<void>(`/admin/coupons/${id}`, { method: 'DELETE' })
 
 // ---- Customers ----
@@ -608,15 +840,35 @@ export interface AdminCustomer {
   firstName: string | null
   lastName: string | null
   createdAt: string
+  /** Paid orders */
   orderCount: number
+  /** Net of refunds */
   totalSpent: number
+  lastOrderAt: string | null
+  marketingOptIn: boolean
 }
-export const getAdminCustomers = (params: { page?: number; limit?: number } = {}) => {
-  const q = new URLSearchParams()
-  q.set('page', String(params.page ?? 1))
-  q.set('limit', String(params.limit ?? 300))
-  return adminFetch<{ items: AdminCustomer[]; total: number; page: number; limit: number }>(`/admin/customers?${q.toString()}`)
+export interface AdminCustomerListParams {
+  q?: string
+  from?: string
+  to?: string
+  minOrders?: number
+  minSpent?: number
+  maxSpent?: number
+  sort?: 'joined' | 'name' | 'orders' | 'spent' | 'lastOrder'
+  dir?: 'asc' | 'desc'
+  page?: number
+  limit?: number
 }
+export const getAdminCustomers = (params: AdminCustomerListParams = {}) =>
+  adminFetch<{
+    items: AdminCustomer[]
+    total: number
+    page: number
+    limit: number
+    stats: { totalSpent: number; avgOrders: number; loyal: number; maxSpent: number }
+  }>(`/admin/customers?${listQuery(params)}`)
+export const exportAdminCustomersCsv = (params: AdminCustomerListParams = {}) =>
+  downloadAdminCsv(`/admin/customers/export?${listQuery({ ...params, page: undefined, limit: undefined })}`, 'suthrayaa-customers.csv')
 
 export interface AdminCustomerOrder {
   id: string
@@ -670,8 +922,165 @@ export const getCustomerEmails = (id: string) => adminFetch<AdminEmailLog[]>(`/a
 export const sendCustomerWelcomeEmail = (id: string) =>
   adminFetch<{ ok: boolean }>(`/admin/customers/${id}/send-welcome-email`, { method: 'POST' })
 
+// ---- Customization templates (reusable option groups, cloned into a product on use) ----
+export interface CustomizationTemplateValue {
+  id?: string
+  label: string
+  value: string
+  priceAdjustment: number
+}
+export interface CustomizationTemplate {
+  id: string
+  name: string
+  type: CustomizationGroupInput['type']
+  values: CustomizationTemplateValue[]
+}
+export interface CustomizationTemplateInput {
+  name: string
+  type: CustomizationGroupInput['type']
+  values: Omit<CustomizationTemplateValue, 'id'>[]
+}
+export const getCustomizationTemplates = () => adminFetch<CustomizationTemplate[]>('/admin/customization-templates')
+export const createCustomizationTemplate = (input: CustomizationTemplateInput) =>
+  adminFetch<{ id: string }>('/admin/customization-templates', { method: 'POST', body: JSON.stringify(input) })
+export const updateCustomizationTemplate = (id: string, input: Partial<CustomizationTemplateInput>) =>
+  adminFetch<{ id: string }>(`/admin/customization-templates/${id}`, { method: 'PATCH', body: JSON.stringify(input) })
+export const deleteCustomizationTemplate = (id: string) =>
+  adminFetch<void>(`/admin/customization-templates/${id}`, { method: 'DELETE' })
+/** Copies a template into a product as a new, independently editable option group. */
+export const applyCustomizationTemplate = (templateId: string, productId: string) =>
+  adminFetch<{ ok: boolean; customizationId: string }>(`/admin/customization-templates/${templateId}/clone`, {
+    method: 'POST',
+    body: JSON.stringify({ productId }),
+  })
+
 // ---- Reviews ----
-export const getAdminReviews = (status: 'pending' | 'published' = 'pending') =>
-  adminFetch<any[]>(`/admin/reviews?status=${status}`)
+export interface AdminReview {
+  id: string
+  productId: string
+  productName: string | null
+  productSlug: string | null
+  customerName: string
+  rating: number
+  title: string
+  content: string
+  images: string[]
+  verified: boolean
+  isPublished: boolean
+  createdAt: string
+}
+export const getAdminReviews = (status: 'pending' | 'published' | 'all' = 'pending') =>
+  adminFetch<AdminReview[]>(`/admin/reviews?status=${status}`)
 export const moderateReview = (id: string, isPublished: boolean) =>
-  adminFetch<any>(`/admin/reviews/${id}`, { method: 'PATCH', body: JSON.stringify({ isPublished }) })
+  adminFetch<AdminReview>(`/admin/reviews/${id}`, { method: 'PATCH', body: JSON.stringify({ isPublished }) })
+export const deleteReview = (id: string) => adminFetch<void>(`/admin/reviews/${id}`, { method: 'DELETE' })
+
+// ---- Storefront content (CMS blocks — see suthrayaa-backend/src/modules/content/content.catalog.ts) ----
+export type ContentFieldType = 'text' | 'textarea' | 'markdown' | 'url' | 'image' | 'video' | 'icon' | 'list'
+export interface ContentField {
+  name: string
+  label: string
+  type: ContentFieldType
+  help?: string
+  fields?: ContentField[]
+  itemLabel?: string
+  max?: number
+}
+export interface ContentBlockAdmin {
+  key: string
+  group: string
+  label: string
+  description: string
+  previewPath: string
+  fields: ContentField[]
+  default: Record<string, unknown>
+  value: Record<string, unknown>
+  customized: boolean
+  updatedAt: string | null
+}
+export const getAdminContent = () => adminFetch<{ blocks: ContentBlockAdmin[]; icons: string[] }>('/admin/content')
+export const saveAdminContent = (key: string, value: Record<string, unknown>) =>
+  adminFetch<{ key: string; value: Record<string, unknown>; customized: boolean }>(`/admin/content/${key}`, {
+    method: 'PUT',
+    body: JSON.stringify({ value }),
+  })
+export const resetAdminContent = (key: string) =>
+  adminFetch<{ key: string; value: Record<string, unknown>; customized: boolean }>(`/admin/content/${key}`, { method: 'DELETE' })
+export const uploadContentImage = (file: File) => uploadAdminImage<{ url: string }>('/admin/content/upload-image', file)
+
+export const MAX_VIDEO_UPLOAD_BYTES = 50 * 1024 * 1024
+
+/** Uploads a reel video straight to Supabase Storage via a one-time signed URL from the API
+ * (videos are too big to go through the API itself). Returns the public CDN URL. */
+export async function uploadContentVideo(file: File): Promise<{ url: string }> {
+  if (!['video/mp4', 'video/webm'].includes(file.type)) throw new Error('Only MP4 or WebM videos are allowed')
+  if (file.size > MAX_VIDEO_UPLOAD_BYTES) throw new Error('Video is too large — please use one under 50 MB')
+  const { uploadUrl, publicUrl } = await adminFetch<{ uploadUrl: string; publicUrl: string }>('/admin/content/video-upload-url', {
+    method: 'POST',
+    body: JSON.stringify({ contentType: file.type }),
+  })
+  const res = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type, 'cache-control': 'max-age=31536000' }, body: file })
+  if (!res.ok) {
+    const body = await res.json().catch(() => null)
+    throw new Error(body?.message ?? body?.error ?? 'Video upload failed')
+  }
+  return { url: publicUrl }
+}
+
+// ---- Newsletter subscribers ----
+export interface NewsletterSubscriber {
+  id: string
+  email: string
+  source: string | null
+  status: 'subscribed' | 'unsubscribed'
+  createdAt: string
+}
+export const getNewsletterSubscribers = () => adminFetch<NewsletterSubscriber[]>('/admin/newsletter')
+export const updateNewsletterSubscriber = (id: string, status: NewsletterSubscriber['status']) =>
+  adminFetch<NewsletterSubscriber>(`/admin/newsletter/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) })
+export const deleteNewsletterSubscriber = (id: string) => adminFetch<void>(`/admin/newsletter/${id}`, { method: 'DELETE' })
+/** Downloads subscribed addresses as CSV. */
+export async function exportNewsletterCsv() {
+  const t = await token()
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/newsletter/export`, { headers: t ? { Authorization: `Bearer ${t}` } : {} })
+  if (!res.ok) throw new Error('Export failed')
+  const url = URL.createObjectURL(await res.blob())
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'newsletter-subscribers.csv'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 2000)
+}
+
+// ---- Storefront theme (Admin → Theme) ----
+export interface ThemeToken {
+  key: string
+  label: string
+  group: string
+}
+export type ThemeColors = Record<string, string>
+export interface ThemeDef {
+  id: string
+  name: string
+  description?: string
+  colors: ThemeColors
+}
+export interface ThemeAdminState {
+  activeId: string
+  defaultId: string
+  tokens: ThemeToken[]
+  presets: ThemeDef[]
+  customThemes: ThemeDef[]
+  /** Invoice accent choices re-coloured for the live theme; null while the default theme is live. */
+  invoiceAccents: Record<'peach' | 'violet' | 'rose' | 'teal', { name: string; label: string; wave: string; soft: string; strong: string }> | null
+}
+export const getThemeAdmin = () => adminFetch<ThemeAdminState>('/admin/theme')
+export const activateTheme = (id: string) =>
+  adminFetch<ThemeAdminState>('/admin/theme/active', { method: 'PUT', body: JSON.stringify({ id }) })
+export const createCustomTheme = (name: string, colors: ThemeColors) =>
+  adminFetch<ThemeAdminState & { id: string }>('/admin/theme/custom', { method: 'POST', body: JSON.stringify({ name, colors }) })
+export const updateCustomTheme = (id: string, name: string, colors: ThemeColors) =>
+  adminFetch<ThemeAdminState & { id: string }>(`/admin/theme/custom/${id}`, { method: 'PUT', body: JSON.stringify({ name, colors }) })
+export const deleteCustomTheme = (id: string) => adminFetch<ThemeAdminState>(`/admin/theme/custom/${id}`, { method: 'DELETE' })

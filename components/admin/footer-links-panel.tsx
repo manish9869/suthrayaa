@@ -79,7 +79,7 @@ export function FooterLinksPanel() {
               <TableCell className="text-muted-foreground text-sm">{l.url}</TableCell>
               <TableCell className="text-right">
                 <Can permission="settings.storefront">
-                  <Button variant="ghost" size="icon" onClick={() => handleDelete(l.id, l.label)}>
+                  <Button variant="ghost" size="icon" aria-label={`Delete link ${l.label}`} onClick={() => handleDelete(l.id, l.label)}>
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </Can>

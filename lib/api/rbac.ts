@@ -1,13 +1,8 @@
 import { apiFetch } from './http'
-import { createSupabaseBrowserClient } from '@/lib/supabase/client'
+import { getAccessToken } from '@/lib/auth/session'
 
-async function token(): Promise<string | undefined> {
-  const supabase = createSupabaseBrowserClient()
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-  return session?.access_token
-}
+/** Bearer token from the auth session (refreshed via the backend when needed). */
+const token = getAccessToken
 
 async function adminFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   return apiFetch<T>(path, { ...options, token: await token(), revalidate: false })

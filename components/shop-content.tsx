@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Navbar } from '@/components/navbar'
 import { Footer } from '@/components/footer'
 import { ProductCard } from '@/components/product-card'
+import { analytics, toItem } from '@/lib/analytics'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -35,7 +36,7 @@ const sortOptions: { value: SortOption; label: string }[] = [
   { value: 'rating', label: 'Top Rated' },
 ]
 
-export function ShopContent({ products, categories }: { products: Product[]; categories: Category[] }) {
+export function ShopContent({ products, categories, bannerImage }: { products: Product[]; categories: Category[]; bannerImage?: string }) {
   const searchParams = useSearchParams()
   const categoryParam = searchParams.get('category')
   const tagParam = searchParams.get('tag')
@@ -156,6 +157,17 @@ export function ShopContent({ products, categories }: { products: Product[]; cat
 
     return result
   }, [products, searchQuery, selectedCategories, selectedTag, matchingSlugs, priceRange, sortBy])
+
+  // Analytics: what the shopper is looking at once the results settle, and what they searched
+  useEffect(() => {
+    const t = setTimeout(() => analytics.viewItemList('Shop', filteredProducts.map((p) => toItem(p))), 800)
+    return () => clearTimeout(t)
+  }, [filteredProducts])
+  useEffect(() => {
+    if (!searchQuery.trim()) return
+    const t = setTimeout(() => analytics.search(searchQuery), 1000)
+    return () => clearTimeout(t)
+  }, [searchQuery])
 
   const handleCategoryToggle = (categorySlug: string) => {
     setSelectedCategories((prev) =>
@@ -322,13 +334,13 @@ export function ShopContent({ products, categories }: { products: Product[]; cat
   return (
     <>
       <Navbar categories={categories} />
-      <main className="min-h-screen">
+      <main className="min-h-svh">
         {/* Page header */}
         <section className="relative overflow-hidden">
           <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-blush/60 blur-3xl" />
           <div className="pointer-events-none absolute right-0 top-0 h-80 w-80 rounded-full bg-sage/20 blur-3xl" />
           <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[46%] lg:block">
-            <Image src={STOREFRONT_IMAGES.shopBanner} alt="" fill priority sizes="46vw" className="object-cover object-right opacity-90" />
+            <Image src={bannerImage || STOREFRONT_IMAGES.shopBanner} alt="" fill priority sizes="46vw" className="object-cover object-right opacity-90" />
             <div className="absolute inset-0 bg-gradient-to-r from-background via-background/40 to-transparent" />
             <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background to-transparent" />
           </div>
@@ -570,7 +582,7 @@ export function ShopContent({ products, categories }: { products: Product[]; cat
                         exit={{ opacity: 0, scale: 0.96 }}
                         transition={{ duration: 0.4, delay: Math.min(index, 8) * 0.04, ease: [0.23, 1, 0.32, 1] }}
                       >
-                        <ProductCard product={product} />
+                        <ProductCard product={product} listName="Shop" />
                       </motion.div>
                     ))}
                   </AnimatePresence>

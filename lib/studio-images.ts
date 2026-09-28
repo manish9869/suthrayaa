@@ -7,7 +7,9 @@
  * instead, so no card is ever a grey placeholder. Real uploaded photos always win.
  */
 
-const S = (name: string) => `/editorial/scene-${name}.webp`
+import { mediaUrl } from './media'
+
+const S = (name: string) => mediaUrl(`/editorial/scene-${name}.webp`)
 
 /** First match wins, so more specific phrases come before generic ones. */
 const RULES: [RegExp, string[]][] = [
@@ -52,7 +54,7 @@ const isPlaceholder = (url?: string | null) => !url || /placeholder/i.test(url)
 
 /** Real images when the item has any; otherwise the matching studio shots. */
 export function withStudioImages(images: string[] | undefined, ...names: (string | undefined | null)[]): string[] {
-  const real = (images ?? []).filter((u) => !isPlaceholder(u))
+  const real = (images ?? []).filter((u) => !isPlaceholder(u)).map((u) => mediaUrl(u))
   if (real.length > 0) return real
   const studio = studioImagesFor(...names)
   return studio.length > 0 ? studio : (images ?? [])

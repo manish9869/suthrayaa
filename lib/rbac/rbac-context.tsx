@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/hooks/use-auth'
 
 interface RbacContextValue {
   admin: AdminMe | null
-  /** True while the Supabase session or the /admin/me profile is still loading. */
+  /** True while the auth session or the /admin/me profile is still loading. */
   loading: boolean
   /** True once loading has finished and this account has no admin access at all. */
   denied: boolean

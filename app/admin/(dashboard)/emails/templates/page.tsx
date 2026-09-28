@@ -89,6 +89,13 @@ const AVAILABLE_VARIABLES = [
   '{{store_name}}',
 ]
 
+/** Preview only (never the email that's sent): hides the frame's own scrollbar, which the admin
+ * console's CSS can't reach inside the iframe. Scrolling still works. */
+const HIDE_SCROLLBAR = '<style>html{scrollbar-width:none}html::-webkit-scrollbar{display:none}</style>'
+function withHiddenScrollbar(html: string) {
+  return /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, (m) => m + HIDE_SCROLLBAR) : HIDE_SCROLLBAR + html
+}
+
 export default function EmailTemplatesPage() {
   const [templates, setTemplates] = useState<AdminEmailTemplate[]>([])
   const [loading, setLoading] = useState(true)
@@ -292,7 +299,7 @@ export default function EmailTemplatesPage() {
           <iframe
             title="Email preview"
             sandbox=""
-            srcDoc={previewContent?.bodyHtml ?? ''}
+            srcDoc={withHiddenScrollbar(previewContent?.bodyHtml ?? '')}
             className="h-[70vh] w-full rounded-lg border bg-white"
           />
         </DialogContent>

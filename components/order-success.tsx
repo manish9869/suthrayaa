@@ -16,7 +16,8 @@ import { AddressLines } from '@/components/account/address-card'
 import { cn } from '@/lib/utils'
 
 const EASE = [0.22, 1, 0.36, 1] as const
-const BURST = ['#6d4aff', '#ff9e7a', '#b9a8ff', '#f5b544', '#ffc9b5', '#8b6bff']
+// Theme tokens, so the celebration matches the active storefront theme
+const BURST = ['var(--primary)', 'var(--secondary)', 'var(--sage)', 'var(--gold)', 'var(--blush)', 'var(--rose)']
 
 /** The success mark: a stitched ring that spins in, then a tick that draws itself. */
 function SuccessMark({ pending }: { pending: boolean }) {
@@ -30,7 +31,7 @@ function SuccessMark({ pending }: { pending: boolean }) {
       }),
     []
   )
-  const color = pending ? '#d98c1f' : '#6d4aff'
+  const color = pending ? '#d98c1f' : 'var(--primary)'
   return (
     <div className="relative mx-auto h-36 w-36">
       {!pending &&
@@ -44,7 +45,7 @@ function SuccessMark({ pending }: { pending: boolean }) {
             transition={{ delay: 0.75 + (i % 6) * 0.03, duration: 1.3, ease: EASE }}
           >
             {p.heart ? (
-              <svg width={p.size + 6} height={p.size + 6} viewBox="0 0 24 24" fill={p.color} className="-translate-x-1/2 -translate-y-1/2">
+              <svg width={p.size + 6} height={p.size + 6} viewBox="0 0 24 24" style={{ fill: p.color }} className="-translate-x-1/2 -translate-y-1/2">
                 <path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 5 6.4 5c2 0 3.5 1.1 4.3 2.6h2.6C14.1 6.1 15.6 5 17.6 5 21 5 23.1 8.4 21.6 11.8 19.5 16.4 12 21 12 21z" />
               </svg>
             ) : (
@@ -58,7 +59,6 @@ function SuccessMark({ pending }: { pending: boolean }) {
           cy="60"
           r="54"
           fill="none"
-          stroke={color}
           strokeOpacity="0.35"
           strokeWidth="2"
           strokeDasharray="6 5"
@@ -66,17 +66,16 @@ function SuccessMark({ pending }: { pending: boolean }) {
           initial={reduce ? false : { rotate: -120, opacity: 0 }}
           animate={{ rotate: 0, opacity: 1 }}
           transition={{ duration: 0.9, ease: EASE }}
-          style={{ originX: '60px', originY: '60px' }}
+          style={{ stroke: color, originX: '60px', originY: '60px' }}
         />
         <motion.circle
           cx="60"
           cy="60"
           r="44"
-          fill={color}
           initial={reduce ? false : { scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 260, damping: 18, delay: 0.15 }}
-          style={{ originX: '60px', originY: '60px' }}
+          style={{ fill: color, originX: '60px', originY: '60px' }}
         />
         {pending ? (
           <motion.g initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} stroke="#fff" strokeWidth="6" strokeLinecap="round" fill="none">
@@ -201,7 +200,7 @@ export function OrderSuccess({ orderNumber, payment, orderId }: { orderNumber: s
 
           <div className="mt-12 grid grid-cols-1 gap-5 md:grid-cols-5">
             {/* order recap (signed-in) or what's next */}
-            <motion.section {...rise(1.05)} className="rounded-3xl border bg-card p-6 shadow-[0_18px_50px_-34px_rgb(49_32_140/0.45)] md:col-span-3">
+            <motion.section {...rise(1.05)} className="rounded-3xl border bg-card p-6 shadow-[0_18px_50px_-34px_color-mix(in_oklab,var(--shadow-tint)_45%,transparent)] md:col-span-3">
               {order ? (
                 <>
                   <h2 className="mb-4 text-[13px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Your order</h2>
@@ -222,7 +221,7 @@ export function OrderSuccess({ orderNumber, payment, orderId }: { orderNumber: s
                   </ul>
                   <div className="mt-4 space-y-1.5 border-t pt-4 text-sm">
                     {order.discountAmount > 0 && (
-                      <p className="flex justify-between text-emerald-700">
+                      <p className="flex justify-between text-mint-foreground">
                         <span>Discount</span>
                         <span>−{formatPrice(order.discountAmount)}</span>
                       </p>
@@ -260,7 +259,7 @@ export function OrderSuccess({ orderNumber, payment, orderId }: { orderNumber: s
             <div className="space-y-5 md:col-span-2">
               <motion.section {...rise(1.15)} className="rounded-3xl border bg-card p-5">
                 <p className="flex items-center gap-2 font-medium">
-                  {pending ? <Clock className="h-4 w-4 text-amber-600" /> : isCod ? <Banknote className="h-4 w-4 text-primary" /> : <CheckCircle2 className="h-4 w-4 text-emerald-600" />}
+                  {pending ? <Clock className="h-4 w-4 text-gold-foreground" /> : isCod ? <Banknote className="h-4 w-4 text-primary" /> : <CheckCircle2 className="h-4 w-4 text-mint-foreground" />}
                   {pending ? 'Awaiting payment' : isCod ? 'Pay on delivery' : 'Paid online'}
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground">

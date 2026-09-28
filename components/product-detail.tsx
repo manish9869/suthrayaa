@@ -31,7 +31,9 @@ import {
 import { cn } from '@/lib/utils'
 import { useCartStore, useWishlistStore } from '@/lib/store'
 import { useHydrated } from '@/lib/hooks/use-hydrated'
+import { analytics, toItem } from '@/lib/analytics'
 import { formatPrice, type Product, type Review, type Category } from '@/lib/data'
+import { ReviewForm } from '@/components/review-form'
 import { customizationGroupId, ProductCustomizer, type ResolvedCustomization } from '@/components/product-customizer'
 import { YarnColorPicker } from '@/components/yarn-color-picker'
 import { toast } from 'sonner'
@@ -60,6 +62,12 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
   const [customText, setCustomText] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [zoomOrigin, setZoomOrigin] = useState('50% 50%')
+
+  useEffect(() => {
+    analytics.viewItem(toItem(product))
+    // once per product viewed
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product.id])
 
   // Show a compact buy bar on mobile once the main Add to cart button has scrolled away
   const buyRef = useRef<HTMLDivElement>(null)
@@ -189,7 +197,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
   return (
     <>
       <Navbar categories={categories} />
-      <main className="min-h-screen">
+      <main className="min-h-svh">
         <div className="container mx-auto px-4 pb-8 pt-6">
           {/* Breadcrumb */}
           <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 overflow-hidden text-[13px] text-muted-foreground">
@@ -583,6 +591,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                         ))}
                       </div>
                     )}
+                    {reviews.length > 0 && <ReviewForm productId={product.id} productName={product.name} className="mt-6 w-full" />}
                   </div>
                   {reviews.length > 0 ? (
                     <div className="space-y-4">
@@ -614,8 +623,8 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                                   <Star key={i} className={cn('h-3.5 w-3.5', i < review.rating ? 'fill-gold text-gold' : 'text-muted-foreground/30')} />
                                 ))}
                               </div>
-                              <h4 className="mt-3 font-medium">{review.title}</h4>
-                              <p className="mt-1 text-sm leading-relaxed text-foreground/70">{review.content}</p>
+                              {review.title && <h4 className="mt-3 font-medium">{review.title}</h4>}
+                              <p className={cn('text-sm leading-relaxed text-foreground/70', review.title ? 'mt-1' : 'mt-3')}>{review.content}</p>
                             </div>
                           </div>
                         </article>
@@ -624,9 +633,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                   ) : (
                     <div className="rounded-[1.5rem] bg-card p-10 text-center ring-1 ring-border">
                       <p className="text-muted-foreground">No reviews yet. Be the first to review!</p>
-                      <Button variant="outline" className="mt-4">
-                        Write a review
-                      </Button>
+                      <ReviewForm productId={product.id} productName={product.name} className="mt-4" />
                     </div>
                   )}
                 </div>
@@ -678,7 +685,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
               <Stagger className="grid grid-cols-2 gap-x-4 gap-y-10 lg:grid-cols-4 lg:gap-x-6">
                 {relatedProducts.map((p) => (
                   <StaggerItem key={p.id}>
-                    <ProductCard product={p} />
+                    <ProductCard product={p} listName="Related products" />
                   </StaggerItem>
                 ))}
               </Stagger>
@@ -694,7 +701,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
               animate={{ y: 0 }}
               exit={{ y: '110%' }}
               transition={{ duration: 0.3, ease: EASE_OUT }}
-              className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 px-4 py-3 backdrop-blur-xl lg:hidden"
+              className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl lg:hidden"
             >
               <div className="flex items-center gap-3">
                 <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-sand">
