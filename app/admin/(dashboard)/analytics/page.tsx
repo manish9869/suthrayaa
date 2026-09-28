@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, type TooltipProps } from 'recharts'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, type TooltipContentProps } from 'recharts'
 import {
   IndianRupee,
   ShoppingBag,
@@ -310,7 +310,7 @@ function compactPrice(v: number) {
   return `₹${Math.round(v)}`
 }
 
-function TrendTooltip({ active, payload, metric }: TooltipProps<number, string> & { metric: TrendMetric }) {
+function TrendTooltip({ active, payload, metric }: Partial<TooltipContentProps<number, string>> & { metric: TrendMetric }) {
   if (!active || !payload?.length) return null
   const row = payload[0].payload as { date: string; value: number; paidOrders: number }
   return (

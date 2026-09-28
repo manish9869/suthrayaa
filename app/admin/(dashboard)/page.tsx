@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { StatCard, ChangeBadge } from '@/components/admin/stat-card'
 import { StatusDot, type DotTone } from '@/components/admin/status-dot'
 import { SegmentedControl } from '@/components/admin/segmented-control'
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, type TooltipProps } from 'recharts'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, type TooltipContentProps } from 'recharts'
 import {
   IndianRupee,
   ShoppingBag,
@@ -144,7 +144,7 @@ function initialsOf(name: string) {
     .join('')
 }
 
-function TrendTooltip({ active, payload, metric }: TooltipProps<number, string> & { metric: TrendMetric }) {
+function TrendTooltip({ active, payload, metric }: Partial<TooltipContentProps<number, string>> & { metric: TrendMetric }) {
   if (!active || !payload?.length) return null
   const row = payload[0].payload as { date: string; value: number; orders?: number }
   return (
