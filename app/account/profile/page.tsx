@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Loader2, Mail } from 'lucide-react'
+import { Loader2, Lock, Mail } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,10 +9,8 @@ import { Switch } from '@/components/ui/switch'
 import { AccountPageHeader, useAccount } from '@/components/account/account-shell'
 import { Field, invalidProps } from '@/components/account/field'
 import { fieldErrorsFrom, updateProfile } from '@/lib/api/account'
-import { changeEmail as requestEmailChange } from '@/lib/api/auth'
-import { ApiError } from '@/lib/api/http'
 import { isValidIndianMobile } from '@/lib/india'
-import { hasErrors, validateEmail } from '@/lib/validation'
+import { hasErrors } from '@/lib/validation'
 import { cn } from '@/lib/utils'
 
 function Card({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
@@ -61,28 +59,6 @@ export default function ProfilePage() {
       toast.error(Object.keys(fe).length ? 'Please check the highlighted fields' : err instanceof Error ? err.message : 'Could not save your profile')
     } finally {
       setSaving(false)
-    }
-  }
-
-  // ---- email change (Supabase sends a confirmation link to the new address) ----
-  const [newEmail, setNewEmail] = useState('')
-  const [emailError, setEmailError] = useState<string>()
-  const [emailSending, setEmailSending] = useState(false)
-  const [emailSent, setEmailSent] = useState(false)
-  const changeEmail = async (ev: React.FormEvent) => {
-    ev.preventDefault()
-    const err = validateEmail(newEmail) ?? (newEmail.trim().toLowerCase() === email?.toLowerCase() ? 'That’s already your email' : undefined)
-    setEmailError(err)
-    if (err) return
-    setEmailSending(true)
-    try {
-      // Supabase emails a confirmation link; it lands on /auth/callback → back to this page
-      await requestEmailChange(newEmail.trim())
-      setEmailSent(true)
-    } catch (err) {
-      setEmailError(err instanceof ApiError ? err.message : 'Could not start the email change')
-    } finally {
-      setEmailSending(false)
     }
   }
 
@@ -144,36 +120,12 @@ export default function ProfilePage() {
           </form>
         </Card>
 
-        <Card title="Email address" description={email ? `You sign in and receive order updates at ${email}.` : undefined}>
-          {emailSent ? (
-            <div className="flex items-start gap-3 rounded-2xl bg-primary/[0.06] p-4 text-sm">
-              <Mail className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-              <p>
-                We’ve sent a confirmation link to <strong>{newEmail}</strong>. Your email changes once you open it{email ? ' (you may also need to confirm from your current inbox)' : ''}.
-              </p>
-            </div>
-          ) : (
-            <form onSubmit={changeEmail} noValidate className="flex flex-col gap-3 sm:flex-row sm:items-start">
-              <Field label="New email address" htmlFor="p-email" error={emailError} className="flex-1">
-                <Input
-                  id="p-email"
-                  type="email"
-                  autoComplete="email"
-                  value={newEmail}
-                  onChange={(e) => {
-                    setNewEmail(e.target.value)
-                    setEmailError(undefined)
-                  }}
-                  placeholder="you@example.com"
-                  {...invalidProps('p-email', emailError)}
-                  className={cn('h-11 rounded-xl bg-card', emailError && 'border-destructive')}
-                />
-              </Field>
-              <Button type="submit" variant="outline" className="rounded-full sm:mt-[26px]" disabled={emailSending}>
-                {emailSending && <Loader2 className="h-4 w-4 animate-spin" />} Change email
-              </Button>
-            </form>
-          )}
+        <Card title="Email address" description="You sign in and receive order updates here. For security, your email can’t be changed.">
+          <div className="relative">
+            <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input id="p-email" type="email" value={email ?? ''} readOnly disabled aria-label="Email address" className="h-11 rounded-xl bg-muted/50 pl-10" />
+            <Lock className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          </div>
         </Card>
       </div>
     </>

@@ -51,10 +51,6 @@ export async function changePassword(password: string, currentPassword?: string)
   })
 }
 
-export async function changeEmail(email: string) {
-  return apiFetch<{ ok: true }>('/auth/email', { method: 'POST', revalidate: false, token: await getAccessToken(), body: JSON.stringify({ email }) })
-}
-
 /** Loads the user for a freshly issued token (after an email link or Google redirect). */
 export const fetchUser = (accessToken: string) =>
   apiFetch<{ user: AuthUser }>('/auth/user', { revalidate: false, token: accessToken }).then((r) => r.user)
