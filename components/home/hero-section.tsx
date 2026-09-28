@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { mediaUrl } from '@/lib/media'
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion, AnimatePresence, useReducedMotion, useScroll, useTransform } from 'framer-motion'
@@ -228,7 +229,7 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
               <div className="flex -space-x-2.5">
                 {['/testimonials/avatar-1.jpg', '/testimonials/avatar-2.jpg', '/testimonials/avatar-3.jpg'].map((src) => (
                   <span key={src} className="relative h-9 w-9 overflow-hidden rounded-full ring-2 ring-background">
-                    <Image src={src} alt="" fill sizes="36px" className="object-cover" />
+                    <Image src={mediaUrl(src)} alt="" fill sizes="36px" className="object-cover" />
                   </span>
                 ))}
               </div>
@@ -257,7 +258,7 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
                   transition={{ duration: 0.9, ease: EASE_OUT }}
                 >
                   <div className={cn('absolute inset-0', !reduce && 'ken-burns')}>
-                    <Image src={slide.image} alt={slide.title} fill priority sizes="(max-width: 1024px) 80vw, 420px" className="object-cover" />
+                    <Image src={mediaUrl(slide.image)} alt={slide.title} fill priority sizes="(max-width: 1024px) 80vw, 420px" className="object-cover" />
                   </div>
                   {!reduce && <div className="stage-sheen absolute inset-0" />}
                 </motion.div>

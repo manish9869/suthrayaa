@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import { mediaUrl } from '@/lib/media'
 import { Instagram, ArrowUpRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Stagger, StaggerItem } from '@/components/motion/reveal'
@@ -37,7 +38,7 @@ export function InstagramSection({ content, heading }: { content?: SiteContent['
             {photos.map((photo, i) => (
               <StaggerItem key={`${photo.image}-${i}`} className={i % 2 === 1 ? 'lg:translate-y-8' : undefined}>
                 <a href={profileUrl} target="_blank" rel="noopener noreferrer" className="group relative block aspect-[4/5] overflow-hidden rounded-[1.4rem] bg-sand">
-                  <Image src={photo.image} alt={photo.alt} fill sizes="(max-width: 640px) 50vw, 16vw" className="zoom-img object-cover" />
+                  <Image src={mediaUrl(photo.image)} alt={photo.alt} fill sizes="(max-width: 640px) 50vw, 16vw" className="zoom-img object-cover" />
                   <span className="absolute inset-0 flex items-center justify-center bg-primary/0 transition-colors duration-300 group-hover:bg-primary/35">
                     <Instagram className="h-7 w-7 scale-90 text-white opacity-0 transition-[opacity,transform] duration-300 ease-[var(--ease-out)] group-hover:scale-100 group-hover:opacity-100" />
                   </span>

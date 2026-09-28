@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef } from 'react'
+import { mediaUrl } from '@/lib/media'
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion'
@@ -46,14 +47,14 @@ export function StorySection({ content }: { content?: SiteContent['home.story'] 
         {/* Images */}
         <div className="relative mx-auto w-full max-w-[520px]">
           <motion.div style={{ y: yBig }} className="arch relative aspect-[4/5] w-[78%] overflow-hidden bg-sand">
-            {c.image && <Image src={c.image} alt={c.imageAlt} fill sizes="(max-width: 1024px) 80vw, 400px" className="object-cover" />}
+            {c.image && <Image src={mediaUrl(c.image)} alt={c.imageAlt} fill sizes="(max-width: 1024px) 80vw, 400px" className="object-cover" />}
           </motion.div>
           {c.secondaryImage && (
             <motion.div
               style={{ y: ySmall }}
               className="absolute bottom-[-6%] right-0 aspect-square w-[46%] overflow-hidden rounded-[1.75rem] border-[6px] border-background bg-sand shadow-xl"
             >
-              <Image src={c.secondaryImage} alt="" fill sizes="240px" className="object-cover" />
+              <Image src={mediaUrl(c.secondaryImage)} alt="" fill sizes="240px" className="object-cover" />
             </motion.div>
           )}
           {c.badgeValue && (

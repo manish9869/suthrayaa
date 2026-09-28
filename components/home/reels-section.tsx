@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { mediaUrl } from '@/lib/media'
 import Link from 'next/link'
 import { motion, useReducedMotion } from 'framer-motion'
 import { ArrowUpRight, Pause, Play } from 'lucide-react'
@@ -10,7 +11,7 @@ import type { SectionHeadingContent, SiteContent } from '@/lib/content'
 
 type Reel = SiteContent['home.reels']['items'][number]
 
-// Built-in reels (public/reels), used only if the content API is unreachable (edit in Admin → Storefront Content)
+// Built-in reels (site-media bucket, see lib/media.ts), used only if the content API is unreachable (edit in Admin → Storefront Content)
 const FALLBACK_REELS: Reel[] = [
   ['devghar', 'Devghar garlands', 'Pooja', '/shop?category=devghar-collection-v2'],
   ['torans', 'Door torans', 'Home décor', '/shop?search=toran'],
@@ -65,7 +66,7 @@ function ReelCard({ reel, index }: { reel: Reel; index: number }) {
       <div className="group relative aspect-[9/16] overflow-hidden rounded-[1.75rem] bg-sand shadow-[0_24px_50px_-30px_color-mix(in_oklab,var(--shadow-tint)_55%,transparent)] ring-1 ring-border">
         <video
           ref={ref}
-          poster={reel.poster || undefined}
+          poster={mediaUrl(reel.poster) || undefined}
           muted
           loop
           playsInline
@@ -76,8 +77,8 @@ function ReelCard({ reel, index }: { reel: Reel; index: number }) {
           aria-label={`${reel.title} reel`}
         >
           {/* WebM (VP9) first for Chromium builds without H.264; MP4 for Safari/iOS */}
-          {reel.videoWebmUrl && <source src={reel.videoWebmUrl} type="video/webm" />}
-          {reel.videoUrl && <source src={reel.videoUrl} type="video/mp4" />}
+          {reel.videoWebmUrl && <source src={mediaUrl(reel.videoWebmUrl)} type="video/webm" />}
+          {reel.videoUrl && <source src={mediaUrl(reel.videoUrl)} type="video/mp4" />}
         </video>
         {/* legibility wash */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-ink/75 to-transparent" />

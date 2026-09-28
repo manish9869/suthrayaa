@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { mediaUrl } from '@/lib/media'
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
@@ -111,7 +112,7 @@ export function PromoSection({ products = [], content }: { products?: Product[];
             </Button>
           </div>
           <div className="relative min-h-[240px] lg:min-h-[340px]">
-            <Image src={STOREFRONT_PROMO.saleImage || STOREFRONT_IMAGES.promoBanner} alt="" fill sizes="(max-width: 1024px) 100vw, 55vw" className="zoom-img object-cover" />
+            <Image src={mediaUrl(STOREFRONT_PROMO.saleImage) || STOREFRONT_IMAGES.promoBanner} alt="" fill sizes="(max-width: 1024px) 100vw, 55vw" className="zoom-img object-cover" />
             <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/10 to-transparent lg:via-transparent" />
             <div className="absolute left-6 top-1/2 flex h-32 w-32 -translate-y-1/2 flex-col items-center justify-center rounded-full bg-rose text-center text-white shadow-xl lg:-left-16 lg:h-36 lg:w-36">
               <span className="text-[11px] font-semibold uppercase tracking-[0.14em] opacity-90">Up to</span>
@@ -176,7 +177,7 @@ export function PromoSection({ products = [], content }: { products?: Product[];
                 </Button>
               </div>
               <Link href={deal ? `/product/${deal.slug}` : '/shop'} className="group relative mx-auto block aspect-square w-full max-w-[220px] overflow-hidden rounded-full bg-card ring-8 ring-card/60">
-                <Image src={deal?.images[0] ?? (STOREFRONT_PROMO.dealFallbackImage || STOREFRONT_IMAGES.dealOfDay)} alt={deal?.name ?? ''} fill sizes="220px" className="zoom-img object-cover" />
+                <Image src={deal?.images[0] ?? (mediaUrl(STOREFRONT_PROMO.dealFallbackImage) || STOREFRONT_IMAGES.dealOfDay)} alt={deal?.name ?? ''} fill sizes="220px" className="zoom-img object-cover" />
               </Link>
             </div>
           </Reveal>

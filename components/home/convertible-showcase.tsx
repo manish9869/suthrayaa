@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { mediaUrl } from '@/lib/media'
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion, AnimatePresence, useInView, useReducedMotion } from 'framer-motion'
@@ -33,7 +34,7 @@ const HOLD = 3200
  */
 export function ConvertibleShowcase({ content }: { content?: SiteContent['home.convertible'] }) {
   const c = content ?? FALLBACK
-  const STAGES = c.stages.filter((st) => st.image).map((st, i) => ({ key: `${i}`, src: st.image, label: st.label, note: st.note }))
+  const STAGES = c.stages.filter((st) => st.image).map((st, i) => ({ key: `${i}`, src: mediaUrl(st.image), label: st.label, note: st.note }))
   const reduce = useReducedMotion()
   const ref = useRef<HTMLDivElement>(null)
   const inView = useInView(ref, { amount: 0.4 })

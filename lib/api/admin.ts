@@ -1008,6 +1008,25 @@ export const resetAdminContent = (key: string) =>
   adminFetch<{ key: string; value: Record<string, unknown>; customized: boolean }>(`/admin/content/${key}`, { method: 'DELETE' })
 export const uploadContentImage = (file: File) => uploadAdminImage<{ url: string }>('/admin/content/upload-image', file)
 
+export const MAX_VIDEO_UPLOAD_BYTES = 50 * 1024 * 1024
+
+/** Uploads a reel video straight to Supabase Storage via a one-time signed URL from the API
+ * (videos are too big to go through the API itself). Returns the public CDN URL. */
+export async function uploadContentVideo(file: File): Promise<{ url: string }> {
+  if (!['video/mp4', 'video/webm'].includes(file.type)) throw new Error('Only MP4 or WebM videos are allowed')
+  if (file.size > MAX_VIDEO_UPLOAD_BYTES) throw new Error('Video is too large — please use one under 50 MB')
+  const { uploadUrl, publicUrl } = await adminFetch<{ uploadUrl: string; publicUrl: string }>('/admin/content/video-upload-url', {
+    method: 'POST',
+    body: JSON.stringify({ contentType: file.type }),
+  })
+  const res = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type, 'cache-control': 'max-age=31536000' }, body: file })
+  if (!res.ok) {
+    const body = await res.json().catch(() => null)
+    throw new Error(body?.message ?? body?.error ?? 'Video upload failed')
+  }
+  return { url: publicUrl }
+}
+
 // ---- Newsletter subscribers ----
 export interface NewsletterSubscriber {
   id: string

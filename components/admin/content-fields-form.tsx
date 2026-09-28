@@ -1,7 +1,7 @@
 'use client'
 
 import { useId, useRef, useState } from 'react'
-import { ArrowDown, ArrowUp, ChevronDown, ImageIcon, Plus, Trash2, Upload, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, ChevronDown, ImageIcon, Plus, Trash2, Upload, Video, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ContentIcon } from '@/components/content-text'
-import { uploadContentImage, type ContentField } from '@/lib/api/admin'
+import { uploadContentImage, uploadContentVideo, type ContentField } from '@/lib/api/admin'
+import { mediaUrl } from '@/lib/media'
 import { cn } from '@/lib/utils'
 
 type Value = Record<string, unknown>
@@ -74,7 +75,7 @@ function FieldEditor({
       control = <ImageField value={str} onChange={onChange} disabled={disabled} />
       break
     case 'video':
-      control = <Input id={id} value={str} disabled={disabled} placeholder="https://…/clip.mp4" onChange={(e) => onChange(e.target.value)} />
+      control = <VideoField id={id} value={str} onChange={onChange} disabled={disabled} />
       break
     case 'icon':
       control = (
@@ -142,7 +143,7 @@ function ImageField({ value, onChange, disabled }: { value: string; onChange: (v
         {value ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={value} alt="" className="h-full w-full object-cover" />
+            <img src={mediaUrl(value)} alt="" className="h-full w-full object-cover" />
             {!disabled && (
               <button
                 type="button"
@@ -165,6 +166,60 @@ function ImageField({ value, onChange, disabled }: { value: string; onChange: (v
         <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={upload} />
         <Button type="button" size="sm" variant="outline" className="w-fit" disabled={disabled || uploading} onClick={() => fileRef.current?.click()}>
           <Upload className="h-4 w-4" /> {uploading ? 'Uploading…' : 'Upload image'}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+/** Upload a clip (goes straight to the CDN bucket) or paste any public video URL. */
+function VideoField({ id, value, onChange, disabled }: { id: string; value: string; onChange: (v: string) => void; disabled?: boolean }) {
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+
+  const upload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const { url } = await uploadContentVideo(file)
+      onChange(url)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Video upload failed')
+    } finally {
+      setUploading(false)
+      e.target.value = ''
+    }
+  }
+
+  return (
+    <div className="flex items-start gap-3">
+      <div className="relative h-20 w-14 shrink-0 overflow-hidden rounded-lg border bg-muted">
+        {value ? (
+          <>
+            <video src={mediaUrl(value)} muted playsInline preload="metadata" className="h-full w-full object-cover" />
+            {!disabled && (
+              <button
+                type="button"
+                aria-label="Remove video"
+                onClick={() => onChange('')}
+                className="absolute right-1 top-1 rounded-full bg-black/55 p-0.5 text-white hover:bg-black/70"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </>
+        ) : (
+          <div className="flex h-full items-center justify-center text-muted-foreground">
+            <Video className="h-5 w-5" />
+          </div>
+        )}
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
+        <Input id={id} value={value} disabled={disabled} placeholder="https://…/clip.mp4 or upload" onChange={(e) => onChange(e.target.value)} />
+        <input ref={fileRef} type="file" accept="video/mp4,video/webm" className="hidden" onChange={upload} />
+        <Button type="button" size="sm" variant="outline" className="w-fit" disabled={disabled || uploading} onClick={() => fileRef.current?.click()}>
+          <Upload className="h-4 w-4" /> {uploading ? 'Uploading…' : 'Upload video'}
         </Button>
       </div>
     </div>
