@@ -2,6 +2,14 @@ import { notFound } from 'next/navigation'
 import { ProductDetail } from '@/components/product-detail'
 import { getProductBySlug, getProductsByCategory, getProductReviews, getCategories } from '@/lib/data'
 
+// Each product page is rendered on its first visit, then served from cache and refreshed at
+// most once a minute (same freshness as the rest of the storefront) — traffic spikes on a
+// product never turn into one render + API round-trip per shopper.
+export const revalidate = 60
+export async function generateStaticParams() {
+  return []
+}
+
 interface ProductPageProps {
   params: Promise<{ slug: string }>
 }
