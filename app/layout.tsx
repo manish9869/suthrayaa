@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Plus_Jakarta_Sans, Fraunces } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
-import { Toaster } from 'sonner'
+import { AppToaster } from '@/components/app-toaster'
 import { StoreSettingsGate } from '@/components/store-settings-gate'
 import { AccountSync } from '@/components/account-sync'
 import { SiteAnalytics } from '@/components/site-analytics'
@@ -166,7 +166,7 @@ export default async function RootLayout({
             consentMessage={str(legal['legal.cookie_message'])}
           />
         </Suspense>
-        <Toaster position="bottom-right" richColors />
+        <AppToaster />
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

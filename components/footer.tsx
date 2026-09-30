@@ -76,7 +76,8 @@ function asString(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() ? value : undefined
 }
 
-export function Footer() {
+/** `minimal`: just the copyright and policy links — for checkout, where nothing should distract. */
+export function Footer({ minimal = false }: { minimal?: boolean } = {}) {
   const [extras, setExtras] = useState<SiteContent['footer.content']>(FALLBACK_EXTRAS)
   const [footerColumns, setFooterColumns] = useState<Record<string, FooterLinkItem[]>>(FALLBACK_FOOTER_LINKS)
   const [logoUrl, setLogoUrl] = useState(FALLBACK_LOGO_URL)
@@ -151,6 +152,23 @@ export function Footer() {
     { title: 'Help', links: supportLinks },
     { title: 'About', links: aboutLinks },
   ].filter((c) => c.links.length > 0)
+
+  if (minimal) {
+    return (
+      <footer className="border-t">
+        <div className="container mx-auto flex flex-col items-center justify-between gap-2 px-4 py-6 text-xs text-muted-foreground sm:flex-row">
+          <p>{copyrightText ?? `© ${new Date().getFullYear()} Suthrayaa. All rights reserved.`}</p>
+          <div className="flex flex-wrap items-center gap-4">
+            {policyLinks.map((link) => (
+              <Link key={link.label} href={link.href} className="link-underline inline-block py-2 hover:text-foreground">
+                {link.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+      </footer>
+    )
+  }
 
   return (
     <footer className="relative pt-12 lg:pt-16">
@@ -267,7 +285,7 @@ export function Footer() {
             <p>{copyrightText ?? `© ${new Date().getFullYear()} Suthrayaa. All rights reserved. Made with love in India.`}</p>
             <div className="flex flex-wrap items-center gap-5">
               {policyLinks.map((link) => (
-                <Link key={link.label} href={link.href} className="link-underline hover:text-primary-foreground">
+                <Link key={link.label} href={link.href} className="link-underline inline-block py-2 hover:text-primary-foreground md:py-0">
                   {link.label}
                 </Link>
               ))}

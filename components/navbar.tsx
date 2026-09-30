@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import { motion, AnimatePresence, useAnimationControls, useReducedMotion } from 'framer-motion'
 import { Menu, X, ShoppingBag, Heart, Search, User, ChevronDown, ArrowRight, Package, MapPin, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
@@ -15,9 +15,11 @@ import { useAuth } from '@/lib/hooks/use-auth'
 import { formatPrice, searchProducts, type Category, type Product } from '@/lib/data'
 import { buildCategoryTree, totalProductCount } from '@/lib/utils/category-tree'
 import { CartDrawer } from './cart-drawer'
+import { SitePopup, parsePopup, type PopupConfig } from './site-popup'
 import { getPublicNavItems, getPublicSiteSettings } from '@/lib/api/settings'
 import { STOREFRONT_IMAGES } from '@/lib/storefront-images'
 import { EASE_OUT } from '@/components/motion/reveal'
+import { CartFlight, YarnProgress } from '@/components/motion/crochet-effects'
 import { ContentIcon } from '@/components/content-text'
 import { getContentBlock, type SiteContent } from '@/lib/content'
 
@@ -73,6 +75,9 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
   // Cart count comes from localStorage-persisted Zustand state, which is empty during SSR —
   // deferring the badge to after mount avoids a hydration mismatch against the server HTML.
   const [mounted, setMounted] = useState(false)
+  // Cart icon: a ball of yarn flies into it on add, then it gives a little wobble
+  const cartIconRef = useRef<HTMLSpanElement>(null)
+  const cartWobble = useAnimationControls()
   useEffect(() => setMounted(true), [])
 
   useEffect(() => {
@@ -94,6 +99,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
   const [navLinks, setNavLinks] = useState<NavLinkItem[]>(FALLBACK_NAV_LINKS)
   const [logoUrl, setLogoUrl] = useState<string>(STOREFRONT_IMAGES.logoMark)
   const [announcement, setAnnouncement] = useState<AnnouncementState | null>(null)
+  const [popup, setPopup] = useState<PopupConfig | null>(null)
 
   useEffect(() => {
     getPublicNavItems()
@@ -120,6 +126,9 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
         const branding = settings.branding ?? {}
         const logo = branding['branding.logo_url']
         if (typeof logo === 'string' && logo.trim()) setLogoUrl(logo)
+
+        // Admin → Settings → Pop-up Alert
+        setPopup(parsePopup(settings.popup))
 
         const header = settings.header ?? {}
         const enabled = Boolean(header['header.announcement_enabled'])
@@ -508,7 +517,9 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
               )}
 
               <Button variant="ghost" size="icon" className="relative" onClick={openCart} aria-label="Cart">
-                <ShoppingBag className="h-5 w-5" />
+                <motion.span ref={cartIconRef} animate={cartWobble} className="inline-flex">
+                  <ShoppingBag className="h-5 w-5" />
+                </motion.span>
                 <AnimatePresence>
                   {mounted && totalItems > 0 && (
                     <motion.span
@@ -526,6 +537,14 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
               </Button>
             </div>
           </nav>
+          <YarnProgress />
+          {mounted && (
+            <CartFlight
+              count={totalItems}
+              targetRef={cartIconRef}
+              onLand={() => cartWobble.start({ rotate: [0, -14, 11, -6, 0], scale: [1, 1.18, 1, 1, 1], transition: { duration: 0.55, ease: 'easeOut' } })}
+            />
+          )}
 
           {/* Mega menu */}
           <AnimatePresence>
@@ -702,6 +721,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
       </AnimatePresence>
 
       <CartDrawer />
+      <SitePopup popup={popup} />
 
       {/* Spacer for the fixed header (top strip + 72px bar) */}
       <div className="h-[calc(2.25rem+72px)]" />

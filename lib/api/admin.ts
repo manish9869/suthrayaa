@@ -5,7 +5,7 @@ import type { Product } from '@/lib/data'
 /** Bearer token from the auth session (refreshed via the backend when needed). */
 const token = getAccessToken
 
-async function adminFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+export async function adminFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   return apiFetch<T>(path, { ...options, token: await token(), revalidate: false })
 }
 
@@ -384,6 +384,8 @@ export const deleteCustomizationGroup = (productId: string, groupId: string) =>
 export interface CustomizationValueInput {
   label: string
   value: string
+  /** Color groups: the Colors library entry — the server takes the name and hex from it. */
+  colorId?: string
   priceAdjustment?: number
   sortOrder?: number
   enabled?: boolean
@@ -403,6 +405,12 @@ export const updateCustomizationValue = (
   adminFetch<AdminProductListItem>(`/admin/products/${productId}/customizations/${groupId}/values/${valueId}`, {
     method: 'PATCH',
     body: JSON.stringify(input),
+  })
+/** Adds Colors-library colours to a Color group (ones already in it are skipped). */
+export const addLibraryColors = (productId: string, groupId: string, colorIds: string[], priceAdjustment = 0) =>
+  adminFetch<AdminProductListItem>(`/admin/products/${productId}/customizations/${groupId}/library-colors`, {
+    method: 'POST',
+    body: JSON.stringify({ colorIds, priceAdjustment }),
   })
 export const deleteCustomizationValue = (productId: string, groupId: string, valueId: string) =>
   adminFetch<AdminProductListItem>(`/admin/products/${productId}/customizations/${groupId}/values/${valueId}`, {
@@ -443,11 +451,15 @@ export interface AdminColor {
   hex: string
   sort_order: number
   is_active: boolean
+  /** Colour family for filtering, e.g. "Red" (optional). */
+  family?: string | null
+  /** Yarn code / SKU (optional). */
+  sku?: string | null
 }
 export const getAdminColors = () => adminFetch<AdminColor[]>('/admin/colors')
-export const createColor = (input: { name: string; hex: string; sortOrder?: number }) =>
+export const createColor = (input: { name: string; hex: string; sortOrder?: number; family?: string | null; sku?: string | null }) =>
   adminFetch<AdminColor>('/admin/colors', { method: 'POST', body: JSON.stringify(input) })
-export const updateColor = (id: string, input: Partial<{ name: string; hex: string; sortOrder: number; isActive: boolean }>) =>
+export const updateColor = (id: string, input: Partial<{ name: string; hex: string; sortOrder: number; isActive: boolean; family: string | null; sku: string | null }>) =>
   adminFetch<AdminColor>(`/admin/colors/${id}`, { method: 'PATCH', body: JSON.stringify(input) })
 export const deleteColor = (id: string) => adminFetch<void>(`/admin/colors/${id}`, { method: 'DELETE' })
 
@@ -556,6 +568,25 @@ export const getAdminOrders = (params: AdminOrderListParams = {}) =>
 export const exportAdminOrdersCsv = (params: AdminOrderListParams = {}) =>
   downloadAdminCsv(`/admin/orders/export?${listQuery({ ...params, page: undefined, limit: undefined })}`, 'suthrayaa-orders.csv')
 
+export interface OrderPreviewSnapshot {
+  mode: 'photo' | 'svg'
+  svgTemplate?: string
+  baseUrl?: string
+  width?: number
+  height?: number
+  layers: {
+    customizationId: string
+    partLabel: string
+    /** The region and group names as configured when the order was placed. */
+    regionName?: string
+    groupName?: string
+    zone?: string
+    maskUrl?: string
+    hex?: string
+    colorName?: string
+  }[]
+}
+
 export interface AdminOrderItem {
   id: string
   productId: string | null
@@ -567,7 +598,9 @@ export interface AdminOrderItem {
   lineTotal: number
   selectedColor?: string
   customText?: string
-  customizations: { label: string; type: string; valueLabel?: string; textValue?: string; priceAdjustment: number }[]
+  customizations: { customizationId?: string; label: string; type: string; valueLabel?: string; value?: string; textValue?: string; priceAdjustment: number }[]
+  /** What the customer saw in "Customize & Preview", frozen at order time (absent otherwise). */
+  previewSnapshot?: OrderPreviewSnapshot
 }
 export interface AdminOrderDetail extends AdminOrderSummary {
   subtotal: number

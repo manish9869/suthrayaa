@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect, type ReactNode } from 'react'
+import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -35,6 +35,8 @@ const sortOptions: { value: SortOption; label: string }[] = [
   { value: 'bestselling', label: 'Best Selling' },
   { value: 'rating', label: 'Top Rated' },
 ]
+
+const SHOP_PAGE = 24
 
 export function ShopContent({ products, categories, bannerImage }: { products: Product[]; categories: Category[]; bannerImage?: string }) {
   const searchParams = useSearchParams()
@@ -158,14 +160,24 @@ export function ShopContent({ products, categories, bannerImage }: { products: P
     return result
   }, [products, searchQuery, selectedCategories, selectedTag, matchingSlugs, priceRange, sortBy])
 
+  // Show the list a page at a time (fewer cards to render on a phone; the footer stays reachable)
+  const [visibleCount, setVisibleCount] = useState(SHOP_PAGE)
+  useEffect(() => setVisibleCount(SHOP_PAGE), [filteredProducts])
+
   // Analytics: what the shopper is looking at once the results settle, and what they searched
   useEffect(() => {
     const t = setTimeout(() => analytics.viewItemList('Shop', filteredProducts.map((p) => toItem(p))), 800)
     return () => clearTimeout(t)
   }, [filteredProducts])
+  // the result count at the moment the search is reported (a ref, so results changing don't re-report)
+  const resultCount = useRef(0)
+  resultCount.current = filteredProducts.length
   useEffect(() => {
     if (!searchQuery.trim()) return
-    const t = setTimeout(() => analytics.search(searchQuery), 1000)
+    const t = setTimeout(() => {
+      analytics.search(searchQuery)
+      if (resultCount.current === 0) analytics.searchNoResults(searchQuery)
+    }, 1000)
     return () => clearTimeout(t)
   }, [searchQuery])
 
@@ -422,7 +434,7 @@ export function ShopContent({ products, categories, bannerImage }: { products: P
             <div className="flex-1">
               {/* Toolbar */}
               <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b pb-5">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 sm:gap-4">
                   {/* Mobile Filter Button */}
                   <Sheet open={showFilters} onOpenChange={setShowFilters}>
                     <SheetTrigger asChild>
@@ -454,7 +466,7 @@ export function ShopContent({ products, categories, bannerImage }: { products: P
                 <div className="flex items-center gap-4">
                   {/* Sort */}
                   <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
-                    <SelectTrigger className="h-10 w-44">
+                    <SelectTrigger className="h-10 w-[9rem] sm:w-44" aria-label="Sort products">
                       <SelectValue placeholder="Sort by" />
                     </SelectTrigger>
                     <SelectContent>
@@ -573,12 +585,13 @@ export function ShopContent({ products, categories, bannerImage }: { products: P
                   )}
                 >
                   <AnimatePresence mode="popLayout">
-                    {filteredProducts.map((product, index) => (
+                    {filteredProducts.slice(0, visibleCount).map((product, index) => (
                       <motion.div
                         key={product.id}
                         layout
-                        initial={{ opacity: 0, y: 14, filter: 'blur(4px)' }}
-                        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                        // only the first screenful animates in; the rest just appear (cheaper on phones)
+                        initial={index < 8 ? { opacity: 0, y: 14 } : false}
+                        animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.96 }}
                         transition={{ duration: 0.4, delay: Math.min(index, 8) * 0.04, ease: [0.23, 1, 0.32, 1] }}
                       >
@@ -587,6 +600,23 @@ export function ShopContent({ products, categories, bannerImage }: { products: P
                     ))}
                   </AnimatePresence>
                 </motion.div>
+              )}
+              {filteredProducts.length > visibleCount && (
+                <div className="mt-14 flex flex-col items-center gap-3 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    You&apos;ve seen <span className="font-semibold text-foreground tabular-nums">{visibleCount}</span> of{' '}
+                    <span className="tabular-nums">{filteredProducts.length}</span> pieces
+                  </p>
+                  <div className="h-[3px] w-48 overflow-hidden rounded-full bg-muted" aria-hidden>
+                    <div
+                      className="yarn-thread h-full origin-left rounded-full transition-transform duration-500 ease-[var(--ease-out)]"
+                      style={{ transform: `scaleX(${visibleCount / filteredProducts.length})` }}
+                    />
+                  </div>
+                  <Button variant="outline" size="lg" className="mt-2 h-12 px-8" onClick={() => setVisibleCount((n) => n + SHOP_PAGE)}>
+                    Show more
+                  </Button>
+                </div>
               )}
             </div>
           </div>

@@ -19,7 +19,7 @@ const FALLBACK: SiteContent['home.story'] = {
     { text: 'Suthrayaa was born from a passion for the timeless art of crochet. What started as a hobby has blossomed into a mission to bring handcrafted joy to homes across India.' },
     { text: 'The name "Suthrayaa" comes from the Sanskrit word for thread — the beautiful threads that connect us all. Every piece is made to order with premium, eco-friendly yarn, so it’s crafted specially for you.' },
   ],
-  image: '/editorial/story-hands.webp',
+  image: '/refresh/story-hands.webp',
   imageAlt: 'Hands crocheting in the Suthrayaa studio',
   secondaryImage: '/editorial/scene-hair.webp',
   badgeValue: '100%',
@@ -42,7 +42,7 @@ export function StorySection({ content }: { content?: SiteContent['home.story'] 
   const ySmall = useTransform(scrollYProgress, [0, 1], [reduce ? 0 : 80, reduce ? 0 : -60])
 
   return (
-    <section ref={ref} className="relative overflow-hidden py-20 lg:py-32">
+    <section ref={ref} className="relative overflow-hidden py-14 sm:py-20 lg:py-32">
       <div className="container mx-auto grid grid-cols-1 items-center gap-16 px-4 lg:grid-cols-2 lg:gap-20">
         {/* Images */}
         <div className="relative mx-auto w-full max-w-[520px]">

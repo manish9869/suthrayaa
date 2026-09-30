@@ -1,4 +1,5 @@
 import { Suspense } from 'react'
+import type { Metadata } from 'next'
 import { ShopContent } from '@/components/shop-content'
 import { getCategories, getProducts, type Product } from '@/lib/data'
 import { getContentBlock } from '@/lib/content'
@@ -13,6 +14,12 @@ async function getAllProducts(): Promise<Product[]> {
   if (pages <= 1) return first.items
   const rest = await Promise.all(Array.from({ length: pages - 1 }, (_, i) => getProducts({ limit: PAGE_SIZE, page: i + 2 })))
   return [...first.items, ...rest.flatMap((r) => r.items)]
+}
+
+export const metadata: Metadata = {
+  title: 'Shop Handmade Crochet | Suthrayaa',
+  description: 'Browse handmade crochet flowers, torans, keychains, bags, décor and gifts — made to order in India.',
+  alternates: { canonical: '/shop' },
 }
 
 export default async function ShopPage() {

@@ -25,6 +25,15 @@ interface ProductCustomizerProps {
   onChange: (resolved: ResolvedCustomization[], priceAdjustment: number, missingRequired: string[]) => void
   /** Once the customer has tried to add to cart, unanswered required groups are flagged. */
   showErrors?: boolean
+  /** Optional controlled mode — lets two customizers (page + Customize dialog) share one
+   * set of choices. Omit both to keep the default self-managed state. */
+  selections?: Record<string, CustomizerSelection>
+  onSelectionsChange?: (next: Record<string, CustomizerSelection>) => void
+  /** Option types rendered elsewhere (e.g. colours in the Customize window). They still
+   * count toward price and required checks here. */
+  hideTypes?: ProductCustomization['type'][]
+  /** Plain layout without the tinted panel and heading, for use inside another card. */
+  bare?: boolean
 }
 
 /** DOM id of a customization group — used to scroll to the first missing one. */
@@ -37,8 +46,14 @@ export const customizationGroupId = (id: string) => `cz-${id}`
  * (e.g. "Add Name? Yes" -> shows a text field) and live price adjustment. The backend
  * always re-validates and recomputes price at checkout; this is display-only.
  */
-export function ProductCustomizer({ customizations, onChange, showErrors = false }: ProductCustomizerProps) {
-  const [selections, setSelections] = useState<Record<string, CustomizerSelection>>({})
+export function ProductCustomizer({ customizations, onChange, showErrors = false, selections: controlled, onSelectionsChange, hideTypes = [], bare = false }: ProductCustomizerProps) {
+  const [internal, setInternal] = useState<Record<string, CustomizerSelection>>({})
+  const isControlled = controlled !== undefined && onSelectionsChange !== undefined
+  const selections = isControlled ? controlled : internal
+  const setSelections = (update: (prev: Record<string, CustomizerSelection>) => Record<string, CustomizerSelection>) => {
+    if (isControlled) onSelectionsChange(update(controlled))
+    else setInternal(update)
+  }
 
   const groups = useMemo(
     () => [...customizations].filter((c) => c.enabled).sort((a, b) => a.sortOrder - b.sortOrder),
@@ -101,7 +116,8 @@ export function ProductCustomizer({ customizations, onChange, showErrors = false
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selections, visibleGroupIds])
 
-  if (groups.length === 0) return null
+  const shownGroups = visibleGroups.filter((g) => !hideTypes.includes(g.type))
+  if (shownGroups.length === 0) return null
 
   const select = (customizationId: string, valueId: string) =>
     setSelections((prev) => ({ ...prev, [customizationId]: { customizationId, valueId } }))
@@ -110,12 +126,14 @@ export function ProductCustomizer({ customizations, onChange, showErrors = false
     setSelections((prev) => ({ ...prev, [customizationId]: { customizationId, textValue } }))
 
   return (
-    <div className="space-y-5 rounded-xl bg-blush/50 p-4">
-      <p className="flex items-center gap-1.5 text-sm font-semibold">
-        <Sparkles className="h-4 w-4 text-primary" /> Customize Your Piece
-      </p>
+    <div className={cn('space-y-5', !bare && 'rounded-xl bg-blush/50 p-4')}>
+      {!bare && (
+        <p className="flex items-center gap-1.5 text-sm font-semibold">
+          <Sparkles className="h-4 w-4 text-primary" /> Customize Your Piece
+        </p>
+      )}
 
-      {visibleGroups.map((group) => {
+      {shownGroups.map((group) => {
         const current = selections[group.id]
         const missing = showErrors && group.required && !(current?.valueId || current?.textValue?.trim())
         return (

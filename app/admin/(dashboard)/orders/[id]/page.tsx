@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { WorkOrder } from '@/components/admin/work-order'
 import {
   ArrowLeft,
   FileText,
@@ -287,14 +288,7 @@ export default function AdminOrderDetailPage() {
                     <p className="font-medium text-sm">{item.name}</p>
                     {item.sku && <p className="text-xs text-muted-foreground">SKU: {item.sku}</p>}
                     {item.customizations.length > 0 ? (
-                      <div className="mt-1.5 space-y-0.5">
-                        {item.customizations.map((c, i) => (
-                          <p key={i} className="text-xs text-muted-foreground">
-                            <span className="font-medium text-foreground">{c.label}:</span> {c.valueLabel ?? c.textValue}
-                            {c.priceAdjustment !== 0 && ` (${c.priceAdjustment > 0 ? '+' : ''}${formatPrice(c.priceAdjustment)})`}
-                          </p>
-                        ))}
-                      </div>
+                      <WorkOrder item={item} orderNumber={order.orderNumber} />
                     ) : (
                       <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
                         {item.selectedColor && <span className="w-3 h-3 rounded-full border" style={{ backgroundColor: item.selectedColor }} />}

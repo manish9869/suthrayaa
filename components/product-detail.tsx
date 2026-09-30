@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import dynamic from 'next/dynamic'
+import { motion, AnimatePresence, useDragControls } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Navbar } from '@/components/navbar'
@@ -27,6 +28,7 @@ import {
   ChevronRight,
   Package,
   Sparkles,
+  Palette,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useCartStore, useWishlistStore } from '@/lib/store'
@@ -34,7 +36,9 @@ import { useHydrated } from '@/lib/hooks/use-hydrated'
 import { analytics, toItem } from '@/lib/analytics'
 import { formatPrice, type Product, type Review, type Category } from '@/lib/data'
 import { ReviewForm } from '@/components/review-form'
-import { customizationGroupId, ProductCustomizer, type ResolvedCustomization } from '@/components/product-customizer'
+import { customizationGroupId, ProductCustomizer, type CustomizerSelection, type ResolvedCustomization } from '@/components/product-customizer'
+import { selectedColorMap } from '@/lib/preview/selected-colors'
+import { colourSections } from '@/lib/preview/sections'
 import { YarnColorPicker } from '@/components/yarn-color-picker'
 import { toast } from 'sonner'
 import { EASE_OUT, Stagger, StaggerItem } from '@/components/motion/reveal'
@@ -49,12 +53,19 @@ interface ProductDetailProps {
 
 const LIGHT_HEXES = ['#FFFFFF', '#F5F5DC', '#FFE5B5', '#FFB5BA']
 
+// Live color preview ("Customize & Preview") — an optional, admin-switchable add-on. Loaded
+// on demand, so products without a preview never download any of it.
+const CustomizeDialog = dynamic(() => import('@/components/customize/customize-dialog'), { ssr: false })
+const ColorPreview = dynamic(() => import('@/components/customize/color-preview').then((m) => m.ColorPreview), { ssr: false })
+
 export function ProductDetail({ product, reviews, relatedProducts, categories }: ProductDetailProps) {
   const rules = product.customizationOptions
   const allowColorChoice = rules?.allowColorChoice ?? true
   const allowedColors = rules?.allowedColors && rules.allowedColors.length > 0 ? rules.allowedColors : product.colors
 
   const [selectedImage, setSelectedImage] = useState(0)
+  const [detailsTab, setDetailsTab] = useState('description')
+  const swipe = useDragControls()
   // With several colours nothing is preselected — the customer must choose one (a single
   // colour is simply the colour, so it's preselected).
   const [selectedColor, setSelectedColor] = useState(product.colors.length === 1 ? product.colors[0] : '')
@@ -86,6 +97,33 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
   const [customizationPriceAdjustment, setCustomizationPriceAdjustment] = useState(0)
   const [missingRequired, setMissingRequired] = useState<string[]>([])
   const [showOptionErrors, setShowOptionErrors] = useState(false)
+
+  // Optional live color preview — product.preview only exists when the admin has switched
+  // the feature on and set it up for this product. If it ever fails to render it hides
+  // itself, and the regular customizer above keeps working exactly as before.
+  const previewEnabled = usesNewCustomizer && Boolean(product.preview?.layers.length)
+  const [previewFailed, setPreviewFailed] = useState(false)
+  const showPreview = previewEnabled && !previewFailed
+  const [czSelections, setCzSelections] = useState<Record<string, CustomizerSelection>>({})
+  const [customizeOpen, setCustomizeOpen] = useState(false)
+  const [customizeLoaded, setCustomizeLoaded] = useState(false)
+  const previewColors = useMemo(() => selectedColorMap(product, czSelections), [product, czSelections])
+  const hasPickedColor = Object.values(previewColors).some(Boolean)
+  // A real-photo preview is shown in the main gallery once a colour is picked (with a toggle
+  // back to the original photo); illustrations stay in the small tile + dialog.
+  const [showOriginalPhoto, setShowOriginalPhoto] = useState(false)
+  const galleryPreview = showPreview && hasPickedColor && product.preview?.mode === 'photo'
+  // Colour options always live in the Customize window, with or without a live preview
+  const showGalleryPreview = galleryPreview && !showOriginalPhoto
+  // Photos can be swiped on touch screens (not while showing the recoloured preview)
+  const swipeable = product.images.length > 1 && !galleryPreview
+  const colourGroups = useMemo(() => colourSections(product.customizations, product.preview).flatMap((s) => s.options), [product.customizations, product.preview])
+  const colourInWindow = usesNewCustomizer && colourGroups.length > 0
+  const pickedParts = colourGroups.filter((g) => previewColors[g.id]).length
+  const openCustomize = () => {
+    setCustomizeLoaded(true)
+    setCustomizeOpen(true)
+  }
 
   const { addItem, openCart } = useCartStore()
   const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlistStore()
@@ -120,7 +158,8 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
         // Flag every unanswered option inline and bring the first one into view
         setShowOptionErrors(true)
         const first = product.customizations.find((c) => c.enabled && c.label === missingRequired[0])
-        if (first) document.getElementById(customizationGroupId(first.id))?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        if (first && first.type === 'color' && colourInWindow) openCustomize()
+        else if (first) document.getElementById(customizationGroupId(first.id))?.scrollIntoView({ behavior: 'smooth', block: 'center' })
         toast.error(missingRequired.length === 1 ? `Please choose ${missingRequired[0].toLowerCase()} first` : `Please choose ${missingRequired.slice(0, -1).map((m) => m.toLowerCase()).join(', ')} and ${missingRequired.at(-1)!.toLowerCase()} first`)
         return
       }
@@ -237,14 +276,51 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                   ))}
                 </div>
               )}
-              <div
-                className="group relative aspect-[4/5] flex-1 cursor-zoom-in overflow-hidden rounded-[2rem] bg-sand"
+              <div className="relative isolate flex-1">
+              <div aria-hidden className="pointer-events-none absolute inset-x-[12%] bottom-[2%] top-[14%] -z-10 opacity-40 blur-3xl saturate-150">
+                <Image src={product.images[selectedImage] ?? '/placeholder.svg'} alt="" fill sizes="160px" className="rounded-[2rem] object-cover" />
+              </div>
+              <motion.div
+                drag={swipeable ? 'x' : false}
+                dragListener={false}
+                dragControls={swipe}
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={0.25}
+                dragSnapToOrigin
+                onPointerDown={(e) => {
+                  if (swipeable && e.pointerType !== 'mouse') swipe.start(e)
+                }}
+                onDragEnd={(_, info) => {
+                  const n = product.images.length
+                  if (info.offset.x < -48 || info.velocity.x < -400) setSelectedImage((i) => (i + 1) % n)
+                  else if (info.offset.x > 48 || info.velocity.x > 400) setSelectedImage((i) => (i - 1 + n) % n)
+                }}
+                style={{ touchAction: swipeable ? 'pan-y' : undefined }}
+                className="group relative aspect-[4/5] w-full cursor-zoom-in overflow-hidden rounded-[2rem] bg-sand"
                 onMouseMove={(e) => {
                   const r = e.currentTarget.getBoundingClientRect()
                   setZoomOrigin(`${((e.clientX - r.left) / r.width) * 100}% ${((e.clientY - r.top) / r.height) * 100}%`)
                 }}
               >
                 <AnimatePresence initial={false}>
+                  {showGalleryPreview ? (
+                    <motion.div
+                      key="your-colours"
+                      className="absolute inset-0"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.35, ease: EASE_OUT }}
+                    >
+                      <ColorPreview
+                        preview={product.preview!}
+                        colors={previewColors}
+                        alt={`${product.name} in your colours`}
+                        className="absolute inset-0 h-full w-full"
+                        onError={() => setPreviewFailed(true)}
+                      />
+                    </motion.div>
+                  ) : (
                   <motion.div
                     key={selectedImage}
                     className="absolute inset-0"
@@ -263,7 +339,33 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                       className="object-cover transition-transform duration-500 ease-[var(--ease-out)] [@media(hover:hover)]:group-hover:scale-[1.6]"
                     />
                   </motion.div>
+                  )}
                 </AnimatePresence>
+                {galleryPreview && (
+                  <div className="absolute inset-x-4 bottom-4 flex justify-center">
+                    <div className="flex rounded-full bg-card/85 p-1 text-[13px] font-medium shadow-sm ring-1 ring-white/70 backdrop-blur-md">
+                      {[
+                        { label: 'Your colours', on: !showOriginalPhoto },
+                        { label: 'Original photo', on: showOriginalPhoto },
+                      ].map((t) => (
+                        <button
+                          key={t.label}
+                          type="button"
+                          aria-pressed={t.on}
+                          onClick={() => setShowOriginalPhoto(t.label === 'Original photo')}
+                          className={cn('rounded-full px-3.5 py-1.5 transition-colors', t.on ? 'bg-primary text-primary-foreground' : 'text-foreground/70 hover:text-foreground')}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {swipeable && (
+                  <span className="pointer-events-none absolute bottom-4 right-4 rounded-full bg-card/85 px-2.5 py-1 text-xs font-medium tabular-nums shadow-sm backdrop-blur lg:hidden">
+                    {selectedImage + 1} / {product.images.length}
+                  </span>
+                )}
                 <div className="pointer-events-none absolute left-4 top-4 flex flex-col items-start gap-2">
                   {discount > 0 && <span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-white">−{discount}% off</span>}
                   {product.bestseller && <span className="rounded-full bg-card/90 px-3 py-1 text-xs font-semibold backdrop-blur">Bestseller</span>}
@@ -274,6 +376,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                     </span>
                   )}
                 </div>
+              </motion.div>
               </div>
             </div>
 
@@ -284,21 +387,32 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
               </Link>
               <h1 className="display mt-3 text-[2.3rem] sm:text-5xl">{product.name}</h1>
 
-              <a href="#details" className="mt-4 inline-flex items-center gap-2 text-sm">
+              <a href="#details" onClick={() => setDetailsTab('reviews')} className="mt-4 inline-flex items-center gap-2 text-sm">
                 <span className="flex">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Star key={i} className={cn('h-4 w-4', i < Math.round(product.rating) ? 'fill-gold text-gold' : 'text-muted-foreground/30')} />
                   ))}
                 </span>
-                <span className="font-semibold">{product.rating}</span>
-                <span className="link-underline text-muted-foreground">{product.reviewCount} reviews</span>
+                {product.reviewCount > 0 ? (
+                  <>
+                    <span className="font-semibold tabular-nums">{product.rating.toFixed(1)}</span>
+                    <span className="text-muted-foreground/50" aria-hidden>
+                      ·
+                    </span>
+                    <span className="link-underline text-muted-foreground">
+                      {product.reviewCount} {product.reviewCount === 1 ? 'review' : 'reviews'}
+                    </span>
+                  </>
+                ) : (
+                  <span className="link-underline text-muted-foreground">No reviews yet</span>
+                )}
               </a>
 
               <div className="mt-5 flex flex-wrap items-baseline gap-3">
                 <span className="text-3xl font-semibold tracking-tight">
                   {usesNewCustomizer ? formatPrice(displayUnitPrice) : formatPrice(product.price)}
                 </span>
-                {product.comparePrice && !usesNewCustomizer && (
+                {product.comparePrice && (!usesNewCustomizer || customizationPriceAdjustment === 0) && (
                   <>
                     <span className="text-lg text-muted-foreground line-through">{formatPrice(product.comparePrice)}</span>
                     <span className="rounded-full bg-blush px-2.5 py-0.5 text-xs font-semibold text-rose">Save {discount}%</span>
@@ -318,16 +432,77 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
 
               <div className="space-y-6">
                 {usesNewCustomizer && (
-                  <div className="rounded-[1.5rem] bg-blush/50 p-5 ring-1 ring-blush">
+                  <div className={cn(!colourInWindow && 'rounded-[1.5rem] bg-blush/50 p-5 ring-1 ring-blush', colourInWindow && 'space-y-5')}>
+                    {colourInWindow && (
+                      <div className="flex items-center gap-3 rounded-2xl border bg-card p-3">
+                        <button
+                          type="button"
+                          onClick={openCustomize}
+                          className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-sand"
+                          aria-label="Choose your colours"
+                        >
+                          {hasPickedColor && showPreview ? (
+                            <ColorPreview preview={product.preview!} colors={previewColors} alt={`${product.name} in your colours`} className="absolute inset-0 h-full w-full" onError={() => setPreviewFailed(true)} />
+                          ) : (
+                            <Image src={product.images[0] ?? '/placeholder.svg'} alt="" fill sizes="56px" className="object-cover" />
+                          )}
+                        </button>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold">Colours</p>
+                          <div className="mt-1 flex items-center gap-1">
+                            {colourGroups.map((g) => (
+                              <span
+                                key={g.id}
+                                title={g.label}
+                                className="h-4 w-4 shrink-0 rounded-full ring-1 ring-black/10"
+                                style={{ background: previewColors[g.id] ?? g.defaultValue ?? 'var(--muted)' }}
+                              />
+                            ))}
+                            <span className="ml-1 truncate text-xs text-muted-foreground">
+                              {pickedParts > 0 ? `${pickedParts} of ${colourGroups.length} changed` : 'As shown · change any yarn'}
+                            </span>
+                          </div>
+                        </div>
+                        <Button type="button" size="sm" className="shrink-0 rounded-full" onClick={openCustomize}>
+                          <Palette className="h-4 w-4" /> Customize
+                        </Button>
+                      </div>
+                    )}
                     <ProductCustomizer
                       customizations={product.customizations}
                       showErrors={showOptionErrors}
+                      {...(colourInWindow ? { selections: czSelections, onSelectionsChange: setCzSelections } : {})}
+                      hideTypes={colourInWindow ? ['color'] : []}
+                      bare={colourInWindow}
                       onChange={(resolved, priceAdjustment, missing) => {
                         setResolvedCustomizations(resolved)
                         setCustomizationPriceAdjustment(priceAdjustment)
                         setMissingRequired(missing)
                       }}
                     />
+                    {colourInWindow && customizeLoaded && (
+                      <CustomizeDialog
+                        product={product}
+                        open={customizeOpen}
+                        onOpenChange={setCustomizeOpen}
+                        selections={czSelections}
+                        onSelectionsChange={setCzSelections}
+                        onCustomizerChange={(resolved, priceAdjustment, missing) => {
+                          setResolvedCustomizations(resolved)
+                          setCustomizationPriceAdjustment(priceAdjustment)
+                          setMissingRequired(missing)
+                        }}
+                        resolved={resolvedCustomizations}
+                        missingRequired={missingRequired}
+                        quantity={quantity}
+                        outOfStock={outOfStock}
+                        onAddToCart={handleAddToCart}
+                        onPreviewError={() => {
+                          setPreviewFailed(true)
+                          setCustomizeOpen(false)
+                        }}
+                      />
+                    )}
                   </div>
                 )}
 
@@ -504,8 +679,8 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
           </div>
 
           {/* Details tabs */}
-          <section id="details" className="mt-20 scroll-mt-32">
-            <Tabs defaultValue="description" className="w-full">
+          <section id="details" className="mt-14 scroll-mt-32 sm:mt-20">
+            <Tabs value={detailsTab} onValueChange={setDetailsTab} className="w-full">
               <TabsList className="h-auto max-w-full justify-start overflow-x-auto rounded-full bg-muted p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {[
                   ['description', 'Description'],
@@ -515,8 +690,11 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                   <TabsTrigger
                     key={value}
                     value={value}
-                    className="shrink-0 rounded-full px-4 py-2 text-sm data-[state=active]:bg-card data-[state=active]:shadow-sm sm:px-5"
+                    className="relative isolate shrink-0 rounded-full px-4 py-2 text-sm data-[state=active]:bg-transparent data-[state=active]:shadow-none sm:px-5"
                   >
+                    {detailsTab === value && (
+                      <motion.span layoutId="details-tab-pill" className="absolute inset-0 -z-10 rounded-full bg-card shadow-sm" transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }} />
+                    )}
                     {label}
                   </TabsTrigger>
                 ))}
@@ -572,7 +750,9 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                         <Star key={i} className={cn('h-4 w-4', i < Math.round(reviewAvg) ? 'fill-gold text-gold' : 'text-muted-foreground/30')} />
                       ))}
                     </div>
-                    <p className="mt-1 text-sm text-muted-foreground">Based on {product.reviewCount} reviews</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {product.reviewCount > 0 ? `Based on ${product.reviewCount} ${product.reviewCount === 1 ? 'review' : 'reviews'}` : 'No reviews yet'}
+                    </p>
                     {reviews.length > 0 && (
                       <div className="mt-5 space-y-1.5">
                         {ratingBars.map((b) => (
@@ -642,7 +822,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
           </section>
 
           {/* FAQ */}
-          <section className="mt-20 grid grid-cols-1 gap-8 lg:grid-cols-[0.8fr_1.2fr]">
+          <section className="mt-14 grid grid-cols-1 gap-8 sm:mt-20 lg:grid-cols-[0.8fr_1.2fr]">
             <div>
               <p className="eyebrow">Good to know</p>
               <h2 className="display mt-3 text-4xl">
@@ -680,7 +860,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
 
           {/* Related products */}
           {relatedProducts.length > 0 && (
-            <section className="mt-24">
+            <section className="mt-16 sm:mt-24">
               <SectionHeading eyebrow="Complete the set" title="You may" accent="also like" href={`/shop?category=${product.categorySlug}`} />
               <Stagger className="grid grid-cols-2 gap-x-4 gap-y-10 lg:grid-cols-4 lg:gap-x-6">
                 {relatedProducts.map((p) => (

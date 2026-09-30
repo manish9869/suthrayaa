@@ -12,10 +12,11 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Heart, ShoppingBag, Trash2, ArrowRight } from 'lucide-react'
 import { useCartStore, useWishlistStore } from '@/lib/store'
 import { useHydrated } from '@/lib/hooks/use-hydrated'
-import { formatPrice, type Category } from '@/lib/data'
+import { formatPrice, type Category, type Product } from '@/lib/data'
+import { EmptyState } from '@/components/empty-state'
 import { toast } from 'sonner'
 
-export function WishlistContent({ categories }: { categories: Category[] }) {
+export function WishlistContent({ categories, suggestions = [] }: { categories: Category[]; suggestions?: Product[] }) {
   const { items, removeItem } = useWishlistStore()
   const { addItem: addToCart, openCart } = useCartStore()
   const hydrated = useHydrated()
@@ -54,23 +55,14 @@ export function WishlistContent({ categories }: { categories: Category[] }) {
       <>
         <Navbar categories={categories} />
         <main className="min-h-svh">
-          <div className="container mx-auto px-4 py-16">
-            <div className="max-w-md mx-auto text-center">
-              <div className="w-32 h-32 rounded-full bg-muted mx-auto mb-6 flex items-center justify-center">
-                <Heart className="h-16 w-16 text-muted-foreground" />
-              </div>
-              <h1 className="display text-3xl mb-3">Your Wishlist is Empty</h1>
-              <p className="text-muted-foreground mb-8">
-                Save your favorite handcrafted pieces here to find them easily later.
-              </p>
-              <Button size="lg" asChild>
-                <Link href="/shop">
-                  Explore the Collection
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
-          </div>
+          <EmptyState
+            icon={Heart}
+            title="Your wishlist is empty"
+            text="Tap the heart on any piece to save it here and find it again later."
+            cta="Explore the Collection"
+            suggestions={suggestions}
+            listName="Empty wishlist"
+          />
         </main>
         <Footer />
       </>

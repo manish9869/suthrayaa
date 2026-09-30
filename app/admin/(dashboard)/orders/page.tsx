@@ -8,12 +8,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { DualRangeSlider } from '@/components/ui/dual-range-slider'
-import { Search, SlidersHorizontal, Sparkles, RefreshCw, Download, Mail, FileDown, ShoppingCart, IndianRupee, Clock, XCircle, Eye, Copy, X } from 'lucide-react'
+import { Search, SlidersHorizontal, Sparkles, RefreshCw, Download, Mail, FileDown, ShoppingCart, IndianRupee, Clock, XCircle, Eye, Copy, X, Scissors, PackageCheck, CheckCheck } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
+import { BulkBar, SelectAllCheckbox, bulkSummary, runBulk, useSelection } from '@/components/admin/bulk-actions'
 import {
   getAdminOrders,
   exportAdminOrdersCsv,
   fetchInvoicePdfBlob,
   emailInvoice,
+  updateOrderStatus,
   type AdminOrderSummary,
   type AdminOrderListParams,
   type AdminOrderListStats,
@@ -129,6 +132,26 @@ export default function AdminOrdersPage() {
     }
   }, [params, page, reloadKey])
   const load = () => setReloadKey((k) => k + 1)
+
+  // Bulk: tick orders, move them all on in one go (each still goes through the server's
+  // status rules and sends its customer email)
+  const orderIds = useMemo(() => orders.map((o) => o.id), [orders])
+  const selection = useSelection(orderIds)
+  const [bulkBusy, setBulkBusy] = useState(false)
+  const moveSelected = async (status: string, label: string) => {
+    const ids = selection.selected
+    if (!ids.length) return
+    if (!confirm(`Move ${ids.length} order${ids.length === 1 ? '' : 's'} to “${label}”? Each customer gets the matching email.`)) return
+    setBulkBusy(true)
+    const result = await runBulk(ids, (id) => updateOrderStatus(id, status))
+    setBulkBusy(false)
+    const numberOf = new Map(orders.map((o) => [o.id, o.orderNumber]))
+    const { ok, message } = bulkSummary(result, `moved to ${label}`, (id) => numberOf.get(id) ?? id)
+    if (ok) toast.success(message)
+    else toast.warning(message, { duration: 12000 })
+    selection.clear()
+    load()
+  }
 
   const toggleSort = (key: string) => {
     if (key === sortKey) setDirection((d) => (d === 'asc' ? 'desc' : 'asc'))
@@ -306,7 +329,10 @@ export default function AdminOrdersPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <SortableTh label="Order" sortKey="order" activeKey={sortKey} direction={direction} onSort={toggleSort} className="pl-5" />
+              <TableHead className="w-10 pl-5">
+                <SelectAllCheckbox ids={orderIds} isSelected={selection.isSelected} onToggle={() => selection.toggleAll(orderIds)} />
+              </TableHead>
+              <SortableTh label="Order" sortKey="order" activeKey={sortKey} direction={direction} onSort={toggleSort} />
               <TableHead>Customer</TableHead>
               <TableHead>Items</TableHead>
               <SortableTh label="Total" sortKey="total" activeKey={sortKey} direction={direction} onSort={toggleSort} />
@@ -319,10 +345,10 @@ export default function AdminOrdersPage() {
           </TableHeader>
           <TableBody>
             {loading && orders.length === 0 ? (
-              <TableLoadingRow colSpan={9} />
+              <TableLoadingRow colSpan={10} />
             ) : error ? (
               <TableRow>
-                <TableCell colSpan={9} className="py-8 text-center">
+                <TableCell colSpan={10} className="py-8 text-center">
                   <p className="text-sm text-destructive">{error}</p>
                   <Button variant="outline" size="sm" className="mt-3" onClick={load}>
                     <RefreshCw className="h-3.5 w-3.5" /> Try again
@@ -331,7 +357,7 @@ export default function AdminOrdersPage() {
               </TableRow>
             ) : orders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                   {activeFilterCount || debouncedSearch ? 'No orders match these filters' : 'No orders yet — they appear here as customers check out'}
                 </TableCell>
               </TableRow>
@@ -344,9 +370,12 @@ export default function AdminOrdersPage() {
                     if ((e.target as HTMLElement).closest('a,button')) return
                     setPreviewId(o.id)
                   }}
-                  className={cn('cursor-pointer hover:bg-muted/50', previewId === o.id && 'bg-primary/5 hover:bg-primary/5')}
+                  className={cn('cursor-pointer hover:bg-muted/50', (previewId === o.id || selection.isSelected(o.id)) && 'bg-primary/5 hover:bg-primary/5')}
                 >
-                  <TableCell className="pl-5">
+                  <TableCell className="pl-5" onClick={(e) => e.stopPropagation()}>
+                    <Checkbox checked={selection.isSelected(o.id)} onCheckedChange={() => selection.toggle(o.id)} aria-label={`Select order ${o.orderNumber}`} />
+                  </TableCell>
+                  <TableCell>
                     <Link href={`/admin/orders/${o.id}`} className="font-semibold hover:text-primary flex items-center gap-1.5">
                       {o.orderNumber}
                       {o.isCustomOrder && (
@@ -403,6 +432,23 @@ export default function AdminOrdersPage() {
         </Table>
         <DataTablePagination page={Math.min(page, pageCount)} pageCount={pageCount} total={total} pageSize={PAGE_SIZE} onPageChange={setPage} />
       </div>
+
+      <Can permission="orders.update">
+        <BulkBar count={selection.selected.length} noun={['order', 'orders']} onClear={selection.clear} busy={bulkBusy}>
+          <span className="hidden text-xs text-muted-foreground sm:inline">Move to</span>
+          {(
+            [
+              ['in_production', 'Making', Scissors],
+              ['ready', 'Ready', PackageCheck],
+              ['delivered', 'Delivered', CheckCheck],
+            ] as const
+          ).map(([status, label, Icon]) => (
+            <Button key={status} type="button" size="sm" variant="outline" className="h-8" disabled={bulkBusy} onClick={() => moveSelected(status, label)}>
+              <Icon className="h-3.5 w-3.5" /> {label}
+            </Button>
+          ))}
+        </BulkBar>
+      </Can>
 
       <OrderPreviewSheet
         orderId={previewId}

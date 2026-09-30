@@ -5,6 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion, useReducedMotion } from 'framer-motion'
+import { YarnBallIcon } from '@/components/motion/crochet-effects'
 import { ArrowRight, Banknote, CheckCircle2, Clock, Copy, CreditCard, Loader2, Mail, MapPin, Package, Sparkles, Truck } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -27,7 +28,7 @@ function SuccessMark({ pending }: { pending: boolean }) {
       Array.from({ length: 18 }, (_, i) => {
         const angle = (i / 18) * Math.PI * 2 + (i % 2 ? 0.12 : -0.08)
         const dist = 92 + (i % 3) * 22
-        return { x: Math.cos(angle) * dist, y: Math.sin(angle) * dist, color: BURST[i % BURST.length], size: 6 + (i % 3) * 3, heart: i % 6 === 0 }
+        return { x: Math.cos(angle) * dist, y: Math.sin(angle) * dist, color: BURST[i % BURST.length], size: 6 + (i % 3) * 3, heart: i % 6 === 0, yarn: i % 3 === 1 }
       }),
     []
   )
@@ -44,7 +45,12 @@ function SuccessMark({ pending }: { pending: boolean }) {
             animate={{ x: p.x, y: p.y, scale: [0, 1.2, 1], opacity: [0, 1, 0] }}
             transition={{ delay: 0.75 + (i % 6) * 0.03, duration: 1.3, ease: EASE }}
           >
-            {p.heart ? (
+            {p.yarn ? (
+              // little balls of yarn in the burst
+              <span className="block -translate-x-1/2 -translate-y-1/2" style={{ color: p.color, width: p.size + 8, height: p.size + 8 }}>
+                <YarnBallIcon className="h-full w-full" />
+              </span>
+            ) : p.heart ? (
               <svg width={p.size + 6} height={p.size + 6} viewBox="0 0 24 24" style={{ fill: p.color }} className="-translate-x-1/2 -translate-y-1/2">
                 <path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 5 6.4 5c2 0 3.5 1.1 4.3 2.6h2.6C14.1 6.1 15.6 5 17.6 5 21 5 23.1 8.4 21.6 11.8 19.5 16.4 12 21 12 21z" />
               </svg>

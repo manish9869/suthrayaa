@@ -69,11 +69,14 @@ export function NewsletterSignup({
         <form onSubmit={handleSubscribe} className="flex w-full flex-col gap-2 rounded-full sm:flex-row sm:bg-card sm:p-1.5 sm:shadow-sm">
           <Input
             type="email"
-            placeholder="Enter your email address"
+            placeholder="you@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="h-12 flex-1 border-0 px-5 shadow-none focus-visible:ring-0 sm:bg-transparent"
+            className="h-12 border-0 px-5 sm:flex-1 shadow-none focus-visible:ring-0 sm:bg-transparent"
             aria-label="Email address"
+            name="email"
+            autoComplete="email"
+            spellCheck={false}
           />
           <Button type="submit" size="lg" className="h-12 px-7" disabled={submitting}>
             <AnimatePresence mode="wait" initial={false}>

@@ -27,7 +27,12 @@ import {
   AlertTriangle,
   PackageX,
   Wallet,
+  Sparkles,
+  Star,
+  StarOff,
 } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
+import { BulkBar, SelectAllCheckbox, bulkSummary, runBulk, useSelection } from '@/components/admin/bulk-actions'
 import {
   getAdminProducts,
   deleteProduct,
@@ -41,6 +46,7 @@ import {
 } from '@/lib/api/admin'
 import { flattenCategoryTree, collectDescendantSlugs } from '@/lib/utils/admin-category-tree'
 import { formatPrice } from '@/lib/data'
+import { isCustomizable } from '@/lib/product-rules'
 import { toast } from 'sonner'
 import { GLASS_PANEL, exportRowsToCsv } from '@/lib/admin-ui'
 import { SortableTh } from '@/components/admin/sortable-th'
@@ -86,6 +92,7 @@ export default function AdminProductsPage() {
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [stockFilter, setStockFilter] = useState<string>('all')
   const [featuredOnly, setFeaturedOnly] = useState(false)
+  const [customizableOnly, setCustomizableOnly] = useState(false)
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000])
   // Live drag position, decoupled from priceRange (which drives the filtered table) so
   // dragging doesn't force a full re-filter on every tick — only on release.
@@ -122,9 +129,10 @@ export default function AdminProductsPage() {
     if (stockFilter === 'low_stock') result = result.filter((p) => p.stock > 0 && p.stock <= p.lowStockThreshold)
     if (stockFilter === 'out_of_stock') result = result.filter((p) => p.stock <= 0)
     if (featuredOnly) result = result.filter((p) => p.featured)
+    if (customizableOnly) result = result.filter(isCustomizable)
     result = result.filter((p) => p.price >= priceRange[0] && p.price <= priceRange[1])
     return result
-  }, [products, categories, categoryFilter, statusFilter, typeFilter, stockFilter, featuredOnly, priceRange])
+  }, [products, categories, categoryFilter, statusFilter, typeFilter, stockFilter, featuredOnly, customizableOnly, priceRange])
 
   const { sorted, sortKey, direction, toggleSort } = useSortableData(filtered, {
     name: (p) => p.name,
@@ -144,6 +152,7 @@ export default function AdminProductsPage() {
     (typeFilter !== 'all' ? 1 : 0) +
     (stockFilter !== 'all' ? 1 : 0) +
     (featuredOnly ? 1 : 0) +
+    (customizableOnly ? 1 : 0) +
     (priceRange[0] > 0 || priceRange[1] < 5000 ? 1 : 0)
 
   const clearFilters = () => {
@@ -152,6 +161,7 @@ export default function AdminProductsPage() {
     setTypeFilter('all')
     setStockFilter('all')
     setFeaturedOnly(false)
+    setCustomizableOnly(false)
     setPriceRange([0, 5000])
   }
 
@@ -192,6 +202,24 @@ export default function AdminProductsPage() {
     } catch {
       toast.error('Failed to update product')
     }
+  }
+
+  // Bulk: tick products (or every product matching the filters) and change them together
+  const productIds = useMemo(() => products.map((p) => p.id), [products])
+  const selection = useSelection(productIds)
+  const [bulkBusy, setBulkBusy] = useState(false)
+  const bulk = async (label: string, action: (id: string) => Promise<unknown>, confirmText?: string) => {
+    const ids = selection.selected
+    if (!ids.length || (confirmText && !confirm(confirmText))) return
+    setBulkBusy(true)
+    const result = await runBulk(ids, action)
+    setBulkBusy(false)
+    const nameOf = new Map(products.map((p) => [p.id, p.name]))
+    const { ok, message } = bulkSummary(result, label, (id) => nameOf.get(id) ?? id)
+    if (ok) toast.success(message)
+    else toast.warning(message, { duration: 12000 })
+    selection.clear()
+    load()
   }
 
   const handleDuplicate = async (id: string) => {
@@ -334,6 +362,14 @@ export default function AdminProductsPage() {
           Featured only
         </Button>
 
+        <Button
+          variant="outline"
+          className={`h-10 rounded-xl font-normal ${customizableOnly ? 'border-primary/40 !bg-primary/10 text-primary' : ''}`}
+          onClick={() => setCustomizableOnly((v) => !v)}
+        >
+          <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Customizable only
+        </Button>
+
         {activeFilterCount > 0 && (
           <Button variant="ghost" size="sm" onClick={clearFilters}>
             <X className="h-3.5 w-3.5 mr-1.5" /> Clear filters
@@ -345,6 +381,9 @@ export default function AdminProductsPage() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-10">
+                <SelectAllCheckbox ids={pageItems.map((p) => p.id)} isSelected={selection.isSelected} onToggle={() => selection.toggleAll(pageItems.map((p) => p.id))} />
+              </TableHead>
               <TableHead>Image</TableHead>
               <SortableTh label="Product" sortKey="name" activeKey={sortKey} direction={direction} onSort={toggleSort} />
               <SortableTh label="SKU" sortKey="sku" activeKey={sortKey} direction={direction} onSort={toggleSort} />
@@ -359,16 +398,19 @@ export default function AdminProductsPage() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableLoadingRow colSpan={10} />
+              <TableLoadingRow colSpan={11} />
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
                   No products found
                 </TableCell>
               </TableRow>
             ) : (
               pageItems.map((p) => (
-                <TableRow key={p.id}>
+                <TableRow key={p.id} className={selection.isSelected(p.id) ? 'bg-primary/5 hover:bg-primary/5' : undefined}>
+                  <TableCell>
+                    <Checkbox checked={selection.isSelected(p.id)} onCheckedChange={() => selection.toggle(p.id)} aria-label={`Select ${p.name}`} />
+                  </TableCell>
                   <TableCell>
                     <div className="relative w-10 h-10 rounded-md overflow-hidden bg-muted flex-shrink-0">
                       {p.images[0] && <Image src={p.images[0]} alt={p.name} fill className="object-cover" />}
@@ -380,6 +422,11 @@ export default function AdminProductsPage() {
                       {p.featured && (
                         <Badge variant="outline" className="text-[10px] px-1">
                           Featured
+                        </Badge>
+                      )}
+                      {isCustomizable(p) && (
+                        <Badge variant="outline" className="gap-1 border-primary/30 bg-primary/5 px-1 text-[10px] text-primary" title="Customers can customize this product">
+                          <Sparkles className="h-2.5 w-2.5" /> Customizable
                         </Badge>
                       )}
                     </div>
@@ -450,6 +497,57 @@ export default function AdminProductsPage() {
         </Table>
         <DataTablePagination page={page} pageCount={pageCount} total={pageTotal} pageSize={15} onPageChange={setPage} />
       </div>
+
+      <Can permission="products.update">
+        <BulkBar
+          count={selection.selected.length}
+          noun={['product', 'products']}
+          onClear={selection.clear}
+          busy={bulkBusy}
+          extra={
+            selection.selected.length < filtered.length && (
+              <button type="button" className="text-xs font-medium text-primary hover:underline" onClick={() => selection.selectAll(filtered.map((p) => p.id))}>
+                Select all {filtered.length} matching
+              </button>
+            )
+          }
+        >
+          <Button type="button" size="sm" variant="outline" className="h-8" disabled={bulkBusy} onClick={() => bulk('shown in the shop', (id) => updateProduct(id, { status: 'active' }))}>
+            <Eye className="h-3.5 w-3.5" /> Show
+          </Button>
+          <Button type="button" size="sm" variant="outline" className="h-8" disabled={bulkBusy} onClick={() => bulk('hidden', (id) => updateProduct(id, { status: 'hidden' }))}>
+            <EyeOff className="h-3.5 w-3.5" /> Hide
+          </Button>
+          <Button type="button" size="sm" variant="outline" className="h-8" disabled={bulkBusy} onClick={() => bulk('featured', (id) => updateProduct(id, { featured: true }))}>
+            <Star className="h-3.5 w-3.5" /> Feature
+          </Button>
+          <Button type="button" size="sm" variant="outline" className="h-8" disabled={bulkBusy} onClick={() => bulk('no longer featured', (id) => updateProduct(id, { featured: false }))}>
+            <StarOff className="h-3.5 w-3.5" /> Unfeature
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-8"
+            disabled={bulkBusy}
+            onClick={() => bulk('archived', (id) => updateProduct(id, { status: 'archived' }), `Archive ${selection.selected.length} products? They leave the shop; you can show them again later.`)}
+          >
+            <Archive className="h-3.5 w-3.5" /> Archive
+          </Button>
+          <Can permission="products.delete">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-8 text-destructive"
+              disabled={bulkBusy}
+              onClick={() => bulk('deactivated', (id) => deleteProduct(id), `Deactivate ${selection.selected.length} products? They're hidden from the shop; order history is kept.`)}
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Deactivate
+            </Button>
+          </Can>
+        </BulkBar>
+      </Can>
     </div>
     </ProtectedRoute>
   )

@@ -51,7 +51,7 @@ export function ConvertibleShowcase({ content }: { content?: SiteContent['home.c
   if (!current) return null
 
   return (
-    <section className="py-16 lg:py-24">
+    <section className="py-12 sm:py-16 lg:py-24">
       <div className="container mx-auto grid grid-cols-1 items-center gap-10 px-4 lg:grid-cols-2 lg:gap-16">
         <div
           ref={ref}

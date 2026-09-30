@@ -8,6 +8,8 @@ interface FetchOptions extends RequestInit {
   token?: string
   /** Next.js fetch cache/revalidate hint. false = always fresh (no-store). */
   revalidate?: number | false
+  /** Cache tags, so the admin can refresh this data right after an edit (see app/api/revalidate). */
+  tags?: string[]
 }
 
 export class ApiError extends Error {
@@ -23,7 +25,7 @@ export class ApiError extends Error {
 }
 
 export async function apiFetch<T>(path: string, options: FetchOptions = {}): Promise<T> {
-  const { token, revalidate, headers, ...rest } = options
+  const { token, revalidate, tags, headers, ...rest } = options
 
   const res = await fetch(`${API_URL}${path}`, {
     ...rest,
@@ -32,7 +34,7 @@ export async function apiFetch<T>(path: string, options: FetchOptions = {}): Pro
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,
     },
-    ...(revalidate === false ? { cache: "no-store" as const } : { next: { revalidate: revalidate ?? 60 } }),
+    ...(revalidate === false ? { cache: "no-store" as const } : { next: { revalidate: revalidate ?? 60, ...(tags ? { tags } : {}) } }),
   })
 
   if (res.status === 204) return undefined as T
