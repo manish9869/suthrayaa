@@ -1117,3 +1117,6 @@ export const createCustomTheme = (name: string, colors: ThemeColors) =>
 export const updateCustomTheme = (id: string, name: string, colors: ThemeColors) =>
   adminFetch<ThemeAdminState & { id: string }>(`/admin/theme/custom/${id}`, { method: 'PUT', body: JSON.stringify({ name, colors }) })
 export const deleteCustomTheme = (id: string) => adminFetch<ThemeAdminState>(`/admin/theme/custom/${id}`, { method: 'DELETE' })
+/** Makes the storefront pick up the live theme on the next page load (instead of within a minute). */
+export const refreshStorefrontTheme = () =>
+  fetch('/api/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tag: 'theme' }) }).catch(() => {})
