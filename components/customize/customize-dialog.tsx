@@ -1,6 +1,7 @@
 'use client'
 
-import { Component, useMemo, useState, type ReactNode } from 'react'
+import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { analytics } from '@/lib/analytics'
 import { RotateCcw, ShoppingBag } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -59,9 +60,33 @@ export default function CustomizeDialog(props: CustomizeDialogProps) {
   const sections = useMemo(() => colourSections(product.customizations, preview), [product.customizations, preview])
   const colourGroups = sections.flatMap((s) => s.options)
   const hasColourChoice = colourGroups.some((g) => selections[g.id])
+  // Analytics (Insights → Customization): opened, which option was picked, reset, finished
+  const picks = useRef(0)
+  useEffect(() => {
+    if (!open) return
+    picks.current = 0
+    analytics.customizeOpen(product.name)
+  }, [open, product.name])
+  const change = (next: Record<string, CustomizerSelection>) => {
+    const changed = Object.keys(next).find((id) => JSON.stringify(next[id]) !== JSON.stringify(selections[id]))
+    const label = changed ? product.customizations.find((g) => g.id === changed)?.label : undefined
+    if (label) {
+      picks.current += 1
+      analytics.customizeChoose(product.name, label)
+    }
+    props.onSelectionsChange(next)
+  }
+  const close = (o: boolean) => {
+    if (!o && picks.current > 0) {
+      analytics.customizeDone(product.name, picks.current)
+      picks.current = 0
+    }
+    onOpenChange(o)
+  }
   const resetColours = () => {
     const next = { ...selections }
     for (const g of colourGroups) delete next[g.id]
+    analytics.customizeReset(product.name)
     props.onSelectionsChange(next)
   }
   const otherGroups = product.customizations.filter((g) => g.enabled && g.type !== 'color')
@@ -74,11 +99,11 @@ export default function CustomizeDialog(props: CustomizeDialogProps) {
       return
     }
     props.onAddToCart()
-    onOpenChange(false)
+    close(false)
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={close}>
       <DialogContent
         className={cn(
           'grid w-full max-w-[calc(100%-1rem)] gap-0 overflow-hidden rounded-[1.5rem] p-0 sm:max-w-4xl',
@@ -139,7 +164,7 @@ export default function CustomizeDialog(props: CustomizeDialogProps) {
             </div>
 
             <div className="mt-5">
-              <ColourPartPicker sections={sections} selections={selections} onChange={props.onSelectionsChange} showErrors={showErrors} />
+              <ColourPartPicker sections={sections} selections={selections} onChange={change} showErrors={showErrors} />
             </div>
 
             {otherGroups.length > 0 && (
@@ -147,7 +172,7 @@ export default function CustomizeDialog(props: CustomizeDialogProps) {
                 <ProductCustomizer
                   customizations={product.customizations}
                   selections={selections}
-                  onSelectionsChange={props.onSelectionsChange}
+                  onSelectionsChange={change}
                   onChange={props.onCustomizerChange}
                   showErrors={showErrors}
                   hideTypes={['color']}

@@ -52,8 +52,10 @@ export function StaggerItem({ children, className }: { children: ReactNode; clas
   const item: Variants = reduce
     ? { hidden: { opacity: 0 }, show: { opacity: 1, transition: { duration: 0.3 } } }
     : {
-        hidden: { opacity: 0, y: 16, filter: 'blur(4px)' },
-        show: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.55, ease: EASE_OUT } },
+        // no blur here: staggered items are usually image cards, and animating a filter over
+        // many images at once is costly on phones
+        hidden: { opacity: 0, y: 16 },
+        show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: EASE_OUT } },
       }
   return (
     <motion.div className={className} variants={item}>

@@ -7,8 +7,10 @@ import {
   AlertTriangle,
   BrainCircuit,
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Combine,
   Eraser,
   Eye,
   Hand,
@@ -26,6 +28,7 @@ import {
   RotateCcw,
   Save,
   ScanSearch,
+  Scissors,
   Shuffle,
   Sparkles,
   Square,
@@ -40,6 +43,16 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 import type { ProductCustomization } from '@/lib/data'
 import type { AdminColor } from '@/lib/api/admin'
@@ -72,6 +85,7 @@ import {
   groupRegions,
   makeRegion,
   mergeRegions,
+  mergeTarget,
   moveToGroup,
   nextName,
   optionKey,
@@ -79,6 +93,7 @@ import {
   releaseMask,
   reorderRegion,
   reviewWarnings,
+  sameColourSets,
   splitRegion,
   ungroup,
   updateGroup,
@@ -91,6 +106,7 @@ import {
 import { detectProduct } from '@/lib/preview/background-removal'
 import { createSegmentSession, type ClickPoint, type SegmentSession } from '@/lib/preview/segmenter'
 import { suggestRegions, type Candidate } from '@/lib/preview/ai-suggest'
+import { closestByColour, clusterByColour, meanLab } from '@/lib/preview/same-colour'
 import { RegionTree, type RegionDetails } from './region-tree'
 import { ColourPanel, type PanelTarget } from './colour-panel'
 
@@ -136,6 +152,18 @@ interface Suggestion {
   id: number
   hex: string
   mask: Uint8Array
+  lab: Lab | null
+  area: number
+}
+
+/** Suggested parts of one colour, offered together; `match` = an existing region of that colour. */
+interface SuggestionCluster {
+  id: number
+  parts: Suggestion[]
+  hex: string
+  mask: Uint8Array
+  area: number
+  match?: EditorRegion
 }
 
 interface Stroke {
@@ -276,6 +304,11 @@ export function RegionEditor({
   const [suggestions, setSuggestions] = useState<Suggestion[] | null>(null)
   const [suggestionSource, setSuggestionSource] = useState<'ai' | 'colour'>('ai')
   const [hoverSuggestion, setHoverSuggestion] = useState<number | null>(null)
+  /** Suggested parts the admin asked to see one by one instead of combined by colour. */
+  const [separate, setSeparate] = useState<Set<number>>(new Set())
+  /** Same-colour region sets the admin chose to keep separate. */
+  const [apart, setApart] = useState<Set<string>>(new Set())
+  const [hoverSet, setHoverSet] = useState<string[] | null>(null)
   const [tool, setTool] = useState<Tool>('pick')
   const [shape, setShape] = useState<Shape>('brush')
   const [looseness, setLooseness] = useState(0.5)
@@ -373,8 +406,11 @@ export function RegionEditor({
 
   const findSuggestions = useCallback(
     async (p: Photo, productMask: Uint8Array, backgroundRemoved: boolean) => {
-      const toList = (masks: Uint8Array[]) =>
-        masks.map((mask) => ({ id: suggestionSeq.current++, hex: averageHex(p, mask), mask })).sort((a, b) => maskArea(b.mask) - maskArea(a.mask))
+      setSeparate(new Set())
+      const toList = (masks: Uint8Array[]): Suggestion[] =>
+        masks
+          .map((mask) => ({ id: suggestionSeq.current++, hex: averageHex(p, mask), mask, lab: meanLab(p.lab, mask), area: maskArea(mask) }))
+          .sort((a, b) => b.area - a.area)
       // AI: probe the photo with clicks and keep the confident object shapes
       const s = await getSession(p)
       if (s) {
@@ -528,6 +564,50 @@ export function RegionEditor({
 
   const warnings = useMemo(() => reviewWarnings(es, sizes), [es, sizes])
 
+  /** Each region's typical photo colour (what "same colour" compares) — kept as is mid-drag. */
+  const labsCache = useRef(new Map<string, Lab | null>())
+  const regionLabs = useMemo(() => {
+    if (stroke.current || moveStart.current) return labsCache.current
+    labsCache.current = new Map(photo ? es.regions.map((r) => [r.id, meanLab(photo.lab, r.mask)] as const) : [])
+    return labsCache.current
+  }, [photo, es, rev]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** Suggestions combined by colour — the detector often splits one yarn into several parts. */
+  const clusters = useMemo<SuggestionCluster[]>(() => {
+    if (!suggestions?.length) return []
+    const together = clusterByColour(
+      suggestions.filter((sg) => !separate.has(sg.id)),
+      (sg) => sg.lab,
+      (sg) => sg.area
+    )
+    const alone = suggestions.filter((sg) => separate.has(sg.id)).map((sg) => [sg])
+    const targets = es.regions.filter((r) => !r.locked && !r.hidden && (sizes.get(r.id) ?? 0) > 0)
+    return [...together, ...alone]
+      .map((parts) => {
+        const seed = parts[0]
+        let mask = seed.mask
+        if (parts.length > 1) {
+          mask = new Uint8Array(seed.mask.length)
+          for (const pt of parts) for (let q = 0; q < mask.length; q++) if (pt.mask[q]) mask[q] = 1
+        }
+        return {
+          id: seed.id,
+          parts,
+          hex: seed.hex,
+          mask,
+          area: parts.reduce((n, pt) => n + pt.area, 0),
+          match: closestByColour(seed.lab, targets, (r) => regionLabs.get(r.id) ?? null),
+        }
+      })
+      .sort((a, b) => b.area - a.area)
+  }, [suggestions, separate, es, sizes, regionLabs])
+
+  const setKey = (set: EditorRegion[]) => set.map((r) => r.id).sort().join('|')
+  const sameSets = useMemo(
+    () => (mode === 'edit' ? sameColourSets(es, (r) => regionLabs.get(r.id) ?? null, sizes).filter((set) => !apart.has(setKey(set))) : []),
+    [mode, es, regionLabs, sizes, apart]
+  )
+
   const shuffle = useCallback(() => {
     const next = new Map<string, string>()
     for (const r of es.regions) {
@@ -573,8 +653,13 @@ export function RegionEditor({
     })
     const focusId = hover ?? activeId
     const focusIdx = focusId ? visible.findIndex((r) => r.id === focusId) : -1
-    const hoveredSuggestion = hoverSuggestion != null ? suggestions?.find((sg) => sg.id === hoverSuggestion) : undefined
-    const focusMask = hoveredSuggestion?.mask ?? (focusIdx >= 0 ? visible[focusIdx].mask : null)
+    const hoveredCluster = hoverSuggestion != null ? clusters.find((c) => c.id === hoverSuggestion) : undefined
+    let setMask: Uint8Array | null = null
+    if (hoverSet) {
+      setMask = new Uint8Array(w * h)
+      for (const r of visible) if (hoverSet.includes(r.id)) for (let q = 0; q < setMask.length; q++) if (r.mask[q]) setMask[q] = 1
+    }
+    const focusMask = hoveredCluster?.mask ?? setMask ?? (focusIdx >= 0 ? visible[focusIdx].mask : null)
     const washGaps = visible.length > 0
     const tints = visible.map((_, i) => {
       const c = document.createElement('canvas').getContext('2d')!
@@ -638,7 +723,7 @@ export function RegionEditor({
       }
     })
     return img
-  }, [photo, product, es, rev, hover, activeId, selectedIds, mode, testColours, hoverSuggestion, suggestions]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [photo, product, es, rev, hover, activeId, selectedIds, mode, testColours, hoverSuggestion, clusters, hoverSet]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const pendingOverlay = useMemo(() => {
     if (!pending || !photo) return null
@@ -1078,11 +1163,17 @@ export function RegionEditor({
 
     if (tool === 'pick') {
       const r = regionAt(idx)
-      const sg = !r ? suggestions?.find((x) => x.mask[idx]) : undefined
-      if (sg) {
-        acceptSuggestion(sg)
+      const c = !r ? clusters.find((x) => x.mask[idx]) : undefined
+      if (c) {
+        const chosen = e.shiftKey && activeRegion && !activeRegion.locked ? activeRegion : null
+        const into = chosen ?? c.match ?? null
+        addSuggested(c, into)
         setHoverSuggestion(null)
-        toast.success('Added as a region — name it on the right, and adjust its area with the tools if needed.')
+        if (into) {
+          toast.success(chosen ? `Added to “${into.name}”.` : `Added to “${into.name}” — it's the same colour.`, {
+            action: { label: 'Keep separate', onClick: () => later.current.separate(into.id, c.mask, c.hex) },
+          })
+        } else toast.success('Added as a region — name it on the right, and adjust its area with the tools if needed.')
       } else selectRegion(r?.id ?? null, e.shiftKey || e.ctrlKey || e.metaKey)
     } else if (tool === 'wand') {
       if (!product?.[idx]) {
@@ -1142,7 +1233,7 @@ export function RegionEditor({
     } else if (tool === 'pick' && mode !== 'preview') {
       const r = regionAt(idx)
       setHover(r?.id ?? null)
-      setHoverSuggestion(r ? null : (suggestions?.find((x) => x.mask[idx])?.id ?? null))
+      setHoverSuggestion(r ? null : (clusters.find((x) => x.mask[idx])?.id ?? null))
     }
   }
 
@@ -1191,44 +1282,81 @@ export function RegionEditor({
     toast.info(`Added “${r.name}” — drag over its area with Quick select, or use the Wand, Lasso or Brush.`)
   }
 
-  const acceptSuggestion = (sg: Suggestion) => {
+  const dropSuggestions = (parts: Suggestion[]) => {
+    const ids = new Set(parts.map((pt) => pt.id))
+    setSuggestions((list) => list?.filter((x) => !ids.has(x.id)) ?? null)
+  }
+  /** Adds suggested parts to a region: `into` (e.g. the region of the same colour) or a new one. */
+  const addSuggested = (c: SuggestionCluster, into: EditorRegion | null) => {
     if (!product) return
     remember()
-    const r = makeRegion(nextName(es), new Uint8Array(sg.mask.length), sg.hex)
-    claimMask([...es.regions, r], r, sg.mask, product)
-    setEs((s) => ({ ...s, regions: [...s.regions, r] }))
-    setSuggestions((list) => list?.filter((x) => x.id !== sg.id) ?? null)
+    const existing = into ? es.regions.find((r) => r.id === into.id) : undefined
+    const target = existing ?? makeRegion(nextName(es), new Uint8Array(c.mask.length), c.hex)
+    const regions = existing ? [...es.regions] : [...es.regions, target]
+    claimMask(regions, target, c.mask, product)
+    setEs((s) => ({ ...s, regions }))
+    dropSuggestions(c.parts)
+    setActiveId(target.id)
+    setSelectedIds([target.id])
+    setActiveGroupId(null)
+    bump()
+  }
+  const acceptAllSuggestions = () => {
+    if (!product || !clusters.length) return
+    remember()
+    let state = es
+    let merged = 0
+    for (const c of clusters) {
+      const existing = c.match ? state.regions.find((r) => r.id === c.match!.id) : undefined
+      const target = existing ?? makeRegion(nextName(state), new Uint8Array(c.mask.length), c.hex)
+      if (existing) merged++
+      else state = { ...state, regions: [...state.regions, target] }
+      claimMask(state.regions, target, c.mask, product)
+    }
+    setEs({ ...state, regions: [...state.regions] })
+    setSuggestions([])
+    setActiveId(null)
+    setSelectedIds([])
+    bump()
+    toast.success(`Added ${clusters.length - merged} new region${clusters.length - merged === 1 ? '' : 's'}${merged ? `; ${merged} added to regions of the same colour` : ''}. Name them on the right.`)
+  }
+  const suggestionToBackground = (c: SuggestionCluster) => {
+    if (!product) return
+    remember()
+    const next = product.slice()
+    for (let q = 0; q < next.length; q++) if (c.mask[q]) next[q] = 0
+    releaseMask(es.regions, c.mask)
+    setProduct(next)
+    dropSuggestions(c.parts)
+    bump()
+  }
+  /** Undo an automatic "same colour" add: those pixels become a region of their own. */
+  const separateFrom = (fromId: string, mask: Uint8Array, hex: string) => {
+    const from = es.regions.find((r) => r.id === fromId)
+    if (!product || !from) return
+    remember()
+    const r = makeRegion(nextName(es), new Uint8Array(mask.length), hex)
+    const regions = [...es.regions, r]
+    claimMask(regions, r, mask, product)
+    if (from.allowOverlap) releaseMask(regions, mask, from)
+    setEs((s) => ({ ...s, regions }))
     setActiveId(r.id)
     setSelectedIds([r.id])
     bump()
   }
-  const acceptAllSuggestions = () => {
-    if (!product || !suggestions?.length) return
-    remember()
-    let state = es
-    const added: EditorRegion[] = []
-    for (const sg of suggestions) {
-      const r = makeRegion(nextName(state), new Uint8Array(sg.mask.length), sg.hex)
-      claimMask([...state.regions, r], r, sg.mask, product)
-      state = { ...state, regions: [...state.regions, r] }
-      added.push(r)
-    }
-    setEs(state)
-    setSuggestions([])
-    setActiveId(added[0]?.id ?? null)
-    setSelectedIds(added[0] ? [added[0].id] : [])
-    bump()
+  const mergeSet = (set: EditorRegion[]) => {
+    const keep = mergeTarget(set, sizes)
+    if (!keep) return
+    commit((s) => mergeRegions(s, set.map((r) => r.id), keep.id))
+    setActiveId(keep.id)
+    setSelectedIds([keep.id])
+    setActiveGroupId(null)
+    setHoverSet(null)
+    toast.success(`Merged into “${keep.name}”.`, { action: { label: 'Undo', onClick: () => later.current.undo() } })
   }
-  const suggestionToBackground = (sg: Suggestion) => {
-    if (!product) return
-    remember()
-    const next = product.slice()
-    for (let q = 0; q < next.length; q++) if (sg.mask[q]) next[q] = 0
-    releaseMask(es.regions, sg.mask)
-    setProduct(next)
-    setSuggestions((list) => list?.filter((x) => x.id !== sg.id) ?? null)
-    bump()
-  }
+  /** Latest versions of actions that toasts call later (their closures would be stale). */
+  const later = useRef({ separate: separateFrom, undo })
+  later.current = { separate: separateFrom, undo }
 
   const onDelete = (ids: string[]) => {
     commit((s) => deleteRegions(s, ids))
@@ -1457,7 +1585,7 @@ export function RegionEditor({
     {
       group: 'Select',
       items: [
-        { key: 'pick', label: 'Pick', icon: MousePointer2, hint: 'Click a region to select it (Shift/Ctrl adds more), or click a suggested area to make it a region.', k: 'V' },
+        { key: 'pick', label: 'Pick', icon: MousePointer2, hint: 'Click a region to select it (Shift/Ctrl adds more). Click a suggested area to add it — Shift-click adds it to the selected region.', k: 'V' },
         { key: 'hand', label: 'Move view', icon: Hand, hint: 'Drag to look around when zoomed in (or hold Space).', k: 'H' },
         { key: 'move', label: 'Move region', icon: Move, hint: 'Drag the selected region to a new place — handy for duplicated repeated elements.', k: 'G' },
       ],
@@ -1778,11 +1906,11 @@ export function RegionEditor({
             )}
 
             {/* Suggestions (assistant only) */}
-            {suggestions && suggestions.length > 0 ? (
+            {clusters.length > 0 ? (
               <div className="space-y-2 rounded-lg border border-dashed p-2.5">
                 <div className="flex items-center justify-between">
                   <p className="flex items-center gap-1.5 text-xs font-semibold">
-                    <WandSparkles className="h-3.5 w-3.5 text-primary" /> Suggested regions ({suggestions.length})
+                    <WandSparkles className="h-3.5 w-3.5 text-primary" /> Suggested regions ({clusters.length})
                   </p>
                   <div className="flex gap-1">
                     <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[11px]" onClick={acceptAllSuggestions}>
@@ -1794,30 +1922,81 @@ export function RegionEditor({
                   </div>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  {suggestionSource === 'ai' ? 'Found by AI' : 'Found by colour (AI wasn’t available)'} — a starting point only. Point at the photo to see each one;{' '}
-                  <strong>click an area on the photo</strong> (or Add) to make it a region, then name and adjust it.
+                  {suggestionSource === 'ai' ? 'Found by AI' : 'Found by colour (AI wasn’t available)'}; parts of the same colour are combined. Point at the photo to see each one and{' '}
+                  <strong>click it</strong> (or Add). If you already have a region of that colour, it&apos;s added to it.
                 </p>
                 <ul className="space-y-1">
-                  {suggestions.map((sg) => (
-                    <li
-                      key={sg.id}
-                      onMouseEnter={() => setHoverSuggestion(sg.id)}
-                      onMouseLeave={() => setHoverSuggestion(null)}
-                      className={cn('flex items-center gap-2 rounded-md px-1 py-0.5 text-xs', hoverSuggestion === sg.id ? 'bg-primary/10 ring-1 ring-primary' : 'hover:bg-muted')}
-                    >
-                      <span className="h-5 w-5 rounded-full ring-1 ring-border" style={{ background: sg.hex }} />
-                      <span className="flex-1 tabular-nums text-muted-foreground">{product && productArea ? Math.max(1, Math.round((maskArea(sg.mask) / productArea) * 100)) : 0}% of the piece</span>
-                      <Button type="button" size="sm" variant="outline" className="h-6 px-2 text-[11px]" onClick={() => acceptSuggestion(sg)}>
-                        <Plus className="h-3 w-3" /> Add
-                      </Button>
-                      <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-[11px]" onClick={() => suggestionToBackground(sg)} title="It's not part of the piece">
-                        Background
-                      </Button>
-                      <button type="button" className="text-muted-foreground hover:text-foreground" onClick={() => setSuggestions((l) => l?.filter((x) => x.id !== sg.id) ?? null)} aria-label="Dismiss">
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </li>
-                  ))}
+                  {clusters.map((c) => {
+                    const pct = productArea ? Math.max(1, Math.round((c.area / productArea) * 100)) : 0
+                    const others = es.regions.filter((r) => !r.locked && r.id !== c.match?.id)
+                    return (
+                      <li
+                        key={c.id}
+                        onMouseEnter={() => setHoverSuggestion(c.id)}
+                        onMouseLeave={() => setHoverSuggestion(null)}
+                        className={cn('flex items-center gap-2 rounded-md px-1 py-0.5 text-xs', hoverSuggestion === c.id ? 'bg-primary/10 ring-1 ring-primary' : 'hover:bg-muted')}
+                      >
+                        <span className="h-5 w-5 shrink-0 rounded-full ring-1 ring-border" style={{ background: c.hex }} />
+                        <span className="min-w-0 flex-1 truncate tabular-nums text-muted-foreground">
+                          {c.parts.length > 1 ? `${c.parts.length} parts · ${pct}%` : `${pct}% of the piece`}
+                        </span>
+                        <div className="flex shrink-0">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={c.match ? 'default' : 'outline'}
+                            className="h-6 max-w-[11rem] rounded-r-none px-2 text-[11px]"
+                            onClick={() => addSuggested(c, c.match ?? null)}
+                            title={c.match ? `Same colour as “${c.match.name}”` : 'Make it a new region'}
+                          >
+                            {c.match ? <Combine className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+                            <span className="truncate">{c.match ? `Add to “${c.match.name}”` : 'Add'}</span>
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button type="button" size="sm" variant={c.match ? 'default' : 'outline'} className="h-6 rounded-l-none border-l border-l-background/30 px-1" aria-label="More ways to add">
+                                <ChevronDown className="h-3 w-3" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56">
+                              {c.match && (
+                                <DropdownMenuItem onSelect={() => addSuggested(c, null)}>
+                                  <Plus className="h-4 w-4" /> As a new region
+                                </DropdownMenuItem>
+                              )}
+                              {others.length > 0 && (
+                                <DropdownMenuSub>
+                                  <DropdownMenuSubTrigger>
+                                    <Combine className="h-4 w-4" /> Add to a region
+                                  </DropdownMenuSubTrigger>
+                                  <DropdownMenuSubContent className="max-h-72 w-48 overflow-y-auto">
+                                    {others.map((r) => (
+                                      <DropdownMenuItem key={r.id} onSelect={() => addSuggested(c, r)}>
+                                        <span className="h-3.5 w-3.5 shrink-0 rounded-full ring-1 ring-border" style={{ background: r.hex }} />
+                                        <span className="truncate">{r.name}</span>
+                                      </DropdownMenuItem>
+                                    ))}
+                                  </DropdownMenuSubContent>
+                                </DropdownMenuSub>
+                              )}
+                              {c.parts.length > 1 && (
+                                <DropdownMenuItem onSelect={() => setSeparate((set) => new Set([...set, ...c.parts.map((pt) => pt.id)]))}>
+                                  <Scissors className="h-4 w-4" /> Show its {c.parts.length} parts separately
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onSelect={() => suggestionToBackground(c)}>
+                                <SquareDashedMousePointer className="h-4 w-4" /> It&apos;s background
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                        <button type="button" className="shrink-0 text-muted-foreground hover:text-foreground" onClick={() => dropSuggestions(c.parts)} aria-label="Dismiss" title="Dismiss">
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </li>
+                    )
+                  })}
                 </ul>
               </div>
             ) : (
@@ -1826,6 +2005,44 @@ export function RegionEditor({
                   <WandSparkles className="h-3.5 w-3.5" /> Suggest regions from the photo
                 </Button>
               )
+            )}
+
+            {/* Regions that look like the same yarn: one click to merge */}
+            {sameSets.length > 0 && (
+              <div className="space-y-1 rounded-lg border border-primary/30 bg-primary/5 p-2.5">
+                <p className="flex items-center gap-1.5 text-xs font-semibold">
+                  <Combine className="h-3.5 w-3.5 text-primary" /> Same colour — merge?
+                </p>
+                {sameSets.map((set) => {
+                  const keep = mergeTarget(set, sizes)!
+                  const names = set.map((r) => `“${r.name}”`)
+                  return (
+                    <div
+                      key={setKey(set)}
+                      onMouseEnter={() => setHoverSet(set.map((r) => r.id))}
+                      onMouseLeave={() => setHoverSet(null)}
+                      className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md px-1 py-1 text-xs hover:bg-background"
+                    >
+                      <span className="flex shrink-0 -space-x-1.5">
+                        {set.map((r) => (
+                          <span key={r.id} className="h-4 w-4 rounded-full ring-2 ring-background" style={{ background: r.hex }} />
+                        ))}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        {names.slice(0, -1).join(', ')} and {names.at(-1)} look like the same yarn.
+                      </span>
+                      <span className="flex shrink-0 gap-1">
+                        <Button type="button" size="sm" className="h-6 px-2 text-[11px]" onClick={() => mergeSet(set)}>
+                          <Combine className="h-3 w-3" /> Merge into “{keep.name}”
+                        </Button>
+                        <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-[11px]" onClick={() => setApart((a) => new Set(a).add(setKey(set)))}>
+                          Keep separate
+                        </Button>
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
             )}
 
             <RegionTree
@@ -1858,10 +2075,12 @@ export function RegionEditor({
               }}
               onPasteSettings={(ids) => clipboard && commit((s) => pasteSettings(s, ids, clipboard))}
               onGroupSelected={onGroupSelected}
-              onMergeSelected={() => {
-                commit((s) => mergeRegions(s, selectedIds))
-                setSelectedIds(selectedIds.slice(0, 1))
-                setActiveId(selectedIds[0] ?? null)
+              onMergeSelected={() => mergeSet(es.regions.filter((r) => selectedIds.includes(r.id)))}
+              onMergeInto={(id, targetId) => {
+                commit((s) => mergeRegions(s, [id, targetId], targetId))
+                setActiveId(targetId)
+                setSelectedIds([targetId])
+                setActiveGroupId(null)
               }}
               onUngroup={(gid) => {
                 commit((s) => ungroup(s, gid))

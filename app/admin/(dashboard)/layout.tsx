@@ -10,6 +10,7 @@ import { RbacProvider, useRbac } from '@/lib/rbac/rbac-context'
 import { AccessDenied } from '@/components/admin/access-denied'
 import {
   LayoutDashboard,
+  Activity,
   BarChart3,
   RotateCcw,
   Package,
@@ -75,6 +76,7 @@ const navGroups: NavGroup[] = [
     title: 'Overview',
     items: [
       { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, permission: 'analytics.view' },
+      { href: '/admin/insights', label: 'Insights', icon: Activity, permission: 'analytics.view' },
       { href: '/admin/analytics', label: 'Analytics & Reports', icon: BarChart3, permission: 'analytics.view' },
     ],
   },

@@ -41,7 +41,7 @@ export function CustomizeShowcase() {
   const current = STEPS[step]
 
   return (
-    <section className="py-16 lg:py-24">
+    <section className="py-12 sm:py-16 lg:py-24">
       <div className="container mx-auto grid grid-cols-1 items-center gap-10 px-4 lg:grid-cols-2 lg:gap-16">
         <Reveal className="lg:order-1">
           <p className="eyebrow flex items-center gap-2">

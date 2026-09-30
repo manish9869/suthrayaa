@@ -109,14 +109,14 @@ export function AddressForm({
         </div>
       </Field>
       <Field label="Flat, house no., building, street" htmlFor={id('addressLine1')} error={errors.addressLine1}>
-        {text('addressLine1', { autoComplete: 'address-line1', placeholder: '12 Lotus Apartments, MG Road' })}
+        {text('addressLine1', { autoComplete: 'address-line1', placeholder: 'e.g. 12 Lotus Apartments, MG Road' })}
       </Field>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Area / locality" htmlFor={id('addressLine2')} optional>
-          {text('addressLine2', { autoComplete: 'address-line2', placeholder: 'Koregaon Park' })}
+          {text('addressLine2', { autoComplete: 'address-line2', placeholder: 'e.g. Koregaon Park' })}
         </Field>
         <Field label="Landmark" htmlFor={id('landmark')} optional>
-          {text('landmark', { placeholder: 'Near City Mall' })}
+          {text('landmark', { placeholder: 'e.g. Near City Mall' })}
         </Field>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -124,13 +124,13 @@ export function AddressForm({
           {text('pincode', {
             inputMode: 'numeric',
             autoComplete: 'postal-code',
-            placeholder: '411001',
+            placeholder: 'e.g. 411001',
             maxLength: 6,
             onChange: (e) => set('pincode', e.target.value.replace(/\D/g, '').slice(0, 6)),
           })}
         </Field>
         <Field label="City" htmlFor={id('city')} error={errors.city}>
-          {text('city', { autoComplete: 'address-level2', placeholder: 'Pune' })}
+          {text('city', { autoComplete: 'address-level2', placeholder: 'e.g. Pune' })}
         </Field>
         <Field label="State" htmlFor={id('state')} error={errors.state}>
           <Select

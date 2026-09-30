@@ -28,7 +28,11 @@ import {
   PackageX,
   Wallet,
   Sparkles,
+  Star,
+  StarOff,
 } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
+import { BulkBar, SelectAllCheckbox, bulkSummary, runBulk, useSelection } from '@/components/admin/bulk-actions'
 import {
   getAdminProducts,
   deleteProduct,
@@ -200,6 +204,24 @@ export default function AdminProductsPage() {
     }
   }
 
+  // Bulk: tick products (or every product matching the filters) and change them together
+  const productIds = useMemo(() => products.map((p) => p.id), [products])
+  const selection = useSelection(productIds)
+  const [bulkBusy, setBulkBusy] = useState(false)
+  const bulk = async (label: string, action: (id: string) => Promise<unknown>, confirmText?: string) => {
+    const ids = selection.selected
+    if (!ids.length || (confirmText && !confirm(confirmText))) return
+    setBulkBusy(true)
+    const result = await runBulk(ids, action)
+    setBulkBusy(false)
+    const nameOf = new Map(products.map((p) => [p.id, p.name]))
+    const { ok, message } = bulkSummary(result, label, (id) => nameOf.get(id) ?? id)
+    if (ok) toast.success(message)
+    else toast.warning(message, { duration: 12000 })
+    selection.clear()
+    load()
+  }
+
   const handleDuplicate = async (id: string) => {
     try {
       await duplicateProduct(id)
@@ -359,6 +381,9 @@ export default function AdminProductsPage() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-10">
+                <SelectAllCheckbox ids={pageItems.map((p) => p.id)} isSelected={selection.isSelected} onToggle={() => selection.toggleAll(pageItems.map((p) => p.id))} />
+              </TableHead>
               <TableHead>Image</TableHead>
               <SortableTh label="Product" sortKey="name" activeKey={sortKey} direction={direction} onSort={toggleSort} />
               <SortableTh label="SKU" sortKey="sku" activeKey={sortKey} direction={direction} onSort={toggleSort} />
@@ -373,16 +398,19 @@ export default function AdminProductsPage() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableLoadingRow colSpan={10} />
+              <TableLoadingRow colSpan={11} />
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
                   No products found
                 </TableCell>
               </TableRow>
             ) : (
               pageItems.map((p) => (
-                <TableRow key={p.id}>
+                <TableRow key={p.id} className={selection.isSelected(p.id) ? 'bg-primary/5 hover:bg-primary/5' : undefined}>
+                  <TableCell>
+                    <Checkbox checked={selection.isSelected(p.id)} onCheckedChange={() => selection.toggle(p.id)} aria-label={`Select ${p.name}`} />
+                  </TableCell>
                   <TableCell>
                     <div className="relative w-10 h-10 rounded-md overflow-hidden bg-muted flex-shrink-0">
                       {p.images[0] && <Image src={p.images[0]} alt={p.name} fill className="object-cover" />}
@@ -469,6 +497,57 @@ export default function AdminProductsPage() {
         </Table>
         <DataTablePagination page={page} pageCount={pageCount} total={pageTotal} pageSize={15} onPageChange={setPage} />
       </div>
+
+      <Can permission="products.update">
+        <BulkBar
+          count={selection.selected.length}
+          noun={['product', 'products']}
+          onClear={selection.clear}
+          busy={bulkBusy}
+          extra={
+            selection.selected.length < filtered.length && (
+              <button type="button" className="text-xs font-medium text-primary hover:underline" onClick={() => selection.selectAll(filtered.map((p) => p.id))}>
+                Select all {filtered.length} matching
+              </button>
+            )
+          }
+        >
+          <Button type="button" size="sm" variant="outline" className="h-8" disabled={bulkBusy} onClick={() => bulk('shown in the shop', (id) => updateProduct(id, { status: 'active' }))}>
+            <Eye className="h-3.5 w-3.5" /> Show
+          </Button>
+          <Button type="button" size="sm" variant="outline" className="h-8" disabled={bulkBusy} onClick={() => bulk('hidden', (id) => updateProduct(id, { status: 'hidden' }))}>
+            <EyeOff className="h-3.5 w-3.5" /> Hide
+          </Button>
+          <Button type="button" size="sm" variant="outline" className="h-8" disabled={bulkBusy} onClick={() => bulk('featured', (id) => updateProduct(id, { featured: true }))}>
+            <Star className="h-3.5 w-3.5" /> Feature
+          </Button>
+          <Button type="button" size="sm" variant="outline" className="h-8" disabled={bulkBusy} onClick={() => bulk('no longer featured', (id) => updateProduct(id, { featured: false }))}>
+            <StarOff className="h-3.5 w-3.5" /> Unfeature
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-8"
+            disabled={bulkBusy}
+            onClick={() => bulk('archived', (id) => updateProduct(id, { status: 'archived' }), `Archive ${selection.selected.length} products? They leave the shop; you can show them again later.`)}
+          >
+            <Archive className="h-3.5 w-3.5" /> Archive
+          </Button>
+          <Can permission="products.delete">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-8 text-destructive"
+              disabled={bulkBusy}
+              onClick={() => bulk('deactivated', (id) => deleteProduct(id), `Deactivate ${selection.selected.length} products? They're hidden from the shop; order history is kept.`)}
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Deactivate
+            </Button>
+          </Can>
+        </BulkBar>
+      </Can>
     </div>
     </ProtectedRoute>
   )

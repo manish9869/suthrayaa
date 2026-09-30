@@ -5,7 +5,7 @@ import type { Product } from '@/lib/data'
 /** Bearer token from the auth session (refreshed via the backend when needed). */
 const token = getAccessToken
 
-async function adminFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+export async function adminFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   return apiFetch<T>(path, { ...options, token: await token(), revalidate: false })
 }
 

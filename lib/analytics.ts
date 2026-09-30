@@ -94,6 +94,21 @@ export const analytics = {
     })
   },
   search: (term: string) => term.trim() && send('search', { search_term: term.trim().slice(0, 100) }),
+  /** A search that found nothing — the words shoppers want and the shop doesn't have. */
+  searchNoResults: (term: string) => term.trim() && send('search_no_results', { search_term: term.trim().slice(0, 100) }),
+  /** Homepage banners: `name` is the banner's title (a promotion, not a product). */
+  viewPromotion: (name: string, slot: number) => send('view_promotion', { promotion_name: name.slice(0, 100), creative_slot: `hero_${slot + 1}`, items: [{ item_id: `promo-${slot + 1}`, item_name: name.slice(0, 100) }] }),
+  selectPromotion: (name: string, slot: number) => send('select_promotion', { promotion_name: name.slice(0, 100), creative_slot: `hero_${slot + 1}`, items: [{ item_id: `promo-${slot + 1}`, item_name: name.slice(0, 100) }] }),
+  /** The Customize window: opened, an option picked (option label only), reset, finished. */
+  customizeOpen: (productName: string) => send('customize_open', { product_name: productName }),
+  customizeChoose: (productName: string, option: string) => send('customize_choose', { product_name: productName, option_name: option.slice(0, 60) }),
+  customizeReset: (productName: string) => send('customize_reset', { product_name: productName }),
+  customizeDone: (productName: string, choices: number) => send('customize_done', { product_name: productName, value: choices }),
+  /** Core Web Vitals from real visitors — CLS is ×1000 so it's a whole number like the rest. */
+  webVital: (name: string, value: number, id: string, rating?: string) =>
+    send(name, { value: Math.round(name === 'CLS' ? value * 1000 : value), metric_id: id, metric_rating: rating, non_interaction: true }),
+  /** A script error a visitor ran into (message only, trimmed). */
+  exception: (description: string) => send('exception', { description: description.slice(0, 150), fatal: false }),
   signUp: (method: string) => send('sign_up', { method }),
   login: (method: string) => send('login', { method }),
 }

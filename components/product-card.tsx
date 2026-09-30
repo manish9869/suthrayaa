@@ -97,6 +97,10 @@ export function ProductCard({ product, className, listName = 'Product list' }: P
             />
           )}
         </Link>
+        {/* running stitch sewn round the photo on hover */}
+        <svg className="stitch-frame pointer-events-none absolute inset-[7px] h-[calc(100%-14px)] w-[calc(100%-14px)] overflow-visible" aria-hidden>
+          <rect width="100%" height="100%" rx="15" ry="15" />
+        </svg>
 
         {/* Badges */}
         <div className="pointer-events-none absolute left-3 top-3 flex flex-col items-start gap-1.5">

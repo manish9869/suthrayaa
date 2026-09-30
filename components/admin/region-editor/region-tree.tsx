@@ -24,7 +24,16 @@ import {
   Unlock,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 import type { EditorRegion, EditorState } from '@/lib/preview/region-ops'
 
@@ -56,6 +65,8 @@ interface Props {
   onPasteSettings: (ids: string[]) => void
   onGroupSelected: () => void
   onMergeSelected: () => void
+  /** Merge region `id` into `targetId` (which keeps its name and settings). */
+  onMergeInto: (id: string, targetId: string) => void
   onUngroup: (groupId: string) => void
   onAddRegion: () => void
 }
@@ -129,6 +140,23 @@ export function RegionTree(p: Props) {
               <DropdownMenuItem onSelect={() => p.onSplit(r.id)} disabled={r.locked}>
                 <Scissors className="h-4 w-4" /> Split into separate pieces
               </DropdownMenuItem>
+              {state.regions.length > 1 && (
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger disabled={r.locked} className="data-[disabled]:opacity-50">
+                    <Combine className="h-4 w-4" /> Merge into
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="max-h-72 w-48 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                    {state.regions
+                      .filter((x) => x.id !== r.id && !x.locked)
+                      .map((x) => (
+                        <DropdownMenuItem key={x.id} onSelect={() => p.onMergeInto(r.id, x.id)}>
+                          <span className="h-3.5 w-3.5 shrink-0 rounded-full ring-1 ring-border" style={{ background: x.hex }} />
+                          <span className="truncate">{x.name}</span>
+                        </DropdownMenuItem>
+                      ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={() => p.onCopySettings(r.id)}>
                 <ClipboardCopy className="h-4 w-4" /> Copy settings
@@ -261,7 +289,7 @@ export function RegionTree(p: Props) {
           {ungrouped.map((r) => row(r, false))}
         </ul>
       )}
-      <p className="text-[11px] text-muted-foreground">Shift/Ctrl-click to select several. Later regions in the list are drawn on top where regions may overlap.</p>
+      <p className="text-[11px] text-muted-foreground">Same colour split in two? Use ⋯ → Merge into, or Shift/Ctrl-click to select several and Merge. Later regions in the list are drawn on top where regions may overlap.</p>
     </div>
   )
 }

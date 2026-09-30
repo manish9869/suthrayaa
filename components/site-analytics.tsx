@@ -1,6 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useReportWebVitals } from 'next/web-vitals'
+import { analytics } from '@/lib/analytics'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Script from 'next/script'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
@@ -85,6 +87,31 @@ export function SiteAnalytics({ gaId, gtmId, pixelId, consentRequired, consentMe
     report()
     return () => clearTimeout(timer)
   }, [load, pathname, searchParams, ga, pixel])
+
+  // Site speed from real visitors (Core Web Vitals) and script errors they hit — shown in
+  // Admin → Insights → Pages & site speed. No-ops until the tracker has loaded.
+  // a stable callback (web-vitals registers it once) that reads whether tracking is on from a ref
+  const tracking = useRef(false)
+  tracking.current = Boolean(load && ga)
+  const reportVital = useCallback((m: { name: string; value: number; id: string; rating?: string }) => {
+    if (tracking.current && ['LCP', 'INP', 'CLS', 'FCP', 'TTFB'].includes(m.name)) analytics.webVital(m.name, m.value, m.id, m.rating)
+  }, [])
+  useReportWebVitals(reportVital)
+  useEffect(() => {
+    if (!load || !ga) return
+    let sent = 0
+    const report = (msg: string) => {
+      if (sent++ < 10 && msg) analytics.exception(msg)
+    }
+    const onError = (e: ErrorEvent) => report(e.message || 'Script error')
+    const onRejection = (e: PromiseRejectionEvent) => report(e.reason instanceof Error ? e.reason.message : String(e.reason ?? 'Unhandled rejection'))
+    window.addEventListener('error', onError)
+    window.addEventListener('unhandledrejection', onRejection)
+    return () => {
+      window.removeEventListener('error', onError)
+      window.removeEventListener('unhandledrejection', onRejection)
+    }
+  }, [load, ga])
 
   const choose = (value: 'accepted' | 'declined') => {
     try {

@@ -43,7 +43,7 @@ export function SectionHeading({
   return (
     <Reveal
       className={cn(
-        'mb-10 flex gap-4 lg:mb-12',
+        'mb-7 flex gap-4 sm:mb-10 lg:mb-12',
         align === 'center' ? 'flex-col items-center text-center' : 'flex-col md:flex-row md:items-end md:justify-between',
         className
       )}

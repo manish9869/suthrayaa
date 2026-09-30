@@ -559,7 +559,7 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
             </Button>
           </div>
         </main>
-        <Footer />
+        <Footer minimal />
       </>
     )
   }
@@ -1053,7 +1053,7 @@ export function CheckoutContent({ categories }: { categories: Category[] }) {
           </div>
         </div>
       </main>
-      <Footer />
+      <Footer minimal />
     </>
   )
 }

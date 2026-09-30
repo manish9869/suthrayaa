@@ -29,7 +29,7 @@ export function BestSellers({ products: bestSellers, heading }: { products: Prod
   }
 
   return (
-    <section className="bg-sand/60 py-20 lg:py-28">
+    <section className="bg-sand/60 py-14 sm:py-20 lg:py-28">
       <div className="container mx-auto px-4">
         <div className="relative">
           <SectionHeading eyebrow="Customer favourites" title="Best" accent="sellers" href="/shop?sort=bestselling" linkLabel="View all best sellers" content={heading} />

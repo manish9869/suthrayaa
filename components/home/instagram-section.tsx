@@ -24,7 +24,7 @@ export function InstagramSection({ content, heading }: { content?: SiteContent['
   const { profileUrl, buttonLabel, images } = content ?? FALLBACK
   const photos = images.filter((p) => p.image)
   return (
-    <section className="py-20 lg:py-28">
+    <section className="py-14 sm:py-20 lg:py-28">
       <div className="container mx-auto px-4">
         <SectionHeading
           eyebrow="@suthrayaa"
@@ -34,11 +34,11 @@ export function InstagramSection({ content, heading }: { content?: SiteContent['
           content={heading}
         />
         {photos.length > 0 && (
-          <Stagger className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6 lg:gap-4">
+          <Stagger className="grid grid-cols-3 gap-2 sm:gap-3 lg:grid-cols-6 lg:gap-4">
             {photos.map((photo, i) => (
               <StaggerItem key={`${photo.image}-${i}`} className={i % 2 === 1 ? 'lg:translate-y-8' : undefined}>
-                <a href={profileUrl} target="_blank" rel="noopener noreferrer" className="group relative block aspect-[4/5] overflow-hidden rounded-[1.4rem] bg-sand">
-                  <Image src={mediaUrl(photo.image)} alt={photo.alt} fill sizes="(max-width: 640px) 50vw, 16vw" className="zoom-img object-cover" />
+                <a href={profileUrl} target="_blank" rel="noopener noreferrer" className="group relative block aspect-[4/5] overflow-hidden rounded-2xl bg-sand sm:rounded-[1.4rem]">
+                  <Image src={mediaUrl(photo.image)} alt={photo.alt} fill sizes="(max-width: 1024px) 33vw, 16vw" className="zoom-img object-cover" />
                   <span className="absolute inset-0 flex items-center justify-center bg-primary/0 transition-colors duration-300 group-hover:bg-primary/35">
                     <Instagram className="h-7 w-7 scale-90 text-white opacity-0 transition-[opacity,transform] duration-300 ease-[var(--ease-out)] group-hover:scale-100 group-hover:opacity-100" />
                   </span>
@@ -48,7 +48,7 @@ export function InstagramSection({ content, heading }: { content?: SiteContent['
           </Stagger>
         )}
         {profileUrl && (
-          <div className="mt-14 flex justify-center">
+          <div className="mt-10 flex justify-center lg:mt-14">
             <Button asChild variant="outline" size="lg" className="group h-12 px-7">
               <a href={profileUrl} target="_blank" rel="noopener noreferrer">
                 <Instagram className="h-4 w-4" /> {buttonLabel}

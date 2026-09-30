@@ -144,7 +144,7 @@ export function ReelsSection({ content, heading }: { content?: SiteContent['home
   const arrow = 'absolute top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border bg-card/95 text-foreground shadow-md backdrop-blur transition-[opacity,transform] duration-200 hover:scale-105 hover:border-primary hover:text-primary active:scale-95 [@media(hover:hover)]:sm:flex'
 
   return (
-    <section className="py-16 lg:py-24">
+    <section className="py-12 sm:py-16 lg:py-24">
       <div className="container mx-auto px-4">
         <SectionHeading
           eyebrow="Suthrayaa reels"

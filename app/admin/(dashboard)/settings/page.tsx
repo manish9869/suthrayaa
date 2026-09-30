@@ -15,6 +15,7 @@ import {
   Palette,
   Store,
   Megaphone,
+  MessageSquareHeart,
   PanelBottom,
   LayoutGrid,
   Building2,
@@ -39,6 +40,7 @@ import { PageLoader } from '@/components/admin/loading-state'
 import { ProtectedRoute } from '@/components/admin/protected-route'
 import { Can } from '@/components/admin/can'
 import { SettingsGroupForm } from '@/components/admin/settings-group-form'
+import { PopupSettingsPanel } from '@/components/admin/popup-settings-panel'
 import { PageHeader } from '@/components/admin/page-header'
 import { useRbac } from '@/lib/rbac/rbac-context'
 import { INDIA_STATE_NAMES } from '@/lib/india'
@@ -74,6 +76,7 @@ const TABS: TabDef[] = [
   { id: 'branding', label: 'Branding', icon: Palette, group: 'branding', permission: 'settings.branding' },
   { id: 'storefront', label: 'Storefront & Checkout', icon: Store, group: 'storefront', permission: 'settings.storefront' },
   { id: 'header', label: 'Header & Announcement', icon: Megaphone, group: 'header', permission: 'settings.storefront' },
+  { id: 'popup', label: 'Pop-up Alert', icon: MessageSquareHeart, group: 'popup', permission: 'settings.storefront' },
   { id: 'footer', label: 'Footer', icon: PanelBottom, group: 'footer', permission: 'settings.storefront' },
   { id: 'homepage', label: 'Homepage', icon: LayoutGrid, group: 'homepage', permission: 'settings.storefront' },
   { id: 'contact', label: 'Contact & Business', icon: Building2, group: 'contact' },
@@ -182,6 +185,8 @@ function SettingsPageContent() {
               <div className="h-4" />
               <NavItemsPanel />
             </>
+          ) : activeTab.id === 'popup' ? (
+            <PopupSettingsPanel values={groupValues} onSaved={load} />
           ) : activeTab.id === 'footer' ? (
             <>
               <SettingsGroupForm group="footer" catalog={settings.catalog} values={groupValues} onSaved={load} editPermission="settings.storefront" />

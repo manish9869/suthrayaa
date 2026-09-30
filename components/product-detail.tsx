@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react'
 import dynamic from 'next/dynamic'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useDragControls } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Navbar } from '@/components/navbar'
@@ -64,6 +64,8 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
   const allowedColors = rules?.allowedColors && rules.allowedColors.length > 0 ? rules.allowedColors : product.colors
 
   const [selectedImage, setSelectedImage] = useState(0)
+  const [detailsTab, setDetailsTab] = useState('description')
+  const swipe = useDragControls()
   // With several colours nothing is preselected — the customer must choose one (a single
   // colour is simply the colour, so it's preselected).
   const [selectedColor, setSelectedColor] = useState(product.colors.length === 1 ? product.colors[0] : '')
@@ -113,6 +115,8 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
   const galleryPreview = showPreview && hasPickedColor && product.preview?.mode === 'photo'
   // Colour options always live in the Customize window, with or without a live preview
   const showGalleryPreview = galleryPreview && !showOriginalPhoto
+  // Photos can be swiped on touch screens (not while showing the recoloured preview)
+  const swipeable = product.images.length > 1 && !galleryPreview
   const colourGroups = useMemo(() => colourSections(product.customizations, product.preview).flatMap((s) => s.options), [product.customizations, product.preview])
   const colourInWindow = usesNewCustomizer && colourGroups.length > 0
   const pickedParts = colourGroups.filter((g) => previewColors[g.id]).length
@@ -272,8 +276,27 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                   ))}
                 </div>
               )}
-              <div
-                className="group relative aspect-[4/5] flex-1 cursor-zoom-in overflow-hidden rounded-[2rem] bg-sand"
+              <div className="relative isolate flex-1">
+              <div aria-hidden className="pointer-events-none absolute inset-x-[12%] bottom-[2%] top-[14%] -z-10 opacity-40 blur-3xl saturate-150">
+                <Image src={product.images[selectedImage] ?? '/placeholder.svg'} alt="" fill sizes="160px" className="rounded-[2rem] object-cover" />
+              </div>
+              <motion.div
+                drag={swipeable ? 'x' : false}
+                dragListener={false}
+                dragControls={swipe}
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={0.25}
+                dragSnapToOrigin
+                onPointerDown={(e) => {
+                  if (swipeable && e.pointerType !== 'mouse') swipe.start(e)
+                }}
+                onDragEnd={(_, info) => {
+                  const n = product.images.length
+                  if (info.offset.x < -48 || info.velocity.x < -400) setSelectedImage((i) => (i + 1) % n)
+                  else if (info.offset.x > 48 || info.velocity.x > 400) setSelectedImage((i) => (i - 1 + n) % n)
+                }}
+                style={{ touchAction: swipeable ? 'pan-y' : undefined }}
+                className="group relative aspect-[4/5] w-full cursor-zoom-in overflow-hidden rounded-[2rem] bg-sand"
                 onMouseMove={(e) => {
                   const r = e.currentTarget.getBoundingClientRect()
                   setZoomOrigin(`${((e.clientX - r.left) / r.width) * 100}% ${((e.clientY - r.top) / r.height) * 100}%`)
@@ -338,6 +361,11 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                     </div>
                   </div>
                 )}
+                {swipeable && (
+                  <span className="pointer-events-none absolute bottom-4 right-4 rounded-full bg-card/85 px-2.5 py-1 text-xs font-medium tabular-nums shadow-sm backdrop-blur lg:hidden">
+                    {selectedImage + 1} / {product.images.length}
+                  </span>
+                )}
                 <div className="pointer-events-none absolute left-4 top-4 flex flex-col items-start gap-2">
                   {discount > 0 && <span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-white">−{discount}% off</span>}
                   {product.bestseller && <span className="rounded-full bg-card/90 px-3 py-1 text-xs font-semibold backdrop-blur">Bestseller</span>}
@@ -348,6 +376,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                     </span>
                   )}
                 </div>
+              </motion.div>
               </div>
             </div>
 
@@ -358,21 +387,32 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
               </Link>
               <h1 className="display mt-3 text-[2.3rem] sm:text-5xl">{product.name}</h1>
 
-              <a href="#details" className="mt-4 inline-flex items-center gap-2 text-sm">
+              <a href="#details" onClick={() => setDetailsTab('reviews')} className="mt-4 inline-flex items-center gap-2 text-sm">
                 <span className="flex">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Star key={i} className={cn('h-4 w-4', i < Math.round(product.rating) ? 'fill-gold text-gold' : 'text-muted-foreground/30')} />
                   ))}
                 </span>
-                <span className="font-semibold">{product.rating}</span>
-                <span className="link-underline text-muted-foreground">{product.reviewCount} reviews</span>
+                {product.reviewCount > 0 ? (
+                  <>
+                    <span className="font-semibold tabular-nums">{product.rating.toFixed(1)}</span>
+                    <span className="text-muted-foreground/50" aria-hidden>
+                      ·
+                    </span>
+                    <span className="link-underline text-muted-foreground">
+                      {product.reviewCount} {product.reviewCount === 1 ? 'review' : 'reviews'}
+                    </span>
+                  </>
+                ) : (
+                  <span className="link-underline text-muted-foreground">No reviews yet</span>
+                )}
               </a>
 
               <div className="mt-5 flex flex-wrap items-baseline gap-3">
                 <span className="text-3xl font-semibold tracking-tight">
                   {usesNewCustomizer ? formatPrice(displayUnitPrice) : formatPrice(product.price)}
                 </span>
-                {product.comparePrice && !usesNewCustomizer && (
+                {product.comparePrice && (!usesNewCustomizer || customizationPriceAdjustment === 0) && (
                   <>
                     <span className="text-lg text-muted-foreground line-through">{formatPrice(product.comparePrice)}</span>
                     <span className="rounded-full bg-blush px-2.5 py-0.5 text-xs font-semibold text-rose">Save {discount}%</span>
@@ -639,8 +679,8 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
           </div>
 
           {/* Details tabs */}
-          <section id="details" className="mt-20 scroll-mt-32">
-            <Tabs defaultValue="description" className="w-full">
+          <section id="details" className="mt-14 scroll-mt-32 sm:mt-20">
+            <Tabs value={detailsTab} onValueChange={setDetailsTab} className="w-full">
               <TabsList className="h-auto max-w-full justify-start overflow-x-auto rounded-full bg-muted p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {[
                   ['description', 'Description'],
@@ -650,8 +690,11 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                   <TabsTrigger
                     key={value}
                     value={value}
-                    className="shrink-0 rounded-full px-4 py-2 text-sm data-[state=active]:bg-card data-[state=active]:shadow-sm sm:px-5"
+                    className="relative isolate shrink-0 rounded-full px-4 py-2 text-sm data-[state=active]:bg-transparent data-[state=active]:shadow-none sm:px-5"
                   >
+                    {detailsTab === value && (
+                      <motion.span layoutId="details-tab-pill" className="absolute inset-0 -z-10 rounded-full bg-card shadow-sm" transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }} />
+                    )}
                     {label}
                   </TabsTrigger>
                 ))}
@@ -707,7 +750,9 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
                         <Star key={i} className={cn('h-4 w-4', i < Math.round(reviewAvg) ? 'fill-gold text-gold' : 'text-muted-foreground/30')} />
                       ))}
                     </div>
-                    <p className="mt-1 text-sm text-muted-foreground">Based on {product.reviewCount} reviews</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {product.reviewCount > 0 ? `Based on ${product.reviewCount} ${product.reviewCount === 1 ? 'review' : 'reviews'}` : 'No reviews yet'}
+                    </p>
                     {reviews.length > 0 && (
                       <div className="mt-5 space-y-1.5">
                         {ratingBars.map((b) => (
@@ -777,7 +822,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
           </section>
 
           {/* FAQ */}
-          <section className="mt-20 grid grid-cols-1 gap-8 lg:grid-cols-[0.8fr_1.2fr]">
+          <section className="mt-14 grid grid-cols-1 gap-8 sm:mt-20 lg:grid-cols-[0.8fr_1.2fr]">
             <div>
               <p className="eyebrow">Good to know</p>
               <h2 className="display mt-3 text-4xl">
@@ -815,7 +860,7 @@ export function ProductDetail({ product, reviews, relatedProducts, categories }:
 
           {/* Related products */}
           {relatedProducts.length > 0 && (
-            <section className="mt-24">
+            <section className="mt-16 sm:mt-24">
               <SectionHeading eyebrow="Complete the set" title="You may" accent="also like" href={`/shop?category=${product.categorySlug}`} />
               <Stagger className="grid grid-cols-2 gap-x-4 gap-y-10 lg:grid-cols-4 lg:gap-x-6">
                 {relatedProducts.map((p) => (

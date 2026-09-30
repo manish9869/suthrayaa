@@ -38,7 +38,7 @@ export function TestimonialsSection({
   const avg = testimonials.reduce((s, x) => s + x.rating, 0) / count
 
   return (
-    <section id="testimonials" className="scroll-mt-24 py-20 lg:py-28" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+    <section id="testimonials" className="scroll-mt-24 py-14 sm:py-20 lg:py-28" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
           <Reveal className="flex flex-col justify-between">
@@ -108,14 +108,22 @@ export function TestimonialsSection({
             </div>
             {count > 1 && (
               <div className="mt-6 flex items-center justify-between">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center">
                   {testimonials.map((x, i) => (
                     <button
                       key={x.id}
                       onClick={() => setState([i, i > index ? 1 : -1])}
                       aria-label={`Show testimonial ${i + 1}`}
-                      className={cn('h-1.5 rounded-full transition-all duration-300 ease-[var(--ease-out)]', i === index ? 'w-8 bg-primary' : 'w-1.5 bg-foreground/20 hover:bg-foreground/40')}
-                    />
+                      aria-current={i === index}
+                      className="group/dot -my-3 px-1 py-[19px]"
+                    >
+                      <span
+                        className={cn(
+                          'block h-1.5 rounded-full transition-[width,background-color] duration-300 ease-[var(--ease-out)]',
+                          i === index ? 'w-8 bg-primary' : 'w-1.5 bg-foreground/20 group-hover/dot:bg-foreground/40'
+                        )}
+                      />
+                    </button>
                   ))}
                 </div>
                 <div className="flex gap-2">

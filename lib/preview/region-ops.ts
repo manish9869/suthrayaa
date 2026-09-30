@@ -6,6 +6,8 @@
  */
 
 import { splitPieces } from './regions'
+import { clusterByColour } from './same-colour'
+import type { Lab } from './yarn-colors'
 
 export interface EditorRegion {
   id: string
@@ -127,18 +129,47 @@ export function moveToGroup(s: EditorState, ids: string[], groupId: string | nul
   return { regions, groups: s.groups.filter((g) => regions.some((r) => r.groupId === g.id)) }
 }
 
-/** Union of several regions into the first one (keeps its name and settings). */
-export function mergeRegions(s: EditorState, ids: string[]): EditorState {
-  const picked = s.regions.filter((r) => ids.includes(r.id))
+/**
+ * Union of several regions into one — `keepId` if given, else the first in layer order — which
+ * keeps its name, settings and place. Locked regions are left alone.
+ */
+export function mergeRegions(s: EditorState, ids: string[], keepId?: string): EditorState {
+  const picked = s.regions.filter((r) => ids.includes(r.id) && !r.locked)
   if (picked.length < 2) return s
-  const [keep, ...rest] = picked
+  const keep = picked.find((r) => r.id === keepId) ?? picked[0]
+  const rest = picked.filter((r) => r !== keep)
   const mask = keep.mask.slice()
   for (const r of rest) for (let q = 0; q < mask.length; q++) if (r.mask[q]) mask[q] = 1
   const restIds = new Set(rest.map((r) => r.id))
-  return {
-    ...s,
-    regions: s.regions.filter((r) => !restIds.has(r.id)).map((r) => (r.id === keep.id ? { ...r, mask, maskUrl: undefined } : r)),
+  const regions = s.regions.filter((r) => !restIds.has(r.id)).map((r) => (r.id === keep.id ? { ...r, mask, maskUrl: undefined } : r))
+  return { regions, groups: s.groups.filter((g) => regions.some((r) => r.groupId === g.id)) }
+}
+
+const DEFAULT_NAME = /^Region \d+$/
+
+/** Which region a merge should keep: one the admin has named, else the biggest. */
+export function mergeTarget(regions: EditorRegion[], sizes: Map<string, number>): EditorRegion | undefined {
+  const score = (r: EditorRegion) => (DEFAULT_NAME.test(r.name.trim()) ? 0 : 1e12) + (sizes.get(r.id) ?? 0)
+  return regions.slice().sort((a, b) => score(b) - score(a))[0]
+}
+
+/**
+ * Sets of regions that look like the same yarn — offered to the admin to merge. Only regions
+ * that can be merged (unlocked, visible, not empty) and treated alike (all changeable or all
+ * fixed); regions the admin already put in one group together are left as they are.
+ */
+export function sameColourSets(s: EditorState, colour: (r: EditorRegion) => Lab | null, sizes: Map<string, number>, limit?: number): EditorRegion[][] {
+  const eligible = s.regions.filter((r) => !r.locked && !r.hidden && (sizes.get(r.id) ?? 0) > 0)
+  const sets: EditorRegion[][] = []
+  for (const changeable of [true, false]) {
+    const pool = eligible.filter((r) => r.changeable === changeable)
+    for (const set of clusterByColour(pool, colour, (r) => sizes.get(r.id) ?? 0, limit)) {
+      if (set.length < 2) continue
+      if (set[0].groupId && set.every((r) => r.groupId === set[0].groupId)) continue
+      sets.push(set)
+    }
   }
+  return sets
 }
 
 /**

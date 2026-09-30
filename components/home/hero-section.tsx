@@ -12,6 +12,7 @@ import { formatPrice, type HeroSlide, type Product } from '@/lib/data'
 import { useCartStore } from '@/lib/store'
 import { toast } from 'sonner'
 import { EASE_OUT } from '@/components/motion/reveal'
+import { analytics } from '@/lib/analytics'
 import { STOREFRONT_IMAGES } from '@/lib/storefront-images'
 import { HeroBackdrop } from './hero-backdrop'
 import { StitchedArch } from './stitched-arch'
@@ -144,6 +145,14 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
 
   const slide = slides[current]
   const [line1, line2] = splitTitle(slide.title)
+
+  // Insights → Marketing → Promotions: each banner seen (once per visit) and clicked
+  const seenSlides = useRef(new Set<string>())
+  useEffect(() => {
+    if (seenSlides.current.has(slide.id)) return
+    seenSlides.current.add(slide.id)
+    analytics.viewPromotion(slide.title, current)
+  }, [slide.id, slide.title, current])
   const activePick = picks[pick]
   const textAnim = reduce
     ? { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } }
@@ -165,7 +174,7 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
       <div className="pointer-events-none absolute right-[-10%] top-[-20%] h-[520px] w-[520px] rounded-full bg-sage/20 blur-3xl" />
       <HeroBackdrop />
 
-      <div className="container relative mx-auto grid grid-cols-1 items-center gap-10 px-4 pb-16 pt-6 lg:min-h-[640px] lg:grid-cols-[1.05fr_1fr] lg:gap-8 lg:pb-20 lg:pt-6">
+      <div className="container relative mx-auto grid grid-cols-1 items-center gap-6 px-4 pb-12 pt-5 sm:gap-10 sm:pb-16 sm:pt-6 lg:min-h-[640px] lg:grid-cols-[1.05fr_1fr] lg:gap-8 lg:pb-20 lg:pt-6">
         {/* Copy */}
         <div className="relative z-10">
           <AnimatePresence mode="wait">
@@ -173,7 +182,7 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
               <p className="eyebrow flex items-center gap-2">
                 <span className="h-px w-8 bg-rose" /> {slide.subtitle}
               </p>
-              <h1 className="display mt-5 text-[2.9rem] leading-[1.02] sm:text-6xl xl:text-[5.2rem]">
+              <h1 className="display mt-3 text-balance text-[2.6rem] leading-[1.02] min-[400px]:text-[2.9rem] sm:mt-5 sm:text-6xl xl:text-[5.2rem]">
                 {line1}
                 {line2 && (
                   <>
@@ -182,10 +191,10 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
                   </>
                 )}
               </h1>
-              {slide.description && <p className="mt-6 max-w-md text-[17px] leading-relaxed text-foreground/70">{slide.description}</p>}
-              <div className="mt-8 flex flex-col gap-2 min-[400px]:flex-row min-[400px]:flex-wrap min-[400px]:items-center min-[400px]:gap-3">
+              {slide.description && <p className="mt-4 max-w-md text-pretty text-base leading-relaxed text-foreground/70 sm:mt-6 sm:text-[17px]">{slide.description}</p>}
+              <div className="mt-6 flex flex-col gap-2 sm:mt-8 min-[400px]:flex-row min-[400px]:flex-wrap min-[400px]:items-center min-[400px]:gap-3">
                 <Button size="lg" asChild className="group h-[52px] px-7 text-[15px]">
-                  <Link href={slide.href}>
+                  <Link href={slide.href} onClick={() => analytics.selectPromotion(slide.title, current)}>
                     {slide.cta}
                     <ArrowRight className="h-4 w-4 transition-transform duration-300 ease-[var(--ease-out)] group-hover:translate-x-1" />
                   </Link>
@@ -198,7 +207,7 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
           </AnimatePresence>
 
           {/* Slide dots + social proof */}
-          <div className="mt-12 flex flex-wrap items-center gap-6">
+          <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4 sm:mt-12">
             {slides.length > 1 && (
               <div className="-my-4 flex items-center">
                 {slides.map((s, i) => (
@@ -208,9 +217,9 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
                     onClick={() => setCurrent(i)}
                     aria-label={`Show slide ${i + 1}`}
                     aria-current={i === current}
-                    className="px-1 py-[19px]"
+                    className={cn('py-[19px]', slides.length > 6 ? 'px-0.5 sm:px-1' : 'px-1')}
                   >
-                    <span className="relative block h-1.5 w-8 overflow-hidden rounded-full bg-foreground/15">
+                    <span className={cn('relative block h-1.5 overflow-hidden rounded-full bg-foreground/15', slides.length > 6 ? 'w-5 sm:w-8' : 'w-8')}>
                       {i === current && (
                         <motion.span
                           key={`${s.id}-${paused}`}
@@ -244,7 +253,7 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
         </div>
 
         {/* Visual */}
-        <div className="relative mx-auto w-full max-w-[360px] sm:max-w-[520px]">
+        <div className="relative order-first mx-auto w-full max-w-[290px] sm:max-w-[520px] lg:order-none">
           <div className="absolute inset-x-[6%] bottom-[4%] top-[10%] rounded-full bg-blush" />
           <motion.div style={{ y: imageY }} className="relative">
             <div className="arch relative mx-auto aspect-[4/5] w-[78%] overflow-hidden bg-sand shadow-[0_40px_80px_-40px_color-mix(in_oklab,var(--shadow-tint)_55%,transparent)]">
@@ -263,6 +272,11 @@ export function HeroSection({ slides: cmsSlides, featuredProducts = [] }: HeroSe
                   {!reduce && <div className="stage-sheen absolute inset-0" />}
                 </motion.div>
               </AnimatePresence>
+              {slides.length > 1 && (
+                <div className="pointer-events-none absolute inset-0 opacity-0" aria-hidden>
+                  <Image src={mediaUrl(slides[(current + 1) % slides.length].image)} alt="" fill loading="eager" sizes="(max-width: 1024px) 80vw, 420px" className="object-cover" />
+                </div>
+              )}
             </div>
             {/* running stitch sewn around the arch — doubles as the slide timer */}
             <StitchedArch key={`${slide.id}-${paused}`} duration={6.5} complete={paused || !!reduce} className="pointer-events-none absolute left-1/2 top-0 aspect-[4/5] w-[78%] -translate-x-1/2" />

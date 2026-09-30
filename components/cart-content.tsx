@@ -23,13 +23,14 @@ import {
 } from 'lucide-react'
 import { useCartStore } from '@/lib/store'
 import { useHydrated } from '@/lib/hooks/use-hydrated'
-import { formatPrice, type Category } from '@/lib/data'
+import { formatPrice, type Category, type Product } from '@/lib/data'
+import { EmptyState } from '@/components/empty-state'
 import { checkCart, getCheckoutOptions, toCartItemInputs, validateCart, validateCoupon, type CartLineIssue, type CheckoutOptions, type PricedCart } from '@/lib/api/checkout'
 import { toast } from 'sonner'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { analytics, toItem, variantOf } from '@/lib/analytics'
 
-export function CartContent({ categories }: { categories: Category[] }) {
+export function CartContent({ categories, suggestions = [] }: { categories: Category[]; suggestions?: Product[] }) {
   const { items, updateQuantity, removeItem, getTotalPrice, getItemUnitPrice, clearCart } = useCartStore()
   const hydrated = useHydrated()
   const [couponCode, setCouponCode] = useState('')
@@ -37,6 +38,17 @@ export function CartContent({ categories }: { categories: Category[] }) {
   const [checkingCoupon, setCheckingCoupon] = useState(false)
 
   const subtotal = getTotalPrice()
+  const itemCount = items.reduce((n, i) => n + i.quantity, 0)
+  // Phones: a checkout bar sticks to the bottom until the summary's own button is on screen
+  const checkoutRef = useRef<HTMLDivElement>(null)
+  const [checkoutInView, setCheckoutInView] = useState(true)
+  useEffect(() => {
+    const el = checkoutRef.current
+    if (!el) return
+    const io = new IntersectionObserver(([e]) => setCheckoutInView(e.isIntersecting || e.boundingClientRect.top < 0))
+    io.observe(el)
+    return () => io.disconnect()
+  }, [items.length, hydrated])
   const [options, setOptions] = useState<CheckoutOptions | null>(null)
   const [priced, setPriced] = useState<PricedCart | null>(null)
   const [issues, setIssues] = useState<CartLineIssue[]>([])
@@ -125,23 +137,14 @@ export function CartContent({ categories }: { categories: Category[] }) {
       <>
         <Navbar categories={categories} />
         <main className="min-h-svh">
-          <div className="container mx-auto px-4 py-16">
-            <div className="max-w-md mx-auto text-center">
-              <div className="w-32 h-32 rounded-full bg-muted mx-auto mb-6 flex items-center justify-center">
-                <ShoppingBag className="h-16 w-16 text-muted-foreground" />
-              </div>
-              <h1 className="display text-3xl mb-3">Your Cart is Empty</h1>
-              <p className="text-muted-foreground mb-8">
-                Looks like you haven&apos;t added any handcrafted goodies to your cart yet.
-              </p>
-              <Button size="lg" asChild>
-                <Link href="/shop">
-                  Start Shopping
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
-          </div>
+          <EmptyState
+            icon={ShoppingBag}
+            title="Your cart is empty"
+            text="Nothing on the hook yet — every piece is made to order, just for you."
+            cta="Start Shopping"
+            suggestions={suggestions}
+            listName="Empty cart"
+          />
         </main>
         <Footer />
       </>
@@ -166,7 +169,9 @@ export function CartContent({ categories }: { categories: Category[] }) {
         </div>
 
         <div className="container mx-auto px-4 py-8">
-          <h1 className="display text-4xl sm:text-5xl mb-8">Shopping Cart ({items.length})</h1>
+          <h1 className="display text-4xl sm:text-5xl mb-8">
+            Shopping Cart <span className="text-muted-foreground">({itemCount} {itemCount === 1 ? 'item' : 'items'})</span>
+          </h1>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Cart Items */}
@@ -406,6 +411,7 @@ export function CartContent({ categories }: { categories: Category[] }) {
                   </div>
 
                   {/* Checkout Button */}
+                  <div ref={checkoutRef} aria-hidden className="h-0" />
                   <p className="-mt-1 text-xs text-muted-foreground">Shipping is confirmed for your address at checkout. Prices include GST.</p>
                   {issues.length > 0 ? (
                     <>
@@ -444,6 +450,37 @@ export function CartContent({ categories }: { categories: Category[] }) {
         </div>
       </main>
       <Footer />
+
+      {/* Mobile sticky checkout bar */}
+      <AnimatePresence>
+        {!checkoutInView && (
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
+            className="fixed inset-x-0 bottom-0 z-40 flex items-center gap-3 border-t bg-background/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl lg:hidden"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-muted-foreground">
+                {itemCount} {itemCount === 1 ? 'item' : 'items'} · Total
+              </p>
+              <p className="text-lg font-semibold tabular-nums">{formatPrice(total)}</p>
+            </div>
+            {issues.length > 0 ? (
+              <Button size="lg" className="h-12" disabled>
+                Fix items to continue
+              </Button>
+            ) : (
+              <Button size="lg" className="h-12 px-6" asChild>
+                <Link href={appliedCoupon ? `/checkout?coupon=${appliedCoupon.code}` : '/checkout'}>
+                  Checkout <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   )
 }

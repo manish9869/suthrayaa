@@ -42,7 +42,7 @@ export function StorySection({ content }: { content?: SiteContent['home.story'] 
   const ySmall = useTransform(scrollYProgress, [0, 1], [reduce ? 0 : 80, reduce ? 0 : -60])
 
   return (
-    <section ref={ref} className="relative overflow-hidden py-20 lg:py-32">
+    <section ref={ref} className="relative overflow-hidden py-14 sm:py-20 lg:py-32">
       <div className="container mx-auto grid grid-cols-1 items-center gap-16 px-4 lg:grid-cols-2 lg:gap-20">
         {/* Images */}
         <div className="relative mx-auto w-full max-w-[520px]">
