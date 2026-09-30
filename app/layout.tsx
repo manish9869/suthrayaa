@@ -69,7 +69,8 @@ const THEME_VARS: Record<string, string[]> = {
 async function getThemeCss(): Promise<string> {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000/api'
-    const res = await fetch(`${apiUrl}/theme`, { next: { revalidate: 60 } })
+    // tagged so Admin → Theme can refresh every page the moment a theme is applied
+    const res = await fetch(`${apiUrl}/theme`, { next: { revalidate: 60, tags: ['theme'] } })
     if (!res.ok) return ''
     const theme = (await res.json()) as { isDefault: boolean; colors: Record<string, string> }
     if (theme.isDefault) return ''

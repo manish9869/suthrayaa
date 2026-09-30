@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
   getThemeAdmin,
   activateTheme,
+  refreshStorefrontTheme,
   createCustomTheme,
   updateCustomTheme,
   deleteCustomTheme,
@@ -155,11 +156,12 @@ export default function ThemePage() {
   const previewed = byId(previewId) ?? active
 
   const apply = async (t: ThemeDef) => {
-    if (!confirm(`Apply “${t.name}” to the customer site? It goes live within about a minute.`)) return
+    if (!confirm(`Apply “${t.name}” to the customer site? Shoppers see it on their next page load.`)) return
     setBusy(true)
     try {
       setState(await activateTheme(t.id))
-      toast.success(`“${t.name}” is now the storefront theme`)
+      await refreshStorefrontTheme()
+      toast.success(`“${t.name}” is now the storefront theme — refresh the shop to see it`)
     } catch {
       toast.error('Failed to apply theme')
     } finally {
@@ -183,6 +185,8 @@ export default function ThemePage() {
       const res = editingId ? await updateCustomTheme(editingId, name.trim(), colors) : await createCustomTheme(name.trim(), colors)
       let next: ThemeAdminState = res
       if (andApply) next = await activateTheme(res.id)
+      // applied now, or edited while it's the live theme → the shop changes right away
+      if (andApply || res.id === next.activeId) await refreshStorefrontTheme()
       setState(next)
       setPreviewId(res.id)
       setEditorOpen(false)
@@ -200,6 +204,7 @@ export default function ThemePage() {
     setBusy(true)
     try {
       const next = await deleteCustomTheme(t.id)
+      if (live) await refreshStorefrontTheme()
       setState(next)
       if (previewId === t.id) setPreviewId(next.activeId)
       toast.success('Theme deleted')
